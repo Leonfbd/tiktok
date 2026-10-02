@@ -349,10 +349,51 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   .tabs{top:auto;position:static}
   .wrap{padding:15px}
 }
+/* --- 22. Hurtownia (masowa produkcja) --- */
+.batch-wrap{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-s)}
+.batch-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.batch-table th{
+  text-align:left;padding:9px 11px;border-bottom:1px solid var(--line-2);
+  color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+  position:sticky;top:0;background:var(--panel);z-index:2
+}
+.batch-table td{padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+.batch-table tr:hover td{background:rgba(255,255,255,.02)}
+.batch-empty{padding:18px;color:var(--muted);font-size:12.5px}
+.fmt{font-family:var(--mono);font-size:11.5px;background:var(--bg-2);border:1px dashed var(--line-2);
+  padding:7px 10px;border-radius:8px;color:var(--text-2);display:inline-block;margin-top:4px}
+
+/* --- 23. Presety branżowe --- */
+.preset-row{display:flex;gap:10px;align-items:center;justify-content:space-between;
+  padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--panel);margin-bottom:8px}
+.preset-row:hover{border-color:var(--line-2)}
+.preset-row .t{font-size:12.8px;font-weight:600}
+.preset-row .k{font-size:11px;color:var(--muted);max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* --- 24. Podgląd storyboardu (9:16) --- */
+.story{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:20px;align-items:start}
+.phone{position:relative;aspect-ratio:9/16;border-radius:24px;border:7px solid #05070a;
+  background:linear-gradient(160deg,#0d1219,#070a0f);overflow:hidden;box-shadow:var(--shadow)}
+.phone .overlay-text{position:absolute;left:8%;right:8%;top:18%;text-align:center;font-weight:800;
+  font-size:clamp(15px,2.2vw,23px);line-height:1.25;text-shadow:0 2px 12px rgba(0,0,0,.75)}
+.phone .beat-label{position:absolute;left:12px;top:11px;font-size:10.5px;color:var(--muted);font-family:var(--mono);max-width:70%}
+.phone .timer{position:absolute;right:12px;top:11px;font-family:var(--mono);font-size:11px;color:var(--cyan)}
+.phone .lower{position:absolute;left:8%;right:8%;bottom:8%;text-align:center;font-size:11.5px;color:#cfe0f5;line-height:1.4}
+.phone .prog{position:absolute;left:0;right:0;bottom:0;height:5px;background:rgba(255,255,255,.08);cursor:pointer}
+.phone .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--cyan));transition:width .12s linear}
+.beat-list{max-height:430px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--bg-2)}
+.beat-item{padding:9px 12px;border-bottom:1px solid var(--line);font-size:12.3px;cursor:pointer}
+.beat-item:hover{background:rgba(255,255,255,.03)}
+.beat-item.on{border-left:3px solid var(--pink);background:rgba(254,44,85,.07)}
+.beat-item .t{font-family:var(--mono);font-size:11px;color:var(--cyan)}
+.story-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+@media (max-width:820px){.story{grid-template-columns:1fr}}
+
 @media print{
   body{background:#fff;color:#000}
-  .topbar,.tabs,.btn,.toasts{display:none !important}
+  .topbar,.tabs,.btn,.toasts,.modal{display:none !important}
   .sec pre{color:#000;max-height:none}
+  .batch-wrap{max-height:none;overflow:visible}
 }
 </style>
 </head>
@@ -366,12 +407,13 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
     <div class="logo">TT</div>
     <div>
       <h1>Automat do Reklam TikTok<span class="pro">PRO</span></h1>
-      <p>Scenariusze · hooki 0–3s · shot list · CTA · hashtagi · warianty A/B</p>
+      <p>Scenariusze · hooki 0–3s · shot list · storyboard · tryb hurtowy · warianty A/B</p>
     </div>
   </div>
   <div class="top-actions">
     <span class="badge" id="badgeEngine"><span class="dot"></span><span id="badgeEngineTxt">Silnik: lokalny (offline)</span></span>
     <span class="badge" id="badgeApi"><span class="dot"></span><span id="badgeApiTxt">API: brak klucza</span></span>
+    <span class="badge" title="Wersja narzędzia"><span class="dot"></span>v2.0</span>
     <button class="btn sm ghost" id="btnSaveProject">💾 Zapisz projekt</button>
     <button class="btn sm" id="btnKey">🔑 Klucz API</button>
   </div>
@@ -383,6 +425,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 <nav class="tabs">
   <button class="tab active" data-tab="campaign">1 · Kampania</button>
   <button class="tab" data-tab="results">2 · Wyniki <span class="pill" id="pillVariants">0</span></button>
+  <button class="tab" data-tab="batch">3 · Hurt <span class="pill" id="pillBatch">0</span></button>
   <button class="tab" data-tab="history">Historia <span class="pill" id="pillHistory">0</span></button>
   <button class="tab" data-tab="settings">Ustawienia</button>
 </nav>
@@ -474,6 +517,34 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
                 <input type="text" id="f_campaign" placeholder="np. Serum C – test hooków 10.2026">
               </div>
             </div>
+
+            <details style="margin-top:4px">
+              <summary class="hint" style="cursor:pointer;padding:6px 0">▸ Pola zaawansowane (korzyści, dowody, hashtagi, KPI, disclaimery) – nadpisują profil branżowy</summary>
+              <div class="grid-2" style="margin-top:10px">
+                <div class="field">
+                  <label>Korzyści <span class="sub">(jedna na linię – używane w scenach „jak to działa”)</span></label>
+                  <textarea id="f_benefits" rows="3" placeholder="oszczędza czas w porannej rutynie&#10;jedna butelka na ok. 2 miesiące&#10;prosty start bez instrukcji"></textarea>
+                </div>
+                <div class="field">
+                  <label>Punkty dowodowe <span class="sub">(liczby, fakty – jedna na linię)</span></label>
+                  <textarea id="f_proofPoints" rows="3" placeholder="ponad 12 000 sprzedanych sztuk&#10;4 300 opinii ze średnią 4,8&#10;skład INCI na etykiecie"></textarea>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label>Hashtagi <span class="sub">(spacja lub przecinek)</span></label>
+                  <input type="text" id="f_hashtags" placeholder="#serum #pielegnacja #fyp">
+                </div>
+                <div class="field">
+                  <label>KPI kampanii <span class="sub">(przecinek)</span></label>
+                  <input type="text" id="f_kpis" placeholder="CTR, CVR, ROAS, hook rate 3 s">
+                </div>
+              </div>
+              <div class="field">
+                <label>Disclaimery <span class="sub">(jeden na linię – dodawane do pakietu)</span></label>
+                <textarea id="f_disclaimers" rows="2" placeholder="Wyniki mogą się różnić w zależności od indywidualnych predyspozycji."></textarea>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -622,6 +693,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
           <button class="btn sm" data-exp="txt">⬇ TXT</button>
           <button class="btn sm" data-exp="md">⬇ MD</button>
           <button class="btn sm" data-exp="json">⬇ JSON</button>
+          <button class="btn sm" data-exp="csv">⬇ CSV (hurt)</button>
+          <button class="btn sm" id="btnPrint">🖨 Drukuj / PDF</button>
           <button class="btn sm primary" data-exp="package">📦 Eksport pełnego pakietu</button>
         </div>
       </div>
@@ -634,7 +707,66 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   </section>
 
   <!-- ==========================================================
-       ZAKŁADKA 3: HISTORIA
+       ZAKŁADKA 3: HURTOWNIA (masowa produkcja pakietów)
+       ========================================================== -->
+  <section class="view" id="view-batch">
+    <div class="panel" style="margin-bottom:18px">
+      <div class="head">
+        <h2>🏭 Masowa produkcja – lista kampanii</h2>
+        <div class="btn-row">
+          <button class="btn sm" id="btnBatchSample">Wstaw przykład</button>
+          <button class="btn sm" id="btnBatchClear">Wyczyść</button>
+        </div>
+      </div>
+      <div class="body">
+        <div class="field">
+          <label>Lista kampanii <span class="sub">(jedna linia = jedna kampania, maks. 50 linii, # na początku = komentarz)</span></label>
+          <textarea id="batchInput" rows="7" spellcheck="false" placeholder="kosmetyki naturalne | serum z witaminą C | 89 zł | pl | 15&#10;fitness | plan treningowy 20 minut&#10;gadżety do domu | organizer kuchenny | 59 zł | pl | 30&#10;appka do budżetu | subskrypcja 19 zł | 19 zł/mies | pl | 7"></textarea>
+          <span class="fmt">branża | produkt | [cena] | [język: pl/en/de/es/fr/it/pt/nl/sv/cs/uk/da] | [długość: 7/15/30/45]</span>
+        </div>
+        <div class="grid-3">
+          <div class="field">
+            <label>Pozostałe pola</label>
+            <select id="batchInherit">
+              <option value="on" selected>Dziedzicz z aktualnego briefu (styl, ton, moduły, warianty)</option>
+              <option value="off">Tylko z profilu branżowego (brief pusty)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Strategia dla całej partii</label>
+            <select id="batchStrategy">
+              <option value="" selected>Z briefu / strategia z zakładki Kampania</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Silnik partii</label>
+            <input type="text" value="Silnik lokalny (offline) – natychmiast, bez limitów API" disabled>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" id="btnRunBatch">🏭 GENERUJ PARTIĘ</button>
+          <button class="btn" id="btnBatchCsv" title="CSV z wszystkich kampanii – jedna linia na wariant">⬇ Eksport CSV</button>
+          <button class="btn" id="btnBatchJson">⬇ Eksport JSON</button>
+          <button class="btn" id="btnBatchSaveHistory">💾 Zapisz wszystkie do historii</button>
+        </div>
+        <div class="bar" style="margin-top:12px"><i id="batchProgress"></i></div>
+        <p class="hint">Partia pracuje na silniku lokalnym – to celowe: 20 kampanii w kilka sekund, zero kosztów API i zero limitów. Dla pojedynczych, kluczowych kreacji użyj zakładki „Kampania” z API.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="head">
+        <h2>Wyniki partii <span class="pill" id="pillBatchRows">0</span></h2>
+        <span class="hint">Kliknij „Otwórz”, aby wczytać kampanię do zakładki Wyniki (pełne sekcje + regeneracja)</span>
+      </div>
+      <div class="body">
+        <div class="batch-wrap" id="batchTable"><div class="batch-empty">Brak wygenerowanych kampanii. Wklej listę i kliknij GENERUJ PARTIĘ.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       ZAKŁADKA 4: HISTORIA
        ========================================================== -->
   <section class="view" id="view-history">
     <div class="panel">
@@ -744,6 +876,31 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
         </div>
 
         <div class="panel">
+          <div class="head">
+            <h2>🗃 Własne presety branżowe</h2>
+            <div class="btn-row">
+              <button class="btn mini" id="btnPresetFromBrief">➕ Z bieżącego briefu</button>
+              <button class="btn mini" id="btnPresetExport">⬇ JSON</button>
+              <button class="btn mini" id="btnPresetImport">⬆ Import</button>
+              <input type="file" id="filePresetImport" accept=".json,application/json" style="display:none">
+            </div>
+          </div>
+          <div class="body" id="presetList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h2>💾 Pamięć lokalna</h2></div>
+          <div class="body">
+            <table class="kv" id="storageTable"></table>
+            <div class="btn-row" style="margin-top:11px">
+              <button class="btn sm" id="btnPruneHistory">✂ Przytnij historię do 10 najnowszych</button>
+              <button class="btn sm" id="btnRefreshStorage">↻ Odśwież</button>
+            </div>
+            <p class="hint" style="margin-top:9px">Przeglądarki dają zwykle ok. 5 MB na localStorage. Historia jest automatycznie przycinana, gdy przekroczy bezpieczny rozmiar.</p>
+          </div>
+        </div>
+
+        <div class="panel">
           <div class="head"><h2>⌨ Skróty i szybkie akcje</h2></div>
           <div class="body">
             <table class="kv">
@@ -790,6 +947,81 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
     <footer>
       <button class="btn danger" id="btnModalWipe">Usuń klucz</button>
       <button class="btn primary" id="btnModalSave">Zapisz klucz</button>
+    </footer>
+  </div>
+</div>
+
+<!-- MODAL: podgląd storyboardu 9:16 -->
+<div class="modal" id="modalStory">
+  <div class="box" style="width:min(1000px,100%)">
+    <header>
+      <h3 id="storyTitle">Podgląd storyboardu</h3>
+      <button class="btn mini" id="btnCloseStory">✕</button>
+    </header>
+    <div class="body">
+      <div class="story">
+        <div>
+          <div class="phone" id="storyPhone">
+            <div class="beat-label" id="storyBeatLabel">—</div>
+            <div class="timer" id="storyTimer">0,0 s</div>
+            <div class="overlay-text" id="storyOverlay">—</div>
+            <div class="lower" id="storyLower">—</div>
+            <div class="prog" id="storyProgWrap"><i id="storyProg"></i></div>
+          </div>
+          <div class="story-controls">
+            <button class="btn sm" id="storyBack" title="Od początku">⏮</button>
+            <button class="btn primary sm" id="storyPlay">▶ Odtwórz</button>
+            <button class="btn sm" id="storySpeed" title="Prędkość odtwarzania">×1</button>
+            <span class="hint" id="storyTimeInfo">0,0 / 0,0 s</span>
+          </div>
+        </div>
+        <div>
+          <p class="hint" style="margin-bottom:9px">Overlay i opis kadru pochodzą z wygenerowanych sekcji („Overlay text”, „Shot list”). Kliknij beat, żeby przeskoczyć w czasie.</p>
+          <div class="beat-list" id="storyBeats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: edytor presetu branżowego -->
+<div class="modal" id="modalPreset">
+  <div class="box" style="width:min(780px,100%)">
+    <header>
+      <h3 id="presetTitle">Preset branżowy</h3>
+      <button class="btn mini" id="btnClosePreset">✕</button>
+    </header>
+    <div class="body">
+      <div class="grid-2">
+        <div class="field"><label>Nazwa presetu</label><input type="text" id="p_label" placeholder="np. Kosmetyki naturalne – premium"></div>
+        <div class="field"><label>Słowa kluczowe (rozpoznawanie branży)</label><input type="text" id="p_kw" placeholder="serum, krem, skóra, beauty"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Grupa docelowa</label><textarea id="p_audience" rows="2"></textarea></div>
+        <div class="field"><label>Problem klienta</label><textarea id="p_problem" rows="2"></textarea></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Główna obietnica</label><textarea id="p_promise" rows="2"></textarea></div>
+        <div class="field"><label>Dowód / argument</label><textarea id="p_proof" rows="2"></textarea></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Oferta / bonus</label><textarea id="p_offer" rows="2"></textarea></div>
+        <div class="field"><label>Obiekcje klienta</label><textarea id="p_objection" rows="2"></textarea></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Korzyści (jedna na linię)</label><textarea id="p_benefits" rows="3"></textarea></div>
+        <div class="field"><label>Punkty dowodowe (jedna na linię)</label><textarea id="p_proofPoints" rows="3"></textarea></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Hashtagi (spacja lub przecinek)</label><input type="text" id="p_hashtags" placeholder="#serum #beauty #skincare"></div>
+        <div class="field"><label>KPI (przecinek)</label><input type="text" id="p_kpis" placeholder="CTR, CVR, ROAS"></div>
+      </div>
+      <div class="field"><label>Disclaimery (jeden na linię)</label><textarea id="p_disclaimers" rows="2"></textarea></div>
+    </div>
+    <footer>
+      <button class="btn danger" id="btnPresetDelete">🗑 Usuń</button>
+      <button class="btn ghost" id="btnPresetCancel">Anuluj</button>
+      <button class="btn primary" id="btnPresetSave">Zapisz preset</button>
     </footer>
   </div>
 </div>
@@ -1121,7 +1353,77 @@ const NICHES = [
     proofPoints:['ponad 1 200 zaplanowanych wyjazdów','4,9 średniej oceny planów','nagrania z miejsc publikowane w relacjach'],
     hashtags:['#podroze','#wakacje','#citybreak','#travel','#planwyjazdu','#nocleg','#budzet','#travelhacks'],
     disclaimers:['Ceny lotów i noclegów zmieniają się dynamicznie – ostateczny koszt potwierdza rezerwacja.'],
-    kpis:['CTR','koszt zapytań','CVR','średnia wartość rezerwacji'] }
+    kpis:['CTR','koszt zapytań','CVR','średnia wartość rezerwacji'] },
+
+  { id:'moda', label:'Moda / odzież / dodatki',
+    kw:['moda','odzie','ubran','kurtk','but','obuw','dodatk','torebk','bizuter','zegar','streetwear','stylizacj','sweter','sukienk','spodn','czapk'],
+    audience:'osoby 20–40 kupujące online, kierują się wyglądem zdjęć i opiniami o rozmiarówce',
+    problem:'kupowanie ubrań przez internet to loteria: rozmiar nie tak, materiał nie tak, a zwroty zjadają czas',
+    promise:'ubranie, które wygląda jak na zdjęciu, z realną tabelą rozmiarów i prostym zwrotem',
+    proof:'zdjęcia na różnych sylwetkach, opinie z wzrostem i rozmiarem, liczba zamówień',
+    offer:'zwrot 30 dni bez pytań, wysyłka 24 h, druga sztuka -30%',
+    objection:'„znowu nie będzie pasować”, „materiał okaże się gorszy niż na zdjęciu”',
+    benefits:['pasuje do 3 stylizacji bez kombinowania','trzyma kolor i kształt po praniu','tabela rozmiarów z realnymi wymiarami, nie tylko S/M/L','zwrot w 30 dni bez tłumaczenia'],
+    proofPoints:['ponad 8 000 zamówień ze średnią oceną 4,7','zdjęcia na 4 wzrostach i w 4 rozmiarach','skład i gramatura materiału podane przy każdym produkcie'],
+    hashtags:['#moda','#stylizacja','#ootd','#streetwear','#modapl','#zakupyonline','#inspiracje','#haul'],
+    disclaimers:['Kolory na zdjęciach mogą różnić się od rzeczywistych w zależności od ustawień ekranu i oświetlenia.'],
+    kpis:['hook rate 3 s','CTR','CVR','wskaźnik zwrotów','AOV'] },
+
+  { id:'pets', label:'Zwierzęta / akcesoria dla pupili',
+    kw:['zwierz','pies','kot','pupil','karma','smycz','legowisk','weteryn','akwarium','gryzoń','koci','psiak','transporter','dla psa'],
+    audience:'opiekunowie psów i kotów 25–45, traktują pupila jak członka rodziny, kupują z telefonu',
+    problem:'codzienna obsługa pupila zajmuje czas: sierść w domu, spacery, sprzątanie, brak spokojnego miejsca',
+    promise:'proste akcesorium, które skraca codzienną obsługę pupila i porządkuje dom',
+    proof:'filmy z użycia, opinie opiekunów, liczba zamówień i zwrotów',
+    offer:'wysyłka 24 h, 30 dni na zwrot, zestaw startowy w niższej cenie',
+    objection:'„mój pies tego nie zaakceptuje”, „pewnie szybko się zepsuje”',
+    benefits:['oszczędza czas przy codziennej pielęgnacji','mycie zajmuje 2 minuty','bezpieczne materiały, bez ostrych krawędzi','sprawdza się u szczeniąt i dorosłych psów'],
+    proofPoints:['ponad 3 200 zamówień od opiekunów','filmy z użycia przysłane przez klientów','średnia ocena 4,8 w opiniach'],
+    hashtags:['#pies','#kot','#pupil','#psy','#koty','#akcesoriadlapsa','#dogsoftiktok','#opiekun'],
+    disclaimers:['Produkt nie zastępuje opieki weterynaryjnej. W razie wątpliwości skonsultuj się z lekarzem weterynarii.'],
+    kpis:['hook rate 3 s','CTR','CVR','ROAS','save rate'] },
+
+  { id:'gaming', label:'Gry / aplikacje mobilne',
+    kw:['gra','gaming','aplikacj mobiln','mobiln','esport','konsol','steam','gameplay','apka','grywalizacj','puzzle','league','fortnite'],
+    audience:'gracze 16–35 grający w krótkich sesjach, wybierają gry po rozgrywce, nie po opisie',
+    problem:'krótkie przerwy w ciągu dnia i brak gry, która wciąga od pierwszego kliknięcia, a nie po tygodniu nauki',
+    promise:'rozgrywka zrozumiała w 10 sekund, do której wracasz codziennie',
+    proof:'liczba pobrań, opinie w sklepach z aplikacjami, nagrania z rozgrywek',
+    offer:'darmowy start, brak reklam w wersji premium, aktualizacje co miesiąc',
+    objection:'„pewnie pay-to-win”, „reklamy co 30 sekund”',
+    benefits:['zasady zrozumiałe bez tutorialu','sesje po 2–5 minut','postęp zależny od gry, nie od płatności','działa płynnie na starszych telefonach'],
+    proofPoints:['ponad 1 mln pobrań w sklepach','ocena 4,6 z ponad 60 tys. opinii','cotygodniowe turnieje w grze'],
+    hashtags:['#gaming','#grymobilne','#gameplay','#mobilegaming','#gry','#esport','#gracz','#polecamgre'],
+    disclaimers:['Gra zawiera opcjonalne zakupy w aplikacji. Prezentujemy mechanikę i rozgrywkę, bez obietnic wyników rankingowych.'],
+    kpis:['CPM','koszt instalacji (CPI)','retention D1','CTR','ROAS'] },
+
+  { id:'kids', label:'Dziecko / mama / zabawki',
+    kw:['dzieck','dzieci','mama','niemowl','zabawk','wózek','wozek','pieluch','żłob','przedszkol','edukacj dzieci','bobas','maluch'],
+    audience:'rodzice dzieci 0–8 lat, 27–42, decydują szybko, ale sprawdzają bezpieczeństwo i atesty',
+    problem:'brak czasu na organizację dnia z dzieckiem i ciągłe sprzątanie po zabawie',
+    promise:'proste rozwiązanie, które porządkuje dzień i zajmuje dziecko dłużej niż 10 minut bez ekranu',
+    proof:'opinie rodziców, nagrania z użycia, atesty i certyfikaty',
+    offer:'zestaw w niższej cenie, wysyłka 48 h, 30 dni na zwrot',
+    objection:'„pewnie dziecko znudzi się po jednym dniu”',
+    benefits:['zajmuje dziecko bez ekranu','bezpieczne materiały z atestem','łatwe sprzątanie i przechowywanie','rośnie razem z dzieckiem'],
+    proofPoints:['ponad 5 000 rodzin korzysta z zestawu','opinie z wiekiem dziecka i zdjęciami','atesty i certyfikaty opisane na stronie produktu'],
+    hashtags:['#mama','#rodzic','#dziecko','#zabawkiedukacyjne','#mamadziecka','#rozwojdziecka','#tiktokmama','#macierzynstwo'],
+    disclaimers:['Produkt przeznaczony dla dzieci zgodnie z oznaczeniem wieku na opakowaniu. Używaj pod opieką osoby dorosłej i sprawdzaj stan produktu przed każdym użyciem.'],
+    kpis:['hook rate 3 s','CTR','CVR','AOV','koszt koszyka'] },
+
+  { id:'eco', label:'Eko / ogród / działka',
+    kw:['eko','ogrod','działk','dzialk','roślin','roslin','nasion','kompost','kwiat','doniczk','szklarn','trawnik','bio','uprawa'],
+    audience:'osoby 30–60 z domem, ogrodem lub balkonem, cenią konkretne porady zamiast teorii',
+    problem:'brak czasu na pielęgnację roślin, a efekty widać dopiero po sezonie – połowa pracy idzie na marne',
+    promise:'prosty system, który skraca pielęgnację do kilku minut w tygodniu',
+    proof:'zdjęcia i filmy z upraw, wyniki z sezonu, opinie działkowiczów',
+    offer:'zestaw startowy z instrukcją wideo, dostawa 48 h, wsparcie na czacie',
+    objection:'„nie mam ręki do roślin”',
+    benefits:['podlewanie raz na kilka dni','instrukcja krok po kroku na cały sezon','działa na balkonie i w gruncie','opakowania kompostowalne'],
+    proofPoints:['sezon z ponad 1 400 zestawami','relacje ze wzrostem roślin co tydzień','instrukcja wideo do każdego zestawu'],
+    hashtags:['#ogrod','#dzialka','#ekologicznie','#rosliny','#ogrodnictwo','#balkon','#uprawa','#sezon'],
+    disclaimers:['Efekty uprawy zależą od warunków pogodowych, gleby i regularności pielęgnacji.'],
+    kpis:['hook rate 3 s','CTR','CVR','koszt sprzedaży','ROAS w sezonie'] }
 ];
 
 /** Branża uniwersalna – gdy nie rozpoznano niszy. */
@@ -1155,15 +1457,19 @@ pl:{
            'POV: {P}. Robisz wszystko „dobrze”, a efektu nie widać.',
            'Nikt o tym nie mówi, a to kosztuje Cię czas każdego tygodnia: {P}.',
            'Jeden szczegół psuje cały efekt: {P}. Pokażę go w kilkanaście sekund.',
+           'Ile razy w tym miesiącu odpuściłeś przez {P}? Policzmy to razem.',
+           'To nie kwestia silnej woli. To kwestia złej kolejności przy {P}.',
            'Stop. Zanim wydasz kolejne pieniądze na {BRANZA}: {P} da się ogarnąć prościej.' ],
     pov:[ 'POV: masz {P} i kilkanaście sekund na decyzję.',
           'To POV osoby, która właśnie przetestowała {PRODUKT}.',
           'Dzień jak co dzień: {P}. Aż do momentu, gdy zmieniłem jedną rzecz.',
-          'POV: sprawdzasz, czy {PRODUKT} naprawdę działa – bez ściemy i montażu.' ],
+          'POV: sprawdzasz, czy {PRODUKT} naprawdę działa – bez ściemy i montażu.',
+          'POV: 15 sekund, żeby zdecydować, czy to jest dla Ciebie.' ],
     proof:[ '„{OPINIA}” – zdanie, które słyszymy najczęściej od klientów.',
             'Liczby najpierw: {DOWOD}.',
             'Nie mówię „zaufaj mi”. Pokażę {DOWOD}.',
-            'Sprawdzam rzetelnie: {DOWOD}. Bez filtrów, bez retuszu.' ],
+            'Sprawdzone w praktyce: {DOWOD}. Bez filtrów, bez retuszu.',
+            'Nie wierz mi na słowo – {DOWOD} mówi wszystko.' ],
     myth:[ 'Przestań to robić przy {P}: prawie wszyscy tak robią i dlatego nie widzą efektów.',
            'Mit: „im więcej, tym lepiej”. Prawda: liczy się kolejność i regularność.',
            '„Trzeba na to dużo czasu” – najczęstszy mit. Kategoria: {BRANZA}.',
@@ -1187,7 +1493,8 @@ pl:{
     price:[ '{CENA} za coś, co robisz co tydzień? Policz to w skali roku.',
             'Podobny efekt bywa kilka razy droższy. Sprawdź, jak to policzyliśmy.',
             'Zanim zapłacisz, policz koszt alternatywy: czas, nerwy, powtórki.',
-            'Nie sprzedaję „tanio”. Pokazuję, za co dokładnie płacisz.' ],
+            'Nie sprzedaję „tanio”. Pokazuję, za co dokładnie płacisz.',
+            'Za {CENA}? Policz, ile kosztuje Cię obecne rozwiązanie.' ],
     founder:[ 'Zaczęło się od jednego zdania, które usłyszałem setki razy.',
               'Zbudowałem {MARKA}, bo sam miałem dosyć tego problemu.',
               'Nie korporacja. Kilka osób i jedna obsesja: zrobić to porządnie.',
@@ -1199,7 +1506,9 @@ pl:{
     season:[ 'Okno na to masz krótkie – i nie chodzi o marketing.',
              'Ten moment w roku ma znaczenie. Sprawdź, dlaczego teraz jest łatwiej.',
              'Zostały dni, nie tygodnie. Pokażę, jak to policzyć.',
-             'Startuje sezon. Oto, co robimy w tym okresie inaczej.' ]
+             'Startuje sezon. Oto, co robimy w tym okresie inaczej.',
+             'Okno na to jest krótkie – sprawdź, zanim zrobi się kolejka.',
+             'Ten moment w roku zdarza się raz. Warto go nie przespać.' ]
   },
   lens:{
     pain:'Cały przekaz wchodzi w ból odbiorcy, produkt jest narzędziem, nie bohaterem.',
@@ -1338,15 +1647,19 @@ en:{
     pain:[ 'Sound familiar? {P} – small thing, yet it eats your time every week.',
            'POV: {P}. You do everything “right”, still no result.',
            'The problem nobody talks about in {BRANZA}: {P}.',
-           'If {P}, there is one gap in your routine. I will show it in 15 seconds.' ],
+           'If {P}, there is one gap in your routine. I will show it in 15 seconds.',
+           'How many times did you quit this month because of {P}? Let us count.',
+           'This is not about willpower. It is about the wrong order.' ],
     pov:[ 'POV: you have {P} and about 15 seconds to decide.',
           'This is the POV of someone who just tested {PRODUKT}.',
           'Same day as always: {P}. Until one thing changed.',
-          'POV: testing {PRODUKT} and checking if it actually works.' ],
+          'POV: testing {PRODUKT} and checking if it actually works.',
+          'POV: 15 seconds to decide if this is for you.' ],
     proof:[ '“{OPINIA}” – what we hear from customers most often.',
             'Numbers first: {DOWOD}.',
             'I will not say “trust me”. Let me show you {DOWOD}.',
-            'Raw check: {DOWOD}. No filters, no editing tricks.' ],
+            'Raw check: {DOWOD}. No filters, no editing tricks.',
+            'Do not take my word for it – {DOWOD} says it all.' ],
     myth:[ 'Stop doing this with {P} – almost everyone does it and that is why nothing changes.',
            'Myth: “more is better”. Truth: order and consistency win.',
            '“It takes too much time” is the number one myth in {BRANZA}.',
@@ -1370,7 +1683,8 @@ en:{
     price:[ '{CENA} for something you do weekly? Run the yearly math.',
             'A similar result can cost several times more. See how we counted it.',
             'Before you pay, count the alternative: time, nerves, retries.',
-            'I am not selling “cheap”. I show you exactly what you pay for.' ],
+            'I am not selling “cheap”. I show you exactly what you pay for.',
+            '{CENA}? Count what the current solution costs you.' ],
     founder:[ 'It started with one sentence I heard hundreds of times.',
               'I built {MARKA} because I was tired of this problem myself.',
               'Not a corporation. A few people and one obsession: do it properly.',
@@ -1382,7 +1696,9 @@ en:{
     season:[ 'Your window for this is short – and it is not marketing talk.',
              'This time of year matters. See why it is easier right now.',
              'Days left, not weeks. Let me show the math.',
-             'Season starts. Here is what we do differently this time.' ]
+             'Season starts. Here is what we do differently this time.',
+             'The window is short – check before the queue gets longer.',
+             'This moment of the year comes once. Worth not sleeping on it.' ]
   },
   lens:{
     pain:'Message enters the pain first; the product is the tool, not the hero.',
@@ -1521,16 +1837,70 @@ en:{
    C. MAGAZYN DANYCH (localStorage)
    ========================================================================== */
 const LS = {
-  settings:'tikttok_pro_settings_v1'.replace('tikttok','tiktok'),
+  settings:'tiktok_pro_settings_v1',
   draft:'tiktok_pro_draft_v1',
   history:'tiktok_pro_history_v1',
-  keys:'tiktok_pro_keys_v1'
+  presets:'tiktok_pro_presets_v1'
 };
+const STORAGE_LIMIT = 4.4 * 1024 * 1024;    // bezpieczny limit (przeglądarki dają ~5 MB)
+const NUM_KEYS = { [LS.history]:true, [LS.presets]:true };
+
+/** Szacowany rozmiar danych w localStorage (bajty, przybliżenie UTF-16 → 2 B/znak). */
+function approxSize(keys){
+  let total = 0;
+  const list = keys || Object.values(LS);
+  list.forEach(k => { try{ const v = localStorage.getItem(k); if(v) total += (v.length + k.length) * 2; }catch(e){} });
+  return total;
+}
+/** Formatowanie rozmiaru do UI. */
+function fmtBytes(b){ return b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(2) + ' MB'; }
+
+/**
+ * Zapis z ochroną pamięci.
+ * Przy przekroczeniu limitu automatycznie przycina najstarsze wpisy tablic (historia, presety).
+ * @returns {boolean} czy udało się zapisać
+ */
+function storeSet(key, value){
+  const payload = JSON.stringify(value);
+  try{
+    localStorage.setItem(key, payload);
+    if(approxSize() > STORAGE_LIMIT) pruneStorage(key);
+    return true;
+  }catch(e){
+    const arr = Array.isArray(value) ? value.slice() : null;
+    if(arr){
+      while(arr.length > 1){
+        arr.pop();                                   // usuwamy najstarsze wpisy i próbujemy ponownie
+        try{
+          localStorage.setItem(key, JSON.stringify(arr));
+          toast(`Pamięć przeglądarki prawie pełna – przycięto ${key === LS.history ? 'historię' : 'presety'} do ${arr.length} wpisów`, 'warn', 6000);
+          return true;
+        }catch(e2){ /* próbujemy dalej */ }
+      }
+    }
+    toast('Brak miejsca w pamięci przeglądarki. Wyczyść historię w Ustawieniach (panel „Pamięć lokalna”).', 'err', 7000);
+    return false;
+  }
+}
 const store = {
   get(k, fb){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } },
-  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ toast('Brak miejsca w localStorage – wyczyść historię','err'); return false; } },
+  set(k, v){ return storeSet(k, v); },
   del(k){ try{ localStorage.removeItem(k); }catch(e){} }
 };
+
+/** Przycina tablice w localStorage, dopóki całość nie zmieści się w limicie. */
+function pruneStorage(preferredKey){
+  const order = [preferredKey, LS.history, LS.presets].filter((k, i, a) => k && a.indexOf(k) === i);
+  order.forEach(k => {
+    if(!NUM_KEYS[k]) return;
+    let arr = store.get(k, []);
+    while(Array.isArray(arr) && arr.length > 1 && approxSize() > STORAGE_LIMIT){
+      arr = arr.slice(0, Math.max(1, Math.floor(arr.length * 0.7)));
+      try{ localStorage.setItem(k, JSON.stringify(arr)); }catch(e){ break; }
+    }
+  });
+  return approxSize();
+}
 
 /** Domyślne ustawienia aplikacji. */
 const DEFAULTS = {
@@ -1571,20 +1941,221 @@ function fill(tpl, V){
   if(!tpl) return '';
   return tpl.replace(/\{(P|PRODUKT|AUD|BRANZA|CENA|OFERTA|DOWOD|OBIEKCJA|MARKA|OB|BENEFIT1|BENEFIT2|BENEFIT3|OPINIA|SLOWO)\}/g, (m, k) => (V[k] != null && V[k] !== '' ? V[k] : (k === 'SLOWO' ? 'INFO' : '—')));
 }
+/** Zamienia wartość (tablica / tekst z linii / tekst z przecinków) na tablicę. */
+function toList(v){
+  if(v == null) return [];
+  if(Array.isArray(v)) return v.map(x => String(x).trim()).filter(Boolean);
+  const str = String(v).trim();
+  if(!str) return [];
+  return str.split(/\r?\n|,(?![^#]*\s*#)/).map(x => x.trim()).filter(Boolean);
+}
+
+/**
+ * Skraca zbyt długą linię do limitu słów (dla formatów 7/15 s, gdzie liczy się każda sekunda).
+ * Kolejność: całe zdanie → pierwsza klauzula → twarde cięcie z wielokropkiem.
+ */
+function compressLine(text, maxWords){
+  const str = String(text || '').trim();
+  const wc = t => t.split(/\s+/).filter(Boolean).length;
+  if(wc(str) <= maxWords) return str;
+  const firstSentence = (str.match(/^[^.!?]*[.!?]/) || [''])[0].trim();
+  if(firstSentence && wc(firstSentence) <= maxWords) return firstSentence;
+  const firstClause = str.split(/[,;:–—]\s*/)[0].trim();
+  if(firstClause && wc(firstClause) <= maxWords) return firstClause.replace(/[.,;:]$/, '') + '.';
+  return str.split(/\s+/).slice(0, Math.max(3, maxWords - 1)).join(' ') + '…';
+}
+
 /** Krótka wersja tekstu (do overlay / hooków). */
 function short(t, max){ t = String(t||'').trim(); return t.length <= max ? t : t.slice(0, max - 1).replace(/[\s,.;:]+$/,'') + '…'; }
 function upFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
-/** Rozpoznanie branży po słowach kluczowych (case-insensitive). */
+/** Wszystkie profile branż: wbudowane + własne presety użytkownika. */
+function allNiches(){ return NICHES.concat(getPresets()); }
+
+/** Rozpoznanie branży po słowach kluczowych (case-insensitive). Presety własne mają priorytet. */
 function detectNiche(industry, product){
   const hay = ((industry||'') + ' ' + (product||'')).toLowerCase();
   let best = null, bestScore = 0;
-  NICHES.forEach(n => {
+  // własne presety użytkownika mają priorytet przy takim samym trafieniu słów kluczowych
+  getPresets().concat(NICHES).forEach(n => {
     let score = 0;
-    n.kw.forEach(k => { if(hay.includes(k)) score += k.length >= 5 ? 2 : 1; });
+    (n.kw || []).forEach(k => { if(hay.includes(String(k).toLowerCase())) score += String(k).length >= 5 ? 2 : 1; });
     if(score > bestScore){ bestScore = score; best = n; }
   });
   return bestScore > 0 ? best : GENERIC_NICHE;
+}
+
+/* ============================================================================
+   B3. WŁASNE PRESETY BRANŻOWE – pełny CRUD + import/eksport
+   ========================================================================== */
+function getPresets(){ const p = store.get(LS.presets, []); return Array.isArray(p) ? p : []; }
+function savePresets(list){ return store.set(LS.presets, list); }
+
+/** Preset z aktualnego briefu (pomija puste pola). */
+function presetFromBrief(){
+  const b = collectBrief();
+  const lines = v => String(v || '').split('\n').map(x => x.trim()).filter(Boolean);
+  return {
+    id:'np_' + Date.now(),
+    label: b.campaign ? (b.campaign + ' – ' + (b.industry || 'preset')) : (b.industry || 'Mój preset'),
+    kw: uniq(String(b.industry || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 3)),
+    audience: b.audience || '', problem: b.problem || '', promise: b.promise || '',
+    proof: b.proof || '', offer: b.offer || '', objection: b.objection || '',
+    benefits: lines(b.benefits), proofPoints: lines(b.proofPoints),
+    hashtags: String(b.hashtags || '').split(/[\s,]+/).filter(t => t.startsWith('#')),
+    kpis: String(b.kpis || '').split(',').map(x => x.trim()).filter(Boolean),
+    disclaimers: lines(b.disclaimers), custom:true
+  };
+}
+
+/** Otwiera edytor presetu (nowy, z briefu lub edycja istniejącego). */
+function openPresetEditor(preset){
+  const P = preset || { id:'np_' + Date.now(), label:'', kw:[], benefits:[], proofPoints:[], hashtags:[], kpis:[], disclaimers:[] };
+  presetEditId = P.id;
+  const set = (id, v) => { const el = document.getElementById(id); el.value = v == null ? '' : v; };
+  set('p_label', P.label); set('p_kw', (P.kw || []).join(', '));
+  set('p_audience', P.audience); set('p_problem', P.problem); set('p_promise', P.promise);
+  set('p_proof', P.proof); set('p_offer', P.offer); set('p_objection', P.objection);
+  set('p_benefits', (P.benefits || []).join('\n')); set('p_proofPoints', (P.proofPoints || []).join('\n'));
+  set('p_hashtags', (P.hashtags || []).join(' ')); set('p_kpis', (P.kpis || []).join(', '));
+  set('p_disclaimers', (P.disclaimers || []).join('\n'));
+  document.getElementById('presetTitle').textContent = getPresets().some(x => x.id === P.id) ? 'Edytuj preset branżowy' : 'Nowy preset branżowy';
+  document.getElementById('modalPreset').classList.add('open');
+}
+let presetEditId = null;
+
+/** Zapis presetu z formularza edytora. */
+function savePresetFromEditor(){
+  const g = id => (document.getElementById(id).value || '').trim();
+  const lines = v => v.split('\n').map(x => x.trim()).filter(Boolean);
+  const P = {
+    id: presetEditId || ('np_' + Date.now()),
+    label: g('p_label') || 'Mój preset',
+    kw: g('p_kw').toLowerCase().split(/[,\n]+/).map(x => x.trim()).filter(Boolean),
+    audience: g('p_audience'), problem: g('p_problem'), promise: g('p_promise'),
+    proof: g('p_proof'), offer: g('p_offer'), objection: g('p_objection'),
+    benefits: lines(g('p_benefits')), proofPoints: lines(g('p_proofPoints')),
+    hashtags: g('p_hashtags').split(/[\s,]+/).filter(t => t.startsWith('#')),
+    kpis: g('p_kpis').split(',').map(x => x.trim()).filter(Boolean),
+    disclaimers: lines(g('p_disclaimers')), custom:true
+  };
+  if(!P.audience && !P.problem && !P.promise){ toast('Uzupełnij przynajmniej grupę docelową, problem lub obietnicę','warn'); return; }
+  const list = getPresets();
+  const idx = list.findIndex(x => x.id === P.id);
+  if(idx >= 0) list[idx] = P; else list.unshift(P);
+  // uzupełniamy brakujące pola z profilu wbudowanego, by preset był kompletny
+  const base = detectNiche(P.label, (P.kw || []).join(' '));
+  P.benefits = P.benefits.length ? P.benefits : base.benefits;
+  P.proofPoints = P.proofPoints.length ? P.proofPoints : (base.proofPoints || [base.proof]);
+  P.proof = P.proof || base.proof;
+  P.offer = P.offer || base.offer;
+  P.objection = P.objection || base.objection;
+  P.hashtags = P.hashtags.length ? P.hashtags : (base.hashtags || []);
+  P.kpis = P.kpis.length ? P.kpis : (base.kpis || []);
+  P.disclaimers = P.disclaimers.length ? P.disclaimers : (base.disclaimers || []);
+  if(!savePresets(list)){ toast('Nie udało się zapisać presetu (pamięć pełna)','err'); return; }
+  document.getElementById('modalPreset').classList.remove('open');
+  renderPresets();
+  toast('Preset zapisany: ' + P.label, 'ok');
+}
+
+/** Lista presetów w Ustawieniach. */
+function renderPresets(){
+  const box = document.getElementById('presetList');
+  const list = getPresets();
+  if(!list.length){
+    box.innerHTML = '<p class="hint">Brak własnych presetów. Wypełnij brief w zakładce „Kampania” i kliknij „➕ Z bieżącego briefu”, albo dodaj preset ręcznie. Własne presety są używane przez silnik lokalny i tryb AUTOMAT dokładnie tak samo jak profile wbudowane.</p>';
+    return;
+  }
+  box.innerHTML = list.map(p => `
+    <div class="preset-row" data-id="${esc(p.id)}">
+      <div>
+        <div class="t">${esc(p.label)}</div>
+        <div class="k">${esc((p.kw || []).join(', ') || 'bez słów kluczowych')} · ${esc(short(p.problem || '', 70))}</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn mini" data-pact="use">▶ Użyj w briefie</button>
+        <button class="btn mini" data-pact="edit">✎ Edytuj</button>
+        <button class="btn mini" data-pact="export">⬇</button>
+        <button class="btn mini danger" data-pact="del">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+/** Obsługa akcji na presetach. */
+function bindPresets(){
+  const box = document.getElementById('presetList');
+  box.addEventListener('click', e => {
+    const btn = e.target.closest('[data-pact]'); if(!btn) return;
+    const id = btn.closest('.preset-row').dataset.id;
+    const list = getPresets(); const P = list.find(x => x.id === id); if(!P) return;
+    const act = btn.dataset.pact;
+    if(act === 'edit') openPresetEditor(P);
+    if(act === 'use'){
+      applyBriefToForm({
+        industry: P.label, audience: P.audience, problem: P.problem, promise: P.promise, proof: P.proof,
+        offer: P.offer, objection: P.objection, campaign: P.label + ' – kampania'
+      });
+      syncExtraFieldsFromPreset(P);
+      switchTab('campaign'); toast('Preset wczytany do briefu: ' + P.label, 'ok');
+    }
+    if(act === 'export'){
+      download(safeName(P.label) + '-preset.json', JSON.stringify({ app:'Automat do Reklam TikTok – PRO', type:'niche-preset', preset:P }, null, 2), 'application/json');
+    }
+    if(act === 'del'){
+      if(!confirm('Usunąć preset „' + P.label + '”?')) return;
+      savePresets(list.filter(x => x.id !== id)); renderPresets(); toast('Preset usunięty','info');
+    }
+  });
+
+  document.getElementById('btnPresetFromBrief').addEventListener('click', () => openPresetEditor(presetFromBrief()));
+  document.getElementById('btnPresetExport').addEventListener('click', () => {
+    const list = getPresets();
+    if(!list.length){ toast('Brak presetów do eksportu','warn'); return; }
+    download('presety-branzowe.json', JSON.stringify({ app:'Automat do Reklam TikTok – PRO', type:'niche-preset-pack', presets:list }, null, 2), 'application/json');
+  });
+  document.getElementById('btnPresetImport').addEventListener('click', () => document.getElementById('filePresetImport').click());
+  document.getElementById('filePresetImport').addEventListener('change', e => {
+    const f = e.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{
+        const data = JSON.parse(rd.result);
+        const incoming = data.presets || (data.preset ? [data.preset] : (Array.isArray(data) ? data : []));
+        if(!incoming.length) throw new Error('Plik nie zawiera presetów.');
+        const list = getPresets();
+        let added = 0;
+        incoming.forEach(P => {
+          if(!P || !P.label) return;
+          P.id = P.id && !list.some(x => x.id === P.id) ? P.id : ('np_' + Date.now() + '_' + Math.floor(Math.random() * 999));
+          P.custom = true; list.unshift(P); added++;
+        });
+        savePresets(list); renderPresets();
+        toast('Zaimportowano presety: ' + added, 'ok');
+      }catch(err){ toast('Import nieudany: ' + err.message, 'err', 6000); }
+    };
+    rd.readAsText(f); e.target.value = '';
+  });
+  document.getElementById('btnPresetSave').addEventListener('click', savePresetFromEditor);
+  document.getElementById('btnPresetCancel').addEventListener('click', () => document.getElementById('modalPreset').classList.remove('open'));
+  document.getElementById('btnClosePreset').addEventListener('click', () => document.getElementById('modalPreset').classList.remove('open'));
+  document.getElementById('btnPresetDelete').addEventListener('click', () => {
+    if(!presetEditId) return;
+    if(!confirm('Usunąć ten preset?')) return;
+    savePresets(getPresets().filter(x => x.id !== presetEditId));
+    document.getElementById('modalPreset').classList.remove('open');
+    renderPresets(); toast('Preset usunięty','info');
+  });
+}
+
+/** Uzupełnia pola „extra" z presetu (korzyści, dowody, hashtagi, KPI, disclaimery). */
+function syncExtraFieldsFromPreset(P){
+  const set = (id, v) => { const el = document.getElementById(id); if(el && v) el.value = v; };
+  set('f_proof', (P.proofPoints || [])[0] || P.proof);
+  set('f_hashtags', (P.hashtags || []).join(' '));
+  set('f_kpis', (P.kpis || []).join(', '));
+  set('f_benefits', (P.benefits || []).join('\n'));
+  set('f_disclaimers', (P.disclaimers || []).join('\n'));
 }
 
 /** Zmienne slotowe budowane z briefu + danych branży. */
@@ -1592,19 +2163,23 @@ function buildVars(brief, niche){
   const price = brief.price || 'cena podana w opisie';
   const offer = brief.offer || niche.offer;
   const promise = brief.promise || niche.promise;
-  const benefitSrc = (niche.benefits && niche.benefits.length) ? niche.benefits : GENERIC_NICHE.benefits;
+  // pola zaawansowane z briefu mają priorytet nad profilem branżowym
+  const briefBenefits = toList(brief.benefits);
+  const benefitSrc = briefBenefits.length ? briefBenefits : ((niche.benefits && niche.benefits.length) ? niche.benefits : GENERIC_NICHE.benefits);
+  const briefProof = toList(brief.proofPoints);
   return {
     P: brief.problem || niche.problem,
     PRODUKT: brief.product || niche.label,
     AUD: brief.audience || niche.audience,
     BRANZA: brief.industry || niche.label,
     CENA: price, OFERTA: offer,
-    DOWOD: brief.proof || (niche.proofPoints && niche.proofPoints[0]) || niche.proof,
+    DOWOD: briefProof[0] || brief.proof || (niche.proofPoints && niche.proofPoints[0]) || niche.proof,
     OBIEKCJA: brief.objection || niche.objection,
     MARKA: brief.brand || brief.product || 'nasza marka',
     OB: promise,
     BENEFIT1: benefitSrc[0], BENEFIT2: benefitSrc[1] || benefitSrc[0], BENEFIT3: benefitSrc[2] || benefitSrc[0],
-    OPINIA: (niche.proofPoints && niche.proofPoints[0]) || niche.proof,
+    BENEFIT_SRC: benefitSrc,
+    OPINIA: briefProof[1] || brief.proof || (niche.proofPoints && niche.proofPoints[0]) || niche.proof,
     SLOWO: 'INFO'
   };
 }
@@ -1649,6 +2224,10 @@ function generateLocalPackage(brief){
   const length = LENGTHS[brief.length] ? brief.length : 15;
   const beatsPurposes = BEAT_PURPOSE[length];
 
+  // KPI i disclaimery: brief > profil branżowy > wartości uniwersalne
+  const kpiArr = toList(brief.kpis).length ? toList(brief.kpis) : (niche.kpis || GENERIC_NICHE.kpis);
+  const discArr = toList(brief.disclaimers).length ? toList(brief.disclaimers) : (niche.disclaimers || GENERIC_NICHE.disclaimers);
+
   const variants = angles.map((angle, i) => {
     const rand = rng(seedBase + i * 7919);
     const pick = makePicker(rand);
@@ -1656,16 +2235,16 @@ function generateLocalPackage(brief){
     const wordBudgetPerBeat = Math.max(4, Math.round(2.6 * length / beatCount));
     const VV = Object.assign({}, V);
     // dodatkowe urozmaicenie: rotacja benefitów między wariantami
-    const ben = (niche.benefits || GENERIC_NICHE.benefits);
+    const ben = V.BENEFIT_SRC;
     VV.BENEFIT1 = ben[i % ben.length];
     VV.BENEFIT2 = ben[(i + 1) % ben.length];
     VV.BENEFIT3 = ben[(i + 2) % ben.length];
 
     /* ---- HOOKI (3 propozycje + rekomendacja) ---- */
-    let hookPool = hooksFor(angle.id, bank).slice();
+    const hookPool = hooksFor(angle.id, bank).slice();
     // dokładamy lokalne wersje językowe, jeśli dostępne
     if(L && lang !== 'pl' && lang !== 'en') L.hook.forEach(h => hookPool.push(h + ' — ' + fill('{PRODUKT}', VV)));
-    const hookLines = [];
+    let hookLines = [];
     for(let k = 0; k < 3 && hookPool.length; k++){
       const idx = Math.floor(rand() * hookPool.length);
       hookLines.push(fill(hookPool.splice(idx, 1)[0], VV));
@@ -1680,8 +2259,10 @@ function generateLocalPackage(brief){
     } else if(punchN <= 1){
       for(let k = 0; k < hookLines.length; k++) hookLines[k] = hookLines[k].replace(/!+/g, '.').replace(/^(STOP\.\s*)/i, '');
     }
-    // Dla 7 s i 15 s najkrótszy hook startuje jako główny – musi zmieścić się w 3 s
+    // Dla 7 s i 15 s: sortowanie po długości + kompresja, żeby hook zmieścił się w 3 s
     if(length <= 15) hookLines.sort((a, b) => a.split(/\s+/).length - b.split(/\s+/).length);
+    if(length <= 7) hookLines = hookLines.map(h => compressLine(h, 10));
+    else if(length <= 15) hookLines = hookLines.map(h => compressLine(h, 14));
     const hookTxt = hookLines.map((h, k) =>
       `HOOK ${String.fromCharCode(65 + k)} (0–3 s)\n${h}\n  ↳ wariant testowy: ${k === 0 ? 'główny – start kampanii' : (k === 1 ? 'alternatywa A – inny angle wejścia' : 'alternatywa B – test długości zdania')}`
     ).join('\n\n') + `\n\nREKOMENDACJA: do pierwszej fazy testu wrzuć HOOK A i HOOK B w osobnych grupach reklamowych (po 50/50 budżetu) i porównaj hook rate 3 s.\nPowód wyboru kąta „${angle.label}”: ${angle.angleNote}`;
@@ -1704,8 +2285,13 @@ function generateLocalPackage(brief){
         const list = beatCandidates(pp);
         const limit = wordBudgetPerBeat * (length <= 15 ? 1.45 : (length <= 30 ? 1.05 : 1.15));
         const fitting = list.filter(t => t.split(/\s+/).filter(Boolean).length <= limit);
-        const pool = fitting.length ? fitting
+        let pool = fitting.length ? fitting
           : [list.reduce((a, b) => (a.split(/\s+/).length <= b.split(/\s+/).length ? a : b))];
+        // Konkret liczbowy („4 300 opinii”, „89 zł”) jest zawsze mocniejszy niż opis ogólny
+        if(pool.length > 1){
+          const withDigits = pool.filter(t => /\d/.test(t));
+          if(withDigits.length) pool = withDigits;
+        }
         return pick(pool, pp + i);
       };
       let body;
@@ -1799,7 +2385,9 @@ Tekst na ekranie: ${fill(pick(bank.overlay.proof, 'ovb' + ti + i), VV)}`);
     const ctaTxt = `CTA GŁÓWNE (na końcu wideo, na wizji):\n${fill(ctaMain, VV)}\n\nCTA ALTERNATYWNE (test B):\n${fill(ctaAlt, VV)}\n\nCTA W KOMENTARZU (przypięty komentarz):\n${(L && L.cta ? L.cta[0] : fill(bank.ctaBank.comment[0], VV))}\n\nMIKRO-CTA NA ŚRODKU WIDEO (dla watch time):\n„Trzymaj do końca – na końcu pokazuję warunki i cenę.”\n\nZASADA: maks. jedno CTA na ujęcie, maks. 3 sekundy na wypowiedzenie, CTA mówione i pokazane jednocześnie.`;
 
     /* ---- OPIS + HASHTAGI ---- */
-    const tagPool = (niche.hashtags || []).concat(['#tiktokpolska','#fyp','#dlaciebie','#polecane','#musthave','#recenzja']);
+    const customTags = toList(brief.hashtags).map(t => t.startsWith('#') ? t : ('#' + t.replace(/^#+/, '')));
+    const nicheTags = customTags.length ? customTags : (niche.hashtags || []);
+    const tagPool = nicheTags.concat(['#tiktokpolska','#fyp','#dlaciebie','#polecane','#musthave','#recenzja']);
     const tags = uniq(tagPool).slice(0, 12);
     const descTxt = `${fill(pick(bank.desc.intro, 'di' + i), VV)}\n${fill(pick(bank.desc.body, 'db' + i), VV)}\n\n${fill(ctaMain, VV)}\n\n${tags.join(' ')}`;
     const hashTxt = [
@@ -1808,7 +2396,7 @@ Tekst na ekranie: ${fill(pick(bank.overlay.proof, 'ovb' + ti + i), VV)}`);
       '',
       'STRATEGIA HASHTAGÓW:',
       '• szerokie (zasięg): ' + tags.slice(-4, -1).join(' '),
-      '• niszowe (precyzja, niższa konkurencja): ' + (niche.hashtags || []).slice(0, 5).join(' '),
+      '• niszowe (precyzja, niższa konkurencja): ' + nicheTags.slice(0, 5).join(' '),
       '• branded (rozpoznawalność – dodaj własny): #' + slug(brief.brand || brief.product || 'twojamarka'),
       '',
       'ZASADA: 8–12 tagów, bez tagów niepowiązanych z treścią (spadek dystrybucji). Opis do 150 znaków przed CTA.'
@@ -1823,7 +2411,7 @@ Tekst na ekranie: ${fill(pick(bank.overlay.proof, 'ovb' + ti + i), VV)}`);
       `\n\nCZEGO NIE MÓWIMY: gwarancji efektu, obietnic zdrowotnych/finansowych, porównań z konkurencją po nazwie, presji typu „kup teraz, bo zniknie”.`;
 
     /* ---- NOTATKA A/B ---- */
-    const abTxt = `HIPOTEZA: ${angle.hypothesis}\n\nCO TESTOWANY W TYM WARIANCIE: kąt „${angle.label}” przy stałej ofercie i stałej długości (${length} s).\n\nPIERWSZEŃSTWO TESTU: ${i === 0 ? 'rdzeń kampanii – start' : 'faza ' + (i + 1) + ' – dopiero po zebraniu danych z wariantu A'}\n\nKPI DO OCENY: ${(niche.kpis || GENERIC_NICHE.kpis).join(' · ')}\n\nPRÓG DECYZYJNY: min. 2 000 wyświetleń na wariant i 48 h bez zmian kreacji → wybierz wariant z wyższym hook rate 3 s i CTR przy CPA w granicach celu. Zmieniasz JEDNĄ rzecz naraz (hook, oferta albo CTA).\n\nCO ZROBIĆ Z PRZEGRANYM: zostaw przegrany wariant w grupie na 20% budżetu jako kontrolę – sezonowość potrafi odwrócić wyniki.`;
+    const abTxt = `HIPOTEZA: ${angle.hypothesis}\n\nCO TESTOWANY W TYM WARIANCIE: kąt „${angle.label}” przy stałej ofercie i stałej długości (${length} s).\n\nPIERWSZEŃSTWO TESTU: ${i === 0 ? 'rdzeń kampanii – start' : 'faza ' + (i + 1) + ' – dopiero po zebraniu danych z wariantu A'}\n\nKPI DO OCENY: ${kpiArr.join(' · ')}\n\nPRÓG DECYZYJNY: min. 2 000 wyświetleń na wariant i 48 h bez zmian kreacji → wybierz wariant z wyższym hook rate 3 s i CTR przy CPA w granicach celu. Zmieniasz JEDNĄ rzecz naraz (hook, oferta albo CTA).\n\nCO ZROBIĆ Z PRZEGRANYM: zostaw przegrany wariant w grupie na 20% budżetu jako kontrolę – sezonowość potrafi odwrócić wyniki.`;
 
     /* sekcje: budujemy obiekt zgodnie z wybranymi modułami */
     const sections = {};
@@ -1862,11 +2450,11 @@ Tekst na ekranie: ${fill(pick(bank.overlay.proof, 'ovb' + ti + i), VV)}`);
     brief, engine:'local', model:'silnik lokalny v1', lang,
     niche: niche.label,
     strategy: strategy.id, strategyLabel: strategy.label, strategyHint: strategy.hint,
-    kpis: niche.kpis || GENERIC_NICHE.kpis,
+    kpis: kpiArr,
     variants,
     abPlan: buildABPlan(brief, variants),
     checklist: buildChecklist(brief),
-    disclaimers: settings.disclaimer === 'off' ? [] : (niche.disclaimers || GENERIC_NICHE.disclaimers).slice(),
+    disclaimers: settings.disclaimer === 'off' ? [] : discArr.slice(),
     compliance: null
   };
   project.compliance = complianceScan(project);
@@ -2062,15 +2650,26 @@ function buildUserPrompt(brief){
   ].join('\n');
 }
 
+/** Czy model to model rozumujący (o-series / gpt-5) – inne pola i brak temperatury. */
+function isReasoningModel(model){
+  return /^(o\d|gpt-5)/i.test(String(model || '').trim());
+}
+
 /** Wywołanie API OpenAI (chat/completions). */
 async function callOpenAI(system, user, cfg){
   const url = (cfg.provider === 'custom' && cfg.baseurl) ? cfg.baseurl : 'https://api.openai.com/v1/chat/completions';
+  const model = cfg.model || 'gpt-4o-mini';
   const body = {
-    model: cfg.model || 'gpt-4o-mini',
-    temperature: Number(cfg.temp) || 0.8,
-    max_tokens: Number(cfg.maxtok) || 4000,
+    model,
     messages: [ { role:'system', content: system }, { role:'user', content: user } ]
   };
+  // modele rozumujące: bez temperatury i z max_completion_tokens
+  if(isReasoningModel(model) && cfg.provider === 'openai'){
+    body.max_completion_tokens = Number(cfg.maxtok) || 4000;
+  } else {
+    body.temperature = Number(cfg.temp) || 0.8;
+    body.max_tokens = Number(cfg.maxtok) || 4000;
+  }
   const res = await fetchWithTimeout(url, {
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + cfg.key },
@@ -2368,6 +2967,7 @@ function renderProject(project){
           <span class="chip">${esc(String(b.length || ''))} s</span>
           <span class="chip">${esc(b.sellMode === 'soft' ? 'soft sell' : b.sellMode === 'hard' ? 'hard sell' : 'auto')}</span>
           <span class="chip pink">${esc(project.strategyLabel)}</span>
+          <button class="btn mini" data-act="open-story">🎬 Storyboard</button>
           <button class="btn mini" data-act="copy-var">⧉ Cały wariant</button>
           <button class="btn mini" data-act="regen-var">↻ Wszystkie sekcje</button>
         </div>
@@ -2450,6 +3050,9 @@ function bindResultActions(){
     if(act === 'regen-var'){
       const vi = Number(btn.closest('.var-card').dataset.variantCard);
       await regenerateVariant(vi, btn); return;
+    }
+    if(act === 'open-story'){
+      openStoryboard(Number(btn.closest('.var-card').dataset.variantCard)); return;
     }
     if(act === 'copy-abplan'){ copyText(currentProject.abPlan, btn); return; }
     if(act === 'copy-checklist'){ copyText(currentProject.checklist, btn); return; }
@@ -2688,6 +3291,30 @@ function projectToMd(p){
   return L.join('\n');
 }
 
+/** Funkcje CSV – eksport hurtowy (jeden wiersz = jeden wariant). */
+const CSV_COLUMNS = ['Kampania','Wariant','Kąt','Hipoteza','Hook','Scenariusz','Shot list','Napisy','CTA','Opis','Hashtagi','Callout'];
+function csvEscape(v){
+  const s = String(v == null ? '' : v).replace(/\r?\n/g, ' | ');
+  return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+/** Buduje treść CSV z listy projektów. */
+function projectsToCsv(projects){
+  const rows = [CSV_COLUMNS];
+  projects.forEach(p => {
+    (p.variants || []).forEach(v => {
+      const S = k => (v.sections && v.sections[k] ? v.sections[k].body.replace(/\s*\n\s*/g, ' ') : '');
+      rows.push([
+        p.name || '', v.label || '', v.angle || '', v.hypothesis || '',
+        S('hook'), S('script'), S('shots'), S('subtitles'), S('cta'),
+        S('description'), S('hashtags'), S('callout')
+      ]);
+    });
+  });
+  return rows.map(r => r.map(csvEscape).join(';')).join('\r\n');
+}
+/** Eksport CSV bieżącego pakietu. */
+function exportCsv(project){ download(safeName(project.name || 'kampania') + '-warianty.csv', projectsToCsv([project]), 'text/csv;charset=utf-8'); }
+
 /** Projekt → JSON (pełny = z briefem i metadanymi, inaczej tylko wyniki). */
 function projectToJson(p, full){
   const results = { variants: p.variants };
@@ -2722,6 +3349,7 @@ function exportProject(format){
   if(format === 'txt') download(base + '.txt', projectToTxt(p), 'text/plain;charset=utf-8');
   if(format === 'md') download(base + '.md', projectToMd(p), 'text/markdown;charset=utf-8');
   if(format === 'json') download(base + '-wyniki.json', projectToJson(p, false), 'application/json');
+  if(format === 'csv') exportCsv(p);
   if(format === 'package'){
     download(base + '-pakiet.json', projectToJson(p, true), 'application/json');
     setTimeout(() => download(base + '-pakiet.md', projectToMd(p), 'text/markdown;charset=utf-8'), 700);
@@ -2738,12 +3366,14 @@ function setHistory(list){ store.set(LS.history, list); document.getElementById(
 /** Zapis projektu do historii (aktualizacja po id, maks. 60 wpisów). */
 function saveToHistory(project){
   const list = getHistory();
+  void 0;
   project.updatedAt = new Date().toISOString();
   const idx = list.findIndex(p => p.id === project.id);
   if(idx >= 0) list[idx] = project; else list.unshift(project);
   while(list.length > 60) list.pop();
   setHistory(list);
   renderHistory();
+  if(document.getElementById('storageTable')) renderStorage();
 }
 
 /** Render listy historii. */
@@ -2797,6 +3427,299 @@ function bindHistory(){
 }
 
 /* ============================================================================
+   I2. TRYB HURTOWY (masowa produkcja) – lista kampanii → pakiet CSV/JSON
+   ========================================================================== */
+let batchResults = [];      // wygenerowane kampanie w partii
+
+/** Parsuje jedną linię listy: branża | produkt | cena | język | długość. */
+function parseBatchLine(line){
+  const parts = line.split('|').map(x => x.trim());
+  const industry = parts[0] || '';
+  const product  = parts[1] || industry;
+  const price    = parts[2] || '';
+  let lang = (parts[3] || '').toLowerCase();
+  if(!LANGS.some(l => l.id === lang)) lang = '';
+  const len = Number(parts[4]);
+  const length = LENGTHS[len] ? len : 0;
+  if(!industry && !product) return null;
+  return { industry, product, price, lang, length };
+}
+
+/** Generuje całą partię (silnik lokalny – natychmiast, bez limitów API). */
+function runBatch(){
+  const raw = document.getElementById('batchInput').value;
+  const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if(!lines.length){ toast('Wklej listę kampanii (jedna linia = jedna kampania)','warn'); return; }
+  if(lines.length > 50){ toast('Maksymalnie 50 kampanii w jednej partii','warn'); return; }
+
+  const inherit = document.getElementById('batchInherit').value === 'on';
+  const base = inherit ? collectBrief() : null;
+  const stratOverride = document.getElementById('batchStrategy').value;
+  batchResults = [];
+  renderBatchTable();
+  setBatchProgress(4);
+
+  const failed = [];
+  lines.forEach((line, i) => {
+    const parsed = parseBatchLine(line);
+    if(!parsed){ failed.push(line); return; }
+    const brief = inherit
+      ? Object.assign({}, base, { industry: parsed.industry, product: parsed.product, campaign: (parsed.product || parsed.industry) + ' · partia', modules: base.modules, variants: base.variants })
+      : {
+          mode:'auto', industry: parsed.industry, product: parsed.product,
+          audience:'', problem:'', promise:'', tone:'viralowy', proof:'', offer:'', objection:'',
+          brand:'', campaign: (parsed.product || parsed.industry) + ' · partia',
+          length: parsed.length || 15, style:'UGC', platform:'TikTok Feed (In-Feed Ads)',
+          variants: 2, sellMode:'auto', engine:'local', strategy: stratOverride || 'performance',
+          calloutType:'wartosc', punch: settings.localPunch === '1' ? '2' : (settings.localPunch === '3' ? '4' : '3'),
+          modules: MODULES.filter(m => m.defaultOn).map(m => m.id),
+          benefits:'', proofPoints:'', hashtags:'', kpis:'', disclaimers:''
+        };
+    if(parsed.price) brief.price = parsed.price;
+    if(parsed.lang) brief.lang = parsed.lang;
+    if(parsed.length) brief.length = parsed.length;
+    if(stratOverride) brief.strategy = stratOverride;
+    // TRYB AUTOMAT: profile branżowe uzupełniają brakujące pola (także w partii bez dziedziczenia)
+    const niche = detectNiche(brief.industry, brief.product);
+    brief.audience = brief.audience || niche.audience;
+    brief.problem = brief.problem || niche.problem;
+    brief.promise = brief.promise || niche.promise;
+    brief.proof = brief.proof || niche.proof;
+    brief.offer = brief.offer || niche.offer;
+    brief.objection = brief.objection || niche.objection;
+    brief.benefits = brief.benefits || (niche.benefits || []).join('\n');
+    brief.proofPoints = brief.proofPoints || (niche.proofPoints || []).join('\n');
+    brief.hashtags = brief.hashtags || (niche.hashtags || []).join(' ');
+    brief.kpis = brief.kpis || (niche.kpis || []).join(', ');
+    brief.disclaimers = brief.disclaimers || (niche.disclaimers || []).join('\n');
+    try{
+      const p = generateLocalPackage(brief);
+      p.compliance = complianceScan(p);
+      batchResults.push(p);
+    }catch(err){ failed.push(line + '  (' + err.message + ')'); }
+    setBatchProgress(4 + Math.round((i + 1) / lines.length * 92));
+  });
+
+  setBatchProgress(100);
+  renderBatchTable();
+  document.getElementById('pillBatch').textContent = batchResults.length;
+  if(failed.length) toast('Część linii pominięto: ' + failed.length, 'warn', 6000);
+  toast('Partia gotowa: ' + batchResults.length + ' kampanii · ' + batchResults.reduce((a, p) => a + p.variants.length, 0) + ' wariantów', batchResults.length ? 'ok' : 'err', 5000);
+  setTimeout(() => setBatchProgress(0), 1200);
+}
+function setBatchProgress(pct){ document.getElementById('batchProgress').style.width = Math.max(0, Math.min(100, pct)) + '%'; }
+
+/** Tabela wyników partii. */
+function renderBatchTable(){
+  const box = document.getElementById('batchTable');
+  document.getElementById('pillBatchRows').textContent = batchResults.reduce((a, p) => a + p.variants.length, 0);
+  document.getElementById('pillBatch').textContent = batchResults.length;
+  if(!batchResults.length){
+    box.innerHTML = '<div class="batch-empty">Brak wygenerowanych kampanii. Wklej listę i kliknij GENERUJ PARTIĘ.</div>';
+    return;
+  }
+  const rows = batchResults.map((p, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><b>${esc(p.name)}</b><div class="hint">${esc(p.niche)}</div></td>
+      <td>${p.variants.length}</td>
+      <td><div class="hint">${esc((p.kpis || []).slice(0, 3).join(' · '))}</div></td>
+      <td class="hint">${esc(short(p.variants.map(v => v.hookLine || '').join(' / '), 96))}</td>
+      <td><button class="btn mini" data-bact="open" data-i="${i}">📂 Otwórz</button></td>
+      <td><button class="btn mini" data-bact="del" data-i="${i}">🗑</button></td>
+    </tr>`).join('');
+  box.innerHTML = `<table class="batch-table">
+    <thead><tr><th>#</th><th>Kampania</th><th>Warianty</th><th>KPI</th><th>Hooki</th><th></th><th></th></tr></thead>
+    <tbody>${rows}</tbody></table>`;
+}
+
+/** Akcje w tabeli partii. */
+function bindBatch(){
+  document.getElementById('batchTable').addEventListener('click', e => {
+    const btn = e.target.closest('[data-bact]'); if(!btn) return;
+    const i = Number(btn.dataset.i); const p = batchResults[i]; if(!p) return;
+    if(btn.dataset.bact === 'open'){
+      renderProject(p); switchTab('results'); toast('Kampania z partii wczytana do Wyników','ok');
+    }
+    if(btn.dataset.bact === 'del'){
+      batchResults.splice(i, 1); renderBatchTable(); toast('Usunięto z partii','info');
+    }
+  });
+
+  document.getElementById('btnRunBatch').addEventListener('click', runBatch);
+  document.getElementById('btnBatchSample').addEventListener('click', () => {
+    document.getElementById('batchInput').value = [
+      'kosmetyki naturalne | serum z witaminą C | 89 zł | pl | 15',
+      'fitness | plan treningowy 20 minut | 59 zł | pl | 30',
+      'gadżety do domu | organizer kuchenny | 49 zł | pl | 7',
+      'kursy online | szkolenie z reklam TikTok | 297 zł | pl | 45',
+      'zwierzęta | mata chłodząca dla psa | 79 zł | pl | 15'
+    ].join('\n');
+    toast('Wstawiono przykład – możesz go dowolnie edytować','info');
+  });
+  document.getElementById('btnBatchClear').addEventListener('click', () => {
+    document.getElementById('batchInput').value = ''; batchResults = []; renderBatchTable();
+  });
+  document.getElementById('btnBatchCsv').addEventListener('click', () => {
+    if(!batchResults.length){ toast('Najpierw wygeneruj partię','warn'); return; }
+    download('partia-' + batchResults.length + '-kampanii.csv', projectsToCsv(batchResults), 'text/csv;charset=utf-8');
+  });
+  document.getElementById('btnBatchJson').addEventListener('click', () => {
+    if(!batchResults.length){ toast('Najpierw wygeneruj partię','warn'); return; }
+    download('partia-' + batchResults.length + '-kampanii.json', JSON.stringify({ app:'Automat do Reklam TikTok – PRO', type:'batch', count:batchResults.length, projects:batchResults }, null, 2), 'application/json');
+  });
+  document.getElementById('btnBatchSaveHistory').addEventListener('click', () => {
+    if(!batchResults.length){ toast('Najpierw wygeneruj partię','warn'); return; }
+    batchResults.forEach(p => saveToHistory(p));
+    toast('Zapisano ' + batchResults.length + ' kampanii do historii','ok');
+  });
+}
+
+/* ============================================================================
+   I3. PODGLĄD STORYBOARDU 9:16 – odtwarzacz beatów z overlayem
+   ========================================================================== */
+let story = null;   // { beats, t, timer, playing, speed, projectIndex, variantIndex }
+
+/** Buduje listę beatów: overlay + opis kadru z wygenerowanych sekcji. */
+function storyBeats(project, v){
+  const script = (v.sections.script && v.sections.script.body) || '';
+  const shots  = (v.sections.shots  && v.sections.shots.body)  || '';
+  const beats = [];
+  const rx = /\[(\d+(?:[.,]\d+)?)\s*[–-]\s*(\d+(?:[.,]\d+)?)\s*s?\]\s*([^\n]*)\n?(.*?)(?=\n\[|$)/gs;
+  let m;
+  while((m = rx.exec(script))){
+    const from = parseFloat(String(m[1]).replace(',', '.'));
+    const to   = parseFloat(String(m[2]).replace(',', '.'));
+    const label = (m[3] || '').replace(/^Ujęcie:\s*/i, '').trim();
+    const text  = (m[4] || '').replace(/^Tekst\/audio:\s*/i, '').trim().split('\n')[0];
+    beats.push({ from, to, label, text: short(text, 120), overlay:'', shot:'' });
+  }
+  // overlay z sekcji „Overlay text” (kolejność = kolejność na ekranie)
+  const ovBody = (v.sections.overlay && v.sections.overlay.body) || '';
+  const ovLines = ovBody.split('\n').map(l => l.trim())
+    .filter(l => /^\d+\./.test(l))
+    .map(l => l.replace(/^\d+\.\s*\[?\d*[–-]?\d*\s*s?\]?\s*/, '').trim());
+  // kadry z sekcji „Shot list”
+  const shotBlocks = shots.split(/\n\s*\n/).filter(b => /^UJĘCIE/i.test(b.trim()))
+    .map(b => {
+      const kadr = (b.match(/Kadr:\s*(.+)/i) || [,''])[1];
+      return short(kadr.trim(), 90);
+    });
+  beats.forEach((b, i) => {
+    b.overlay = ovLines[i] || b.overlay || short(b.text, 40);
+    b.shot = shotBlocks[i] || shotBlocks[shotBlocks.length - 1] || '';
+  });
+  if(!beats.length){
+    beats.push({ from:0, to: project.brief.length || 15, label:'Całe wideo', text: short(v.hookLine, 120), overlay: short(v.hookLine, 40), shot:'' });
+  }
+  return beats;
+}
+
+/** Otwiera podgląd storyboardu dla wskazanego wariantu. */
+function openStoryboard(vi){
+  if(!currentProject) return;
+  const v = currentProject.variants[vi];
+  const beats = storyBeats(currentProject, v);
+  story = { beats, t:0, playing:false, speed:1, vi };
+  document.getElementById('storyTitle').textContent = `Storyboard · Wariant ${v.label} · ${v.angle}`;
+  document.getElementById('storyBeats').innerHTML = beats.map((b, i) =>
+    `<div class="beat-item${i === 0 ? ' on' : ''}" data-beat="${i}">
+       <div class="t">${b.from.toFixed(1)}–${b.to.toFixed(1)} s</div>
+       <div><b>${esc(b.label || 'Ujęcie')}</b></div>
+       <div class="hint">${esc(b.text || '')}</div>
+     </div>`).join('');
+  document.getElementById('modalStory').classList.add('open');
+  document.getElementById('storyPlay').textContent = '▶ Odtwórz';
+  storyRender();
+}
+
+/** Renderuje bieżącą klatkę storyboardu. */
+function storyRender(){
+  if(!story) return;
+  const total = story.beats[story.beats.length - 1].to || 1;
+  // znajdź beat dla bieżącego czasu
+  let idx = story.beats.findIndex(b => story.t >= b.from && story.t < b.to);
+  if(idx < 0) idx = story.t >= total ? story.beats.length - 1 : 0;
+  const b = story.beats[idx];
+  const inBeat = Math.max(0, Math.min(1, (story.t - b.from) / Math.max(0.1, b.to - b.from)));
+  document.getElementById('storyBeatLabel').textContent = `${idx + 1}/${story.beats.length} · ${b.label || 'Ujęcie'}`;
+  document.getElementById('storyOverlay').textContent = b.overlay || b.text || '';
+  document.getElementById('storyLower').textContent = b.shot ? ('Kadr: ' + b.shot) : (b.text || '');
+  document.getElementById('storyTimer').textContent = story.t.toFixed(1) + ' s';
+  document.getElementById('storyTimeInfo').textContent = story.t.toFixed(1) + ' / ' + total.toFixed(1) + ' s';
+  document.getElementById('storyProg').style.width = (story.t / total * 100).toFixed(2) + '%';
+  document.querySelectorAll('#storyBeats .beat-item').forEach((el, i) => el.classList.toggle('on', i === idx));
+  // delikatne „wejście” overlayu w rytm beatu (impuls na start beatu)
+  const ov = document.getElementById('storyOverlay');
+  ov.style.opacity = String(0.35 + 0.65 * Math.min(1, inBeat * 4));
+  ov.style.transform = 'translateY(' + ((1 - Math.min(1, inBeat * 3)) * 8).toFixed(2) + 'px)';
+}
+
+/** Sterowanie odtwarzaniem storyboardu. */
+function bindStoryboard(){
+  const modal = document.getElementById('modalStory');
+  const close = () => { if(story) story.playing = false; modal.classList.remove('open'); };
+  document.getElementById('btnCloseStory').addEventListener('click', close);
+  modal.addEventListener('click', e => { if(e.target === modal) close(); });
+
+  document.getElementById('storyPlay').addEventListener('click', () => {
+    if(!story) return;
+    story.playing = !story.playing;
+    document.getElementById('storyPlay').textContent = story.playing ? '⏸ Pauza' : '▶ Odtwórz';
+    if(story.playing && story.t >= (story.beats[story.beats.length - 1].to || 1)) story.t = 0;
+  });
+  document.getElementById('storyBack').addEventListener('click', () => { if(story){ story.t = 0; storyRender(); } });
+  document.getElementById('storySpeed').addEventListener('click', e => {
+    if(!story) return;
+    const speeds = [1, 0.5, 0.25, 2];
+    story.speed = speeds[(speeds.indexOf(story.speed) + 1) % speeds.length];
+    e.target.textContent = '×' + story.speed;
+  });
+  document.getElementById('storyProgWrap').addEventListener('click', e => {
+    if(!story) return;
+    const total = story.beats[story.beats.length - 1].to || 1;
+    const r = e.currentTarget.getBoundingClientRect();
+    story.t = Math.max(0, Math.min(total, (e.clientX - r.left) / r.width * total));
+    storyRender();
+  });
+  document.getElementById('storyBeats').addEventListener('click', e => {
+    const item = e.target.closest('[data-beat]'); if(!item || !story) return;
+    story.t = story.beats[Number(item.dataset.beat)].from; storyRender();
+  });
+
+  // zegar odtwarzania
+  setInterval(() => {
+    if(!story || !story.playing || !document.getElementById('modalStory').classList.contains('open')) return;
+    const total = story.beats[story.beats.length - 1].to || 1;
+    story.t += 0.06 * story.speed;
+    if(story.t >= total){ story.t = total; story.playing = false; document.getElementById('storyPlay').textContent = '▶ Odtwórz'; }
+    storyRender();
+  }, 60);
+}
+
+/* ============================================================================
+   I4. PANEL PAMIĘCI + PAKIET KAMPANII
+   ========================================================================== */
+/** Tabela zużycia pamięci lokalnej. */
+function renderStorage(){
+  const t = document.getElementById('storageTable');
+  const rows = [
+    ['Brief roboczy (draft)', [LS.draft]],
+    ['Historia projektów', [LS.history]],
+    ['Własne presety', [LS.presets]],
+    ['Ustawienia + klucz API', [LS.settings]],
+    ['RAZEM', null]
+  ];
+  const total = approxSize();
+  t.innerHTML = rows.map(([label, keys]) => {
+    const size = keys ? approxSize(keys) : total;
+    const pct = keys ? Math.round(size / STORAGE_LIMIT * 100) : Math.round(total / STORAGE_LIMIT * 100);
+    return `<tr><td>${esc(label)}</td><td><b>${fmtBytes(size)}</b> <span class="hint">(${pct}% limitu)</span></td></tr>`;
+  }).join('') + `<tr><td>Liczba projektów w historii</td><td>${getHistory().length}</td></tr>` +
+  `<tr><td>Liczba własnych presetów</td><td>${getPresets().length}</td></tr>`;
+}
+
+/* ============================================================================
    K. FORMULARZ, GENEROWANIE, UI, INIT
    ========================================================================== */
 
@@ -2828,6 +3751,11 @@ function collectBrief(){
     strategy: getSegValue('segStrategy') || 'performance',
     calloutType: get('f_calloutType'),
     punch: get('f_punch'),
+    benefits: get('f_benefits'),
+    proofPoints: get('f_proofPoints'),
+    hashtags: get('f_hashtags'),
+    kpis: get('f_kpis'),
+    disclaimers: get('f_disclaimers'),
     modules: Array.from(document.querySelectorAll('#modChecks input:checked')).map(i => i.value)
   };
   // TRYB AUTOMAT: branża + produkt wystarczą – resztę uzupełniamy wiedzą rynkową
@@ -2840,6 +3768,11 @@ function collectBrief(){
     brief.offer    = brief.offer    || niche.offer;
     brief.objection= brief.objection|| niche.objection;
     brief.price    = brief.price    || '';
+    if(!brief.benefits)    brief.benefits    = (niche.benefits || []).join('\n');
+    if(!brief.proofPoints) brief.proofPoints = (niche.proofPoints || []).join('\n');
+    if(!brief.hashtags)    brief.hashtags    = (niche.hashtags || []).join(' ');
+    if(!brief.kpis)        brief.kpis        = (niche.kpis || []).join(', ');
+    if(!brief.disclaimers) brief.disclaimers = (niche.disclaimers || []).join('\n');
   }
   if(!brief.modules.length) brief.modules = MODULES.filter(m => m.defaultOn).map(m => m.id);
   // Ustawienie „Agresywność słownika” z Ustawień koryguje poziom punchu z formularza
@@ -2859,6 +3792,8 @@ function applyBriefToForm(b){
   set('f_audience', b.audience); set('f_problem', b.problem); set('f_promise', b.promise);
   set('f_tone', b.tone); set('f_proof', b.proof); set('f_offer', b.offer);
   set('f_objection', b.objection); set('f_brand', b.brand); set('f_campaign', b.campaign);
+  set('f_benefits', b.benefits); set('f_proofPoints', b.proofPoints);
+  set('f_hashtags', b.hashtags); set('f_kpis', b.kpis); set('f_disclaimers', b.disclaimers);
   set('f_style', b.style); set('f_platform', b.platform); set('f_lang', b.lang);
   set('f_engine', b.engine || 'auto'); set('f_calloutType', b.calloutType); set('f_punch', b.punch);
   const rng2 = document.getElementById('f_variants'); if(rng2 && b.variants){ rng2.value = Math.min(10, Math.max(1, b.variants)); document.getElementById('lblVariants').textContent = rng2.value; }
@@ -2913,13 +3848,33 @@ async function runGeneration(forceLocal){
     if(engine === 'api'){
       setProgress(22);
       log('Buduję prompt reklamowy…');
-      const system = buildSystemPrompt(brief), user = buildUserPrompt(brief);
-      log(`Wysyłam zapytanie do ${settings.provider === 'gemini' ? 'Google Gemini' : settings.provider === 'custom' ? 'własnego endpointu' : 'OpenAI'} (model: ${settings.modelCustom || settings.model || 'domyślny'})…`);
-      setProgress(42);
-      const raw = await callAPI(system, user, apiConfig());
-      setProgress(72);
+      const provider = settings.provider === 'gemini' ? 'Google Gemini' : settings.provider === 'custom' ? 'własnego endpointu' : 'OpenAI';
+      const modelName = settings.modelCustom || settings.model || 'domyślny';
+      // Partie po 3 warianty: mniej ryzyka ucięcia odpowiedzi i stabilniejszy format
+      const CHUNK = 3;
+      const sizes = [];
+      for(let left = brief.variants; left > 0; left -= CHUNK) sizes.push(Math.min(CHUNK, left));
+      let variants = [];
+      for(let c = 0; c < sizes.length; c++){
+        const sub = Object.assign({}, brief, { variants: sizes[c] });
+        const partInfo = sizes.length > 1 ? ` (partia ${c + 1}/${sizes.length}, warianty: ${sizes[c]})` : '';
+        log(`Wysyłam zapytanie do ${provider} (model: ${modelName})${partInfo}…`);
+        setProgress(30 + Math.round(c / sizes.length * 40));
+        const raw = await callAPI(buildSystemPrompt(sub), buildUserPrompt(sub), apiConfig());
+        const parsed = parseApiAnswer(raw, sub);
+        if(!parsed.length) log(`⚠ Partia ${c + 1}: nie rozpoznano wariantów w odpowiedzi`, 'w');
+        variants = variants.concat(parsed);
+      }
       log('Odpowiedź odebrana – rozbijam na sekcje i warianty…');
-      const variants = parseApiAnswer(raw, brief);
+      setProgress(72);
+      // ujednolicenie etykiet A–N i uzupełnienie kątów wg strategii
+      const anglePlan = pickAngles(brief.strategy, variants.length);
+      variants = variants.slice(0, brief.variants).map((v, i) => {
+        v.label = String.fromCharCode(65 + i);
+        if(!v.angle || /odpowiedź modelu/i.test(v.angle)) v.angle = (anglePlan[i] || {}).label || v.angle;
+        if(!v.hypothesis) v.hypothesis = (anglePlan[i] || {}).hypothesis || '';
+        return v;
+      });
       const niche = detectNiche(brief.industry, brief.product);
       const strategy = STRATEGIES.find(s => s.id === brief.strategy) || STRATEGIES[1];
       project = {
@@ -2928,9 +3883,9 @@ async function runGeneration(forceLocal){
         createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
         brief, engine:'api', model: settings.modelCustom || settings.model || '', lang: brief.lang,
         niche: niche.label, strategy: strategy.id, strategyLabel: strategy.label, strategyHint: strategy.hint,
-        kpis: niche.kpis || GENERIC_NICHE.kpis,
+        kpis: toList(brief.kpis).length ? toList(brief.kpis) : (niche.kpis || GENERIC_NICHE.kpis),
         variants, abPlan: buildABPlan(brief, variants), checklist: buildChecklist(brief),
-        disclaimers: settings.disclaimer === 'off' ? [] : (niche.disclaimers || GENERIC_NICHE.disclaimers).slice(), compliance:null
+        disclaimers: settings.disclaimer === 'off' ? [] : (toList(brief.disclaimers).length ? toList(brief.disclaimers) : (niche.disclaimers || GENERIC_NICHE.disclaimers)).slice(), compliance:null
       };
       log(`✔ Odebrano ${variants.length} wariant(y), sekcje: ${Object.keys(variants[0].sections).length}`, 'ok');
     } else {
@@ -2991,6 +3946,11 @@ function autoFillBrief(){
   setIf('f_proof', niche.proof);
   setIf('f_offer', niche.offer);
   setIf('f_objection', niche.objection);
+  setIf('f_benefits', (niche.benefits || []).join('\n'));
+  setIf('f_proofPoints', (niche.proofPoints || []).join('\n'));
+  setIf('f_hashtags', (niche.hashtags || []).join(' '));
+  setIf('f_kpis', (niche.kpis || []).join(', '));
+  setIf('f_disclaimers', (niche.disclaimers || []).join('\n'));
   log(`Auto-uzupełnienie z profilu branżowego: ${niche.label}`,'ok');
   toast('Brief uzupełniony na podstawie profilu: ' + niche.label, 'ok', 4500);
   saveDraft();
@@ -3083,7 +4043,7 @@ function updateBadges(){
 
 /** Modele proponowane w zależności od dostawcy. */
 const MODELS = {
-  openai:['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1','o4-mini'],
+  openai:['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1','o4-mini','o3-mini','gpt-5-mini'],
   gemini:['gemini-2.0-flash','gemini-2.5-flash','gemini-2.5-pro','gemini-1.5-flash'],
   custom:['openai/gpt-4o-mini','anthropic/claude-3.5-sonnet','meta-llama/llama-3.1-70b-instruct','local-model']
 };
@@ -3228,6 +4188,27 @@ function bindUI(){
   });
   document.getElementById('btnTestApi').addEventListener('click', testApi);
 
+  // partia + presety + pamięć + druk
+  bindBatch();
+  bindPresets();
+  bindStoryboard();
+  document.getElementById('batchStrategy').innerHTML =
+    '<option value="" selected>Z briefu / strategia z zakładki Kampania</option>' +
+    STRATEGIES.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
+  document.getElementById('btnRefreshStorage').addEventListener('click', () => { renderStorage(); toast('Odświeżono statystyki pamięci','info'); });
+  document.getElementById('btnPruneHistory').addEventListener('click', () => {
+    const list = getHistory();
+    if(list.length <= 10){ toast('Historia ma już ' + list.length + ' wpisów – nic do przycięcia','info'); return; }
+    setHistory(list.slice(0, 10));
+    renderHistory(); renderStorage();
+    toast('Historia przycięta z ' + list.length + ' do 10 projektów','ok');
+  });
+  document.getElementById('btnPrint').addEventListener('click', () => {
+    if(!currentProject){ toast('Najpierw wygeneruj pakiet','warn'); return; }
+    switchTab('results');
+    setTimeout(() => window.print(), 250);
+  });
+
   // historia
   bindHistory();
   document.getElementById('btnClearHistory').addEventListener('click', () => { if(confirm('Wyczyścić całą historię projektów?')){ setHistory([]); renderHistory(); toast('Historia wyczyszczona','info'); } });
@@ -3255,7 +4236,12 @@ function bindUI(){
     if(ctrl && e.key.toLowerCase() === 's'){ e.preventDefault(); document.getElementById('btnSaveProject').click(); }
     if(ctrl && e.key.toLowerCase() === 'k'){ e.preventDefault(); document.getElementById('btnKey').click(); }
     if(ctrl && e.shiftKey && e.key.toLowerCase() === 'l'){ e.preventDefault(); runGeneration(true); }
-    if(e.key === 'Escape') document.getElementById('modalKey').classList.remove('open');
+    if(e.key === 'Escape'){
+      document.getElementById('modalKey').classList.remove('open');
+      document.getElementById('modalPreset').classList.remove('open');
+      document.getElementById('modalStory').classList.remove('open');
+      if(story) story.playing = false;
+    }
   });
 
   // zapis stanu przy zamykaniu
@@ -3268,6 +4254,8 @@ function bindUI(){
   syncSettingsUI();
   bindUI();
   renderHistory();
+  renderPresets();
+  renderStorage();
   restoreDraft();
   log('Aplikacja gotowa. Skróty: Ctrl+Enter (generuj), Ctrl+Shift+L (pakiet lokalny), Ctrl+S (zapisz projekt), Ctrl+K (klucz API).');
   if(!settings.key){

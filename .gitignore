@@ -1,0 +1,6 @@
+# zależności i artefakty (aplikacja nie wymaga żadnych zależności w runtime)
+node_modules/
+package-lock.json
+package.json
+.DS_Store
+*.log
