@@ -1,0 +1,3281 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automat do Reklam TikTok – PRO</title>
+<meta name="description" content="Generator scenariuszy, hooków, shot listów i wariantów A/B dla TikTok Ads. Działa lokalnie (offline) lub z API OpenAI / Gemini.">
+<style>
+/* ============================================================
+   AUTOMAT DO REKLAM TIKTOK – PRO
+   Narzędzie robocze: scenariusze, hooki, shot listy, CTA, hashtagi, A/B.
+   Cały interfejs: 1 plik, brak zależności zewnętrznych.
+   ============================================================ */
+
+/* --- 1. Tokeny / zmienne motywu --- */
+:root{
+  --bg:#080a0e;
+  --bg-2:#0c1016;
+  --panel:#111722;
+  --panel-2:#151c28;
+  --panel-3:#1a2231;
+  --line:#232d3d;
+  --line-2:#2e3a4d;
+  --text:#e9eef7;
+  --text-2:#b7c2d3;
+  --muted:#7d8b9f;
+  --pink:#fe2c55;
+  --cyan:#25f4ee;
+  --violet:#7c5cff;
+  --ok:#31d68f;
+  --warn:#ffb020;
+  --err:#ff5470;
+  --radius:14px;
+  --radius-s:9px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,Arial,sans-serif;
+  --shadow:0 10px 34px rgba(0,0,0,.45);
+}
+
+/* --- 2. Reset --- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1100px 520px at 12% -10%, rgba(254,44,85,.13), transparent 60%),
+    radial-gradient(900px 480px at 92% -6%, rgba(37,244,238,.10), transparent 58%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:14.5px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:-.01em}
+p{margin:0}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+a{color:var(--cyan)}
+::selection{background:rgba(254,44,85,.35)}
+
+/* --- 3. Scrollbar --- */
+*::-webkit-scrollbar{width:11px;height:11px}
+*::-webkit-scrollbar-track{background:var(--bg-2)}
+*::-webkit-scrollbar-thumb{background:#2a3547;border-radius:20px;border:2px solid var(--bg-2)}
+*::-webkit-scrollbar-thumb:hover{background:#38455c}
+
+/* --- 4. Topbar --- */
+.topbar{
+  position:sticky;top:0;z-index:60;
+  display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
+  padding:14px 22px;
+  background:rgba(8,10,14,.86);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;gap:13px;align-items:center;min-width:290px}
+.logo{
+  width:44px;height:44px;flex:0 0 44px;border-radius:12px;
+  display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--pink),#b1138c 55%,var(--violet));
+  color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px;
+  box-shadow:0 6px 22px rgba(254,44,85,.35);
+}
+.brand h1{font-size:16.5px}
+.brand h1 .pro{
+  font-size:10px;letter-spacing:.16em;vertical-align:2px;margin-left:7px;
+  padding:2px 7px;border-radius:6px;
+  background:linear-gradient(90deg,var(--pink),var(--violet));
+  color:#fff;font-weight:800;
+}
+.brand p{font-size:11.5px;color:var(--muted)}
+.top-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+
+/* --- 5. Badge / pill --- */
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:999px;
+  border:1px solid var(--line-2);background:var(--panel);
+  font-size:11.5px;color:var(--text-2);white-space:nowrap;
+}
+.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 3px rgba(125,139,159,.15)}
+.badge.ok .dot{background:var(--ok);box-shadow:0 0 0 3px rgba(49,214,143,.16)}
+.badge.warn .dot{background:var(--warn);box-shadow:0 0 0 3px rgba(255,176,32,.16)}
+.badge.err .dot{background:var(--err);box-shadow:0 0 0 3px rgba(255,84,112,.16)}
+.pill{
+  display:inline-block;min-width:20px;text-align:center;
+  padding:1px 6px;border-radius:999px;background:var(--panel-3);
+  font-size:11px;color:var(--text-2);border:1px solid var(--line)
+}
+
+/* --- 6. Buttons --- */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;justify-content:center;
+  padding:9px 14px;border-radius:var(--radius-s);
+  border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
+  cursor:pointer;font-size:13px;font-weight:550;white-space:nowrap;
+  transition:.15s ease;
+}
+.btn:hover{background:var(--panel-3);border-color:#3a4960;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn.primary{
+  background:linear-gradient(120deg,var(--pink),#c2167f 70%,var(--violet));
+  border-color:transparent;color:#fff;box-shadow:0 6px 20px rgba(254,44,85,.28)
+}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.cyan{background:linear-gradient(120deg,#12b6c9,var(--cyan));color:#04212a;border-color:transparent;font-weight:700}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
+.btn.mini{padding:4px 9px;font-size:11.5px;border-radius:7px;background:transparent;border-color:var(--line-2);color:var(--text-2)}
+.btn.mini:hover{color:var(--text);background:var(--panel-3)}
+.btn.danger:hover{border-color:var(--err);color:#ffd7de}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px}
+
+/* --- 7. Tabs --- */
+.tabs{
+  display:flex;gap:4px;padding:10px 22px 0;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);position:sticky;top:73px;z-index:50;
+  background:rgba(8,10,14,.92);backdrop-filter:blur(12px);
+}
+.tab{
+  padding:11px 16px;border:1px solid transparent;border-bottom:none;
+  background:transparent;color:var(--muted);cursor:pointer;
+  border-radius:10px 10px 0 0;font-size:13px;font-weight:600;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.tab:hover{color:var(--text-2);background:rgba(255,255,255,.03)}
+.tab.active{color:var(--text);background:var(--panel);border-color:var(--line);border-bottom:1px solid var(--panel);margin-bottom:-1px}
+.tab.active::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pink)}
+
+/* --- 8. Layout --- */
+.wrap{max-width:1560px;margin:0 auto;padding:22px}
+.view{display:none}
+.view.active{display:block;animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:18px;align-items:start}
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.stack{display:flex;flex-direction:column;gap:18px}
+.sticky-col{position:sticky;top:132px}
+
+/* --- 9. Panel / card --- */
+.panel{
+  background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;
+}
+.panel > .head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:13px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.015);
+}
+.panel > .head h2{font-size:13.5px;letter-spacing:.02em;display:flex;align-items:center;gap:9px}
+.panel > .head .num{
+  width:22px;height:22px;border-radius:7px;display:grid;place-items:center;
+  background:var(--panel-3);border:1px solid var(--line-2);font-size:11px;color:var(--cyan);font-weight:700
+}
+.panel > .body{padding:16px}
+.hint{font-size:11.5px;color:var(--muted)}
+.hint.warn{color:var(--warn)}
+.hint.ok{color:var(--ok)}
+
+/* --- 10. Formularze --- */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+.field > label{font-size:11.5px;color:var(--text-2);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.field .sub{font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400}
+input[type=text],input[type=password],input[type=number],input[type=url],select,textarea{
+  width:100%;padding:10px 12px;border-radius:var(--radius-s);
+  background:var(--bg-2);border:1px solid var(--line-2);color:var(--text);
+  outline:none;transition:.15s ease;
+}
+textarea{resize:vertical;min-height:74px;line-height:1.5}
+input:focus,select:focus,textarea:focus{border-color:var(--pink);box-shadow:0 0 0 3px rgba(254,44,85,.14);background:#0a0e14}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:32px}
+input::placeholder,textarea::placeholder{color:#5b6a7d}
+
+/* --- 11. Segmented control --- */
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{
+  flex:1 1 auto;min-width:64px;padding:9px 11px;border-radius:var(--radius-s);
+  border:1px solid var(--line-2);background:var(--bg-2);color:var(--text-2);
+  cursor:pointer;font-size:12.5px;font-weight:600;transition:.15s;
+}
+.seg button:hover{border-color:#3a4960;color:var(--text)}
+.seg button.on{
+  background:linear-gradient(120deg,rgba(254,44,85,.22),rgba(124,92,255,.18));
+  border-color:var(--pink);color:#fff;box-shadow:inset 0 0 0 1px rgba(254,44,85,.3)
+}
+.seg.stack-seg{flex-direction:column}
+.seg.stack-seg button{text-align:left;line-height:1.35}
+.seg.stack-seg button .t{display:block;font-size:12.5px}
+.seg.stack-seg button .d{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+.seg.stack-seg button.on .d{color:#d9c4ff}
+
+/* --- 12. Checkboxy modułów --- */
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:8px}
+.check{
+  display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:var(--radius-s);
+  border:1px solid var(--line-2);background:var(--bg-2);cursor:pointer;font-size:12.5px;
+  transition:.14s;user-select:none
+}
+.check:hover{border-color:#3a4960}
+.check input{width:15px;height:15px;accent-color:var(--pink);cursor:pointer;flex:0 0 auto}
+.check.on{border-color:rgba(254,44,85,.6);background:rgba(254,44,85,.07)}
+.check span{line-height:1.25}
+
+/* --- 13. Voice/status bar --- */
+.log{
+  font-family:var(--mono);font-size:11.5px;color:var(--text-2);
+  background:#05070a;border:1px solid var(--line);border-radius:var(--radius-s);
+  padding:11px 13px;max-height:190px;overflow:auto;white-space:pre-wrap
+}
+.log b{color:var(--cyan);font-weight:600}
+.log .e{color:var(--err)}
+.log .ok{color:var(--ok)}
+.log .w{color:var(--warn)}
+
+/* --- 14. Wyniki: karty wariantów --- */
+.var-card{
+  background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:18px;
+}
+.var-head{
+  display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;
+  padding:15px 17px;border-bottom:1px solid var(--line);
+  background:linear-gradient(100deg,rgba(254,44,85,.10),rgba(37,244,238,.05) 60%,transparent);
+}
+.var-head .left{display:flex;gap:13px;align-items:flex-start}
+.var-tag{
+  width:42px;height:42px;flex:0 0 42px;border-radius:12px;display:grid;place-items:center;
+  font-weight:800;font-size:17px;color:#fff;
+  background:linear-gradient(140deg,var(--pink),var(--violet));
+  box-shadow:0 6px 18px rgba(254,44,85,.28)
+}
+.var-head h3{font-size:15px}
+.var-head .angle{font-size:12px;color:var(--text-2)}
+.var-head .hyp{font-size:11.5px;color:var(--muted);margin-top:3px;max-width:640px}
+.meta-chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  font-size:10.5px;padding:3px 8px;border-radius:999px;
+  border:1px solid var(--line-2);background:var(--bg-2);color:var(--text-2);white-space:nowrap
+}
+.chip.pink{border-color:rgba(254,44,85,.5);color:#ffb3c4;background:rgba(254,44,85,.08)}
+.chip.cyan{border-color:rgba(37,244,238,.45);color:#a9fbf8;background:rgba(37,244,238,.06)}
+.chip.ok{border-color:rgba(49,214,143,.45);color:#a9f0cf;background:rgba(49,214,143,.07)}
+
+.sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px;padding:16px}
+.sec{
+  border:1px solid var(--line);border-radius:var(--radius-s);background:var(--bg-2);overflow:hidden;
+  display:flex;flex-direction:column;min-width:0
+}
+.sec > header{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:9px 12px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.018)
+}
+.sec > header .t{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--text-2)}
+.sec > header .t .ic{font-size:13px}
+.sec pre{
+  margin:0;padding:12px 13px;font-family:var(--mono);font-size:12.2px;line-height:1.62;
+  white-space:pre-wrap;word-break:break-word;color:#d8e2f0;max-height:520px;overflow:auto;flex:1
+}
+.sec.wide{grid-column:1/-1}
+.sec .acts{display:flex;gap:6px}
+.sec.busy{opacity:.55;pointer-events:none}
+.sec.flash{animation:flash 1s ease}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(37,244,238,.5)}100%{box-shadow:0 0 0 14px rgba(37,244,238,0)}}
+
+/* --- 15. Compliance --- */
+.cmp{padding:13px 15px;border-radius:var(--radius-s);border:1px solid var(--line);background:var(--bg-2)}
+.cmp h4{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-2);margin-bottom:8px}
+.cmp ul{margin:0;padding-left:18px}
+.cmp li{font-size:12.3px;margin-bottom:5px;color:var(--text-2)}
+.cmp li b{color:#ffd7de}
+.cmp .fix{color:var(--ok);font-family:var(--mono);font-size:11.5px}
+
+/* --- 16. Lista historii --- */
+.hist-card{
+  display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+  padding:13px 15px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--panel);margin-bottom:10px
+}
+.hist-card:hover{border-color:var(--line-2)}
+.hist-card .m{font-size:11.5px;color:var(--muted)}
+.hist-card .n{font-size:13.5px;font-weight:600}
+
+/* --- 17. Toast --- */
+.toasts{position:fixed;right:18px;bottom:18px;z-index:200;display:flex;flex-direction:column;gap:9px;max-width:340px}
+.toast{
+  padding:11px 14px;border-radius:11px;border:1px solid var(--line-2);background:#141b26;
+  box-shadow:var(--shadow);font-size:12.8px;animation:slide .22s ease
+}
+.toast.ok{border-left:3px solid var(--ok)}
+.toast.err{border-left:3px solid var(--err)}
+.toast.warn{border-left:3px solid var(--warn)}
+.toast.info{border-left:3px solid var(--cyan)}
+@keyframes slide{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* --- 18. Modal --- */
+.modal{
+  position:fixed;inset:0;z-index:300;display:none;place-items:center;padding:20px;
+  background:rgba(3,5,8,.78);backdrop-filter:blur(5px)
+}
+.modal.open{display:grid}
+.modal .box{
+  width:min(600px,100%);max-height:88vh;overflow:auto;
+  background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border:1px solid var(--line-2);border-radius:16px;box-shadow:var(--shadow)
+}
+.modal .box > header{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--line)}
+.modal .box > .body{padding:18px}
+.modal .box > footer{display:flex;justify-content:flex-end;gap:9px;padding:14px 18px;border-top:1px solid var(--line)}
+
+/* --- 19. Progress --- */
+.bar{height:6px;border-radius:99px;background:var(--bg-2);border:1px solid var(--line);overflow:hidden;margin:11px 0}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--cyan));transition:width .35s ease}
+.spin{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* --- 20. Tabela skrótów --- */
+table.kv{width:100%;border-collapse:collapse}
+table.kv td{padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:top}
+table.kv td:first-child{color:var(--muted);width:38%}
+code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px solid var(--line);padding:1px 6px;border-radius:6px}
+
+/* --- 21. Responsywność --- */
+@media (max-width:1000px){
+  .sections{grid-template-columns:1fr}
+  .sticky-col{position:static}
+  .tabs{top:auto;position:static}
+  .wrap{padding:15px}
+}
+@media print{
+  body{background:#fff;color:#000}
+  .topbar,.tabs,.btn,.toasts{display:none !important}
+  .sec pre{color:#000;max-height:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     INTERFEJS – TOPBAR
+     ============================================================ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">TT</div>
+    <div>
+      <h1>Automat do Reklam TikTok<span class="pro">PRO</span></h1>
+      <p>Scenariusze · hooki 0–3s · shot list · CTA · hashtagi · warianty A/B</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span class="badge" id="badgeEngine"><span class="dot"></span><span id="badgeEngineTxt">Silnik: lokalny (offline)</span></span>
+    <span class="badge" id="badgeApi"><span class="dot"></span><span id="badgeApiTxt">API: brak klucza</span></span>
+    <button class="btn sm ghost" id="btnSaveProject">💾 Zapisz projekt</button>
+    <button class="btn sm" id="btnKey">🔑 Klucz API</button>
+  </div>
+</header>
+
+<!-- ============================================================
+     NAWIGACJA
+     ============================================================ -->
+<nav class="tabs">
+  <button class="tab active" data-tab="campaign">1 · Kampania</button>
+  <button class="tab" data-tab="results">2 · Wyniki <span class="pill" id="pillVariants">0</span></button>
+  <button class="tab" data-tab="history">Historia <span class="pill" id="pillHistory">0</span></button>
+  <button class="tab" data-tab="settings">Ustawienia</button>
+</nav>
+
+<div class="wrap">
+
+  <!-- ==========================================================
+       ZAKŁADKA 1: KAMPANIA
+       ========================================================== -->
+  <section class="view active" id="view-campaign">
+    <div class="grid-2">
+
+      <!-- KOLUMNA LEWA: brief -->
+      <div class="stack">
+
+        <div class="panel">
+          <div class="head">
+            <h2><span class="num">1</span> Dane kampanii</h2>
+            <div class="btn-row">
+              <button class="btn mini" id="btnAutoFill" title="Uzupełnia puste pola na podstawie branży i produktu">⚡ Auto-uzupełnij (bez API)</button>
+              <button class="btn mini" id="btnAiFill" title="Uzupełnia brief przez API (OpenAI / Gemini)">🤖 Uzupełnij z AI</button>
+            </div>
+          </div>
+          <div class="body">
+            <div class="grid-3">
+              <div class="field">
+                <label>Branża / nisza</label>
+                <input type="text" id="f_industry" list="dl_industries" placeholder="np. kosmetyki naturalne">
+                <datalist id="dl_industries"></datalist>
+              </div>
+              <div class="field">
+                <label>Produkt / usługa</label>
+                <input type="text" id="f_product" placeholder="np. serum z witaminą C 30 ml">
+              </div>
+              <div class="field">
+                <label>Cena <span class="sub">(opcjonalnie)</span></label>
+                <input type="text" id="f_price" placeholder="np. 89 zł / 19,90 zł / od 149 zł">
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field">
+                <label>Grupa docelowa</label>
+                <textarea id="f_audience" rows="2" placeholder="np. kobiety 25–40, miasto, dbające o skórę, kupują online"></textarea>
+              </div>
+              <div class="field">
+                <label>Problem klienta</label>
+                <textarea id="f_problem" rows="2" placeholder="np. wypryski i nierówny koloryt po zimie, brak efektu po drogich kremach"></textarea>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Główna obietnica <span class="sub">(bez gwarancji wyników – patrz: zgodność z politykami TikTok)</span></label>
+              <textarea id="f_promise" rows="2" placeholder="np. prosty sposób na uporządkowaną rutynę pielęgnacji w 3 krokach"></textarea>
+            </div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label>Ton komunikacji</label>
+                <select id="f_tone">
+                  <option value="agresywny">Agresywny / direct</option>
+                  <option value="spokojny">Spokojny / konkretny</option>
+                  <option value="luksusowy">Luksusowy / premium</option>
+                  <option value="viralowy" selected>Viralowy / energetyczny</option>
+                  <option value="ekspercki">Ekspercki / merytoryczny</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Dowód / argument</label>
+                <input type="text" id="f_proof" placeholder="np. 4 300 opinii, 18 mies. na rynku, skład INCI">
+              </div>
+              <div class="field">
+                <label>Oferta / bonus</label>
+                <input type="text" id="f_offer" placeholder="np. druga sztuka -50%, dostawa 24h, 30 dni na zwrot">
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="field">
+                <label>Obiekcje klienta</label>
+                <input type="text" id="f_objection" placeholder="np. „pewnie znowu nie zadziała”">
+              </div>
+              <div class="field">
+                <label>Marka / link</label>
+                <input type="text" id="f_brand" placeholder="np. @twojamarka / sklep.pl">
+              </div>
+              <div class="field">
+                <label>Nazwa kampanii <span class="sub">(do historii)</span></label>
+                <input type="text" id="f_campaign" placeholder="np. Serum C – test hooków 10.2026">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h2><span class="num">2</span> Parametry reklamy</h2></div>
+          <div class="body">
+            <div class="field">
+              <label>Długość wideo</label>
+              <div class="seg" id="segLen">
+                <button data-v="7">7s</button>
+                <button data-v="15" class="on">15s</button>
+                <button data-v="30">30s</button>
+                <button data-v="45">45s</button>
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="field">
+                <label>Styl reklamy</label>
+                <select id="f_style">
+                  <option value="UGC" selected>UGC / twórca mówi do kamery</option>
+                  <option value="narracja">Narracja / voice-over</option>
+                  <option value="storytelling">Storytelling / historia</option>
+                  <option value="szok">Szok / pattern interrupt</option>
+                  <option value="edukacja">Edukacja / jak to działa</option>
+                  <option value="demo">Demo produktu / test na żywo</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Platforma</label>
+                <select id="f_platform">
+                  <option value="TikTok Feed (In-Feed Ads)" selected>TikTok Feed (In-Feed Ads)</option>
+                  <option value="Spark Ads">Spark Ads (wzmocnienie posta)</option>
+                  <option value="Spark Ads + Feed (split)">Spark Ads + Feed (split test)</option>
+                  <option value="TopView / Reach">TopView / Reach</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Język treści</label>
+                <select id="f_lang"></select>
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="field">
+                <label>Ilość wariantów A/B/C: <span id="lblVariants" style="color:var(--cyan)">3</span></label>
+                <input type="range" id="f_variants" min="1" max="10" value="3" style="width:100%;accent-color:var(--pink)">
+              </div>
+              <div class="field">
+                <label>Wersja sprzedażowa</label>
+                <div class="seg" id="segSell">
+                  <button data-v="soft">Soft sell</button>
+                  <button data-v="hard">Hard sell</button>
+                  <button data-v="auto" class="on">Auto</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>Silnik generowania</label>
+                <select id="f_engine">
+                  <option value="auto" selected>Auto (API, jeśli jest klucz)</option>
+                  <option value="local">Wymuś silnik lokalny (offline)</option>
+                  <option value="api">Wymuś API</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KOLUMNA PRAWA: strategia, moduły, generacja -->
+      <div class="stack sticky-col">
+
+        <div class="panel">
+          <div class="head"><h2><span class="num">3</span> Tryb strategii reklamowej</h2></div>
+          <div class="body">
+            <div class="seg stack-seg" id="segStrategy"></div>
+            <p class="hint" id="strategyHint" style="margin-top:11px"></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="head">
+            <h2><span class="num">4</span> Moduły generowania</h2>
+            <div class="btn-row">
+              <button class="btn mini" id="btnAllMods">Zaznacz wszystkie</button>
+              <button class="btn mini" id="btnNoneMods">Odznacz</button>
+            </div>
+          </div>
+          <div class="body">
+            <div class="checks" id="modChecks"></div>
+            <div class="grid-3" style="margin-top:13px">
+              <div class="field">
+                <label>Tryb pracy</label>
+                <div class="seg" id="segMode">
+                  <button data-v="manual" class="on">Manualny</button>
+                  <button data-v="auto">AUTOMAT</button>
+                </div>
+                <span class="hint" id="modeHint">Wypełniasz brief ręcznie – pełna kontrola nad treścią.</span>
+              </div>
+              <div class="field">
+                <label>Sprzedażowy callout</label>
+                <select id="f_calloutType">
+                  <option value="wartosc">Wartość / cena za efekt</option>
+                  <option value="niedobor">Ograniczona dostępność</option>
+                  <option value="dowody">Dowody społeczne</option>
+                  <option value="gwarancje">Odwrócenie ryzyka (zwrot, wsparcie)</option>
+                  <option value="sezon">Sezonowość / moment w roku</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Poziom „punchu”</label>
+                <select id="f_punch">
+                  <option value="1">1 · Spokojnie</option>
+                  <option value="2">2 · Standard</option>
+                  <option value="3" selected>3 · Mocno</option>
+                  <option value="4">4 · Maksymalnie ostro (bez łamania polityk)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h2><span class="num">5</span> Generowanie</h2></div>
+          <div class="body">
+            <div class="btn-row" style="margin-bottom:12px">
+              <button class="btn primary" id="btnGenerate" style="flex:1">🚀 GENERUJ PAKIET REKLAM</button>
+              <button class="btn cyan" id="btnQuickLocal" title="Natychmiastowy pakiet z silnika lokalnego – bez internetu i bez klucza">⚡ Szybki pakiet lokalny</button>
+            </div>
+            <div class="bar"><i id="genBar"></i></div>
+            <div class="log" id="genLog">Gotowy. Wypełnij brief i kliknij GENERUJ. Skrót: Ctrl + Enter.</div>
+            <p class="hint" style="margin-top:9px">Bez klucza API aplikacja używa wbudowanego silnika lokalnego (offline) – generuje realne treści na bazie Twojego briefu. Klucz API daje pełną lokalizację językową i swobodniejsze copy.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       ZAKŁADKA 2: WYNIKI
+       ========================================================== -->
+  <section class="view" id="view-results">
+    <div class="panel" style="margin-bottom:18px">
+      <div class="head">
+        <h2>📦 Pakiet kampanii <span class="pill" id="projEngine">–</span></h2>
+        <div class="btn-row">
+          <button class="btn sm" id="btnCopyAll">⧉ Kopiuj całość</button>
+          <button class="btn sm" data-exp="txt">⬇ TXT</button>
+          <button class="btn sm" data-exp="md">⬇ MD</button>
+          <button class="btn sm" data-exp="json">⬇ JSON</button>
+          <button class="btn sm primary" data-exp="package">📦 Eksport pełnego pakietu</button>
+        </div>
+      </div>
+      <div class="body" id="projSummary">
+        <p class="hint">Brak wygenerowanego pakietu. Przejdź do zakładki „Kampania” i kliknij GENERUJ.</p>
+      </div>
+    </div>
+
+    <div id="resultsArea"></div>
+  </section>
+
+  <!-- ==========================================================
+       ZAKŁADKA 3: HISTORIA
+       ========================================================== -->
+  <section class="view" id="view-history">
+    <div class="panel">
+      <div class="head">
+        <h2>🗂 Historia projektów <span class="pill" id="histCount">0</span></h2>
+        <div class="btn-row">
+          <button class="btn sm" id="btnImportProject">⬆ Import JSON</button>
+          <button class="btn sm danger" id="btnClearHistory">🗑 Wyczyść historię</button>
+          <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+        </div>
+      </div>
+      <div class="body" id="historyList"></div>
+    </div>
+  </section>
+
+  <!-- ==========================================================
+       ZAKŁADKA 4: USTAWIENIA
+       ========================================================== -->
+  <section class="view" id="view-settings">
+    <div class="grid-2">
+      <div class="panel">
+        <div class="head"><h2>🔑 Klucz API i model</h2></div>
+        <div class="body">
+          <div class="grid-3">
+            <div class="field">
+              <label>Dostawca</label>
+              <select id="s_provider">
+                <option value="openai" selected>OpenAI (api.openai.com)</option>
+                <option value="gemini">Google Gemini (generativelanguage)</option>
+                <option value="custom">OpenAI-compatible (własny endpoint)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Model</label>
+              <select id="s_model"></select>
+            </div>
+            <div class="field">
+              <label>Własny model <span class="sub">(nadpisuje listę)</span></label>
+              <input type="text" id="s_modelCustom" placeholder="np. gpt-4o-mini / gemini-2.5-flash">
+            </div>
+          </div>
+          <div class="field">
+            <label>Klucz API <span class="sub">(zapisywany wyłącznie w Twoim localStorage)</span></label>
+            <div style="display:flex;gap:8px">
+              <input type="password" id="s_key" placeholder="sk-... / AIza..." autocomplete="off" spellcheck="false">
+              <button class="btn" id="btnShowKey" type="button">👁</button>
+              <button class="btn" id="btnSaveKey" type="button">Zapisz</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Endpoint własny <span class="sub">(tylko dla trybu OpenAI-compatible)</span></label>
+            <input type="url" id="s_baseurl" placeholder="https://openrouter.ai/api/v1/chat/completions">
+          </div>
+          <div class="grid-3">
+            <div class="field">
+              <label>Temperatura (0–1)</label>
+              <input type="number" id="s_temp" min="0" max="1" step="0.1" value="0.8">
+            </div>
+            <div class="field">
+              <label>Timeout (sekundy)</label>
+              <input type="number" id="s_timeout" min="10" max="300" step="5" value="120">
+            </div>
+            <div class="field">
+              <label>Maks. tokenów odpowiedzi</label>
+              <input type="number" id="s_maxtok" min="512" max="32000" step="256" value="8000">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="btnTestApi">🔌 Test połączenia</button>
+            <button class="btn danger" id="btnWipeKey">Usuń klucz</button>
+            <button class="btn danger" id="btnWipeAll">Wyczyść wszystkie dane</button>
+          </div>
+          <p class="hint" style="margin-top:11px">Klucz jest używany tylko w Twojej przeglądarce do bezpośredniego wywołania API wybranego dostawcy. Aplikacja nie ma backendu i nie wysyła danych nigdzie indziej. Uwaga: dla plików otwartych przez <code>file://</code> niektóre przeglądarki blokują żądania – wtedy uruchom prosty serwer lokalny (patrz README) lub użyj silnika lokalnego.</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="panel">
+          <div class="head"><h2>🧠 Silnik lokalny (offline)</h2></div>
+          <div class="body">
+            <p class="hint">Silnik lokalny buduje pakiet z banków fraz, strategii i struktur ujęć – bez internetu i bez klucza. Pełne banki treści: <b>polski</b> i <b>angielski</b>. Dla pozostałych języków offline generuje bazę po angielsku z lokalnymi CTA i hookami (pełna lokalizacja copy – tryb API).</p>
+            <div style="margin-top:12px" class="grid-3">
+              <div class="field">
+                <label>Agresywność słownika</label>
+                <select id="s_localPunch">
+                  <option value="1">Bezpieczny</option>
+                  <option value="2" selected>Standard rynkowy</option>
+                  <option value="3">Mocny, ale zgodny</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Auto-filtr zgodności</label>
+                <select id="s_autofix">
+                  <option value="on" selected>Włączony (zamienia ryzykowne frazy)</option>
+                  <option value="off">Wyłączony (tylko raport)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Znacznik disclaimerów</label>
+                <select id="s_disclaimer">
+                  <option value="on" selected>Dodawaj gotowy disclaimer</option>
+                  <option value="off">Nie dodawaj</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="head"><h2>⌨ Skróty i szybkie akcje</h2></div>
+          <div class="body">
+            <table class="kv">
+              <tr><td><code>Ctrl</code> + <code>Enter</code></td><td>Generuj pakiet</td></tr>
+              <tr><td><code>Ctrl</code> + <code>S</code></td><td>Zapisz projekt do historii</td></tr>
+              <tr><td><code>Ctrl</code> + <code>K</code></td><td>Otwórz okno klucza API</td></tr>
+              <tr><td><code>Ctrl</code> + <code>Shift</code> + <code>L</code></td><td>Szybki pakiet lokalny</td></tr>
+            </table>
+            <p class="hint" style="margin-top:12px">Auto-save: brief i wyniki zapisują się automatycznie w localStorage po każdej zmianie – możesz zamknąć kartę i wrócić.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- MODAL: klucz API -->
+<div class="modal" id="modalKey">
+  <div class="box">
+    <header>
+      <h3>Klucz API</h3>
+      <button class="btn mini" id="btnCloseKey">✕</button>
+    </header>
+    <div class="body">
+      <div class="field">
+        <label>Dostawca</label>
+        <select id="m_provider">
+          <option value="openai">OpenAI</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="custom">OpenAI-compatible (własny endpoint)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Klucz API</label>
+        <input type="password" id="m_key" placeholder="wklej klucz" autocomplete="off" spellcheck="false">
+        <span class="hint">Klucz zostaje w localStorage tej przeglądarki. Możesz go w każdej chwili zmienić lub usunąć w Ustawieniach.</span>
+      </div>
+      <div class="field">
+        <label>Model</label>
+        <select id="m_model"></select>
+      </div>
+      <p class="hint">Bez klucza aplikacja nadal działa – generuje pakiet silnikiem lokalnym offline.</p>
+    </div>
+    <footer>
+      <button class="btn danger" id="btnModalWipe">Usuń klucz</button>
+      <button class="btn primary" id="btnModalSave">Zapisz klucz</button>
+    </footer>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ============================================================================
+   AUTOMAT DO REKLAM TIKTOK – PRO
+   Vanilla JS · bez frameworków · bez backendu · localStorage
+   ----------------------------------------------------------------------------
+   Sekcje kodu:
+     A. KONFIGURACJA       – języki, strategie, style, moduły, długości, kąty
+     B. BAZA BRANŻ         – presety wiedzy rynkowej (konkretne treści, nie placeholdery)
+     C. MAGAZYN            – localStorage: brief, wyniki, historia, ustawienia
+     D. SILNIK LOKALNY     – generator pakietu offline (PL/EN + lokalne CTA)
+     E. PROMPTY + API      – budowa promptu, OpenAI / Gemini / custom
+     F. PARSER             – rozbijanie odpowiedzi na sekcje
+     G. RENDER             – panele wyników, kopiowanie, regeneracja sekcji
+     H. EKSPORT            – TXT / MD / JSON / pełny pakiet kampanii
+     I. HISTORIA           – zapis, duplikacja, edycja, import/eksport
+     J. ZGODNOŚĆ           – filtr ryzykownych fraz + disclaimery
+     K. UI / INIT          – zakładki, toasty, skróty, autosave
+   ========================================================================== */
+'use strict';
+
+/* ============================================================================
+   A. KONFIGURACJA
+   ========================================================================== */
+
+/** Języki interfejsu generacji (min. 10 – wymóg specyfikacji). */
+const LANGS = [
+  { id:'pl', label:'Polski (PL)' },
+  { id:'en', label:'English (EN)' },
+  { id:'de', label:'Deutsch (DE)' },
+  { id:'es', label:'Español (ES)' },
+  { id:'fr', label:'Français (FR)' },
+  { id:'it', label:'Italiano (IT)' },
+  { id:'pt', label:'Português (PT)' },
+  { id:'nl', label:'Nederlands (NL)' },
+  { id:'sv', label:'Svenska (SV)' },
+  { id:'cs', label:'Čeština (CS)' },
+  { id:'uk', label:'Українська (UK)' },
+  { id:'da', label:'Dansk (DA)' }
+];
+
+/** Nazwy sekcji wynikowych – PL/EN pełne, pozostałe języki dziedziczą EN. */
+const SECTION_LABELS = {
+  pl:{ hook:'Hooki 0–3 s', script:'Scenariusz ujęcie po ujęciu', shots:'Shot list', overlay:'Overlay text',
+       subtitles:'Napisy', narration:'Narracja / voice-over', cta:'CTA', description:'Opis TikTok',
+       hashtags:'Hashtagi', callout:'Callout sprzedażowy', ab:'Notatka testowa A/B' },
+  en:{ hook:'Hooks 0–3s', script:'Script beat by beat', shots:'Shot list', overlay:'Overlay text',
+       subtitles:'Subtitles', narration:'Voice-over / narration', cta:'CTA', description:'TikTok caption',
+       hashtags:'Hashtags', callout:'Sales callout', ab:'A/B test note' }
+};
+
+/** Lokalne linie CTA i otwarcia hooków dla języków bez pełnych banków fraz (tryb offline). */
+const L10N = {
+  de:{ cta:['Jetzt im Profil nachsehen','Link in der Bio – heute bestellen','Schreib „START” in die Kommentare','Nur für kurze Zeit: Angebot ansehen'],
+       hook:['Stopp – das musst du sehen','Wenn du das kennst, schau bis zum Ende','Das macht fast jeder falsch'] },
+  es:{ cta:['Míralo en nuestro perfil','Enlace en la bio – pide hoy','Escribe «INFO» en los comentarios','Oferta disponible por tiempo limitado'],
+       hook:['Para. Tienes que ver esto','Si te pasa esto, mira hasta el final','Casi todos lo hacen mal'] },
+  fr:{ cta:['Voir le lien en bio','Commande aujourd’hui via le lien en bio','Écris «INFO» en commentaire','Offre valable pour une durée limitée'],
+       hook:['Stop. Tu dois voir ça','Si tu connais ça, regarde jusqu’à la fin','Presque tout le monde se trompe'] },
+  it:{ cta:['Guarda il link in bio','Ordina oggi dal link in bio','Scrivi «INFO» nei commenti','Offerta valida per poco tempo'],
+       hook:['Fermati. Devi vedere questo','Se ti riconosci, guarda fino alla fine','Quasi tutti sbagliano così'] },
+  pt:{ cta:['Veja o link na bio','Peça hoje pelo link da bio','Escreve «INFO» nos comentários','Oferta por tempo limitado'],
+       hook:['Para. Você precisa ver isso','Se você se identifica, veja até o fim','Quase todo mundo erra nisso'] },
+  nl:{ cta:['Bekijk de link in bio','Bestel vandaag via de link in bio','Typ „INFO” in de reacties','Aanbieding voor korte tijd'],
+       hook:['Stop. Dit moet je zien','Herken je dit? Kijk tot het einde','Bijna iedereen doet dit fout'] },
+  sv:{ cta:['Se länken i bion','Beställ idag via länken i bion','Skriv ”INFO” i kommentarerna','Erbjudandet gäller en kort tid'],
+       hook:['Stopp. Det här måste du se','Känner du igen detta? Se till slutet','Nästan alla gör fel här'] },
+  cs:{ cta:['Koukni na odkaz v biu','Objednej dnes přes odkaz v biu','Napiš „INFO” do komentářů','Nabídka platí omezenou dobu'],
+       hook:['Stop. Tohle musíš vidět','Pokud to znáš, koukej do konce','Skoro všichni to dělají špatně'] },
+  uk:{ cta:['Дивись посилання в біо','Замов сьогодні за посиланням у біо','Напиши «INFO» у коментарях','Пропозиція діє обмежений час'],
+       hook:['Стоп. Це варто побачити','Якщо це про тебе – дивись до кінця','Майже всі роблять це неправильно'] },
+  da:{ cta:['Se linket i bio','Bestil i dag via linket i bio','Skriv ”INFO” i kommentarerne','Tilbuddet gælder i kort tid'],
+       hook:['Stop. Det her skal du se','Kender du det? Se til slutningen','Næsten alle gør det forkert'] }
+};
+
+/** Tryby strategii – każdy realnie zmienia sposób pisania reklamy. */
+const STRATEGIES = [
+  { id:'viral', label:'Viral / Clickbait',
+    desc:'Zasięg, zapętlenie, komentarze, zapisania',
+    hint:'Priorytet: pierwsze 3 sekundy, pattern interrupt, otwarta pętla, powtórka wideo (loop). CTA miękkie: „zapisz”, „napisz w komentarzu”. KPI: hook rate 3s, watch time, share rate.',
+    kpi:'Hook rate (3s) · Watch time · Share/Save rate', ctaStyle:'soft', punchBoost:1 },
+  { id:'performance', label:'Performance / Sprzedaż',
+    desc:'Bezpośrednie przejścia i konwersje',
+    hint:'Priorytet: problem → rozwiązanie → dowód → oferta → CTA. Każde ujęcie musi popychać do kliknięcia. KPI: CTR (outbound), CVR, CPA, ROAS.',
+    kpi:'CTR · CVR · CPA · ROAS', ctaStyle:'hard', punchBoost:1 },
+  { id:'brand', label:'Budowa marki',
+    desc:'Rozpoznawalność, zaufanie, wartości',
+    hint:'Priorytet: historia, kulisy, ludzie, spójny ton i estetyka. CTA miękkie: „obserwuj”, „sprawdź profil”. KPI: reach, engaged view rate, profil visits.',
+    kpi:'Reach · Engaged view rate · Profile visits', ctaStyle:'soft', punchBoost:0 },
+  { id:'lead', label:'Lead generation',
+    desc:'Kontakt, zapisy, formularze',
+    hint:'Priorytet: edukacja + lead magnet + niskotarciowe CTA. Użytkownik nie musi nic kupować od razu. KPI: CPL, liczba leadów, jakość leadów.',
+    kpi:'CPL · Liczba leadów · Koszt kwalifikacji', ctaStyle:'lead', punchBoost:0 },
+  { id:'dr', label:'Agresywny direct response',
+    desc:'Maksymalna presja ofertowa i urgency',
+    hint:'Priorytet: mocny callout odbiorcy, kontrast cenowy, scarcity, odwrócenie ryzyka (zwrot/wsparcie). Bez gwarancji wyników i obietnic finansowych/medycznych. KPI: CTR, CVR, wartość koszyka.',
+    kpi:'CTR · CVR · AOV', ctaStyle:'hard', punchBoost:2 }
+];
+
+/** Style realizacji – wpływają na strukturę ujęć i sposób narracji. */
+const STYLES = {
+  UGC:         { label:'UGC / twórca mówi do kamery', camera:'handheld, przód telefonu, naturalne światło, brak czołówki' },
+  narracja:    { label:'Narracja / voice-over',        camera:'ujęcia B-roll + plansze tekstowe, stabilne kadry, voice-over' },
+  storytelling:{ label:'Storytelling / historia',      camera:'naprzemiennie twarz bohatera i B-roll, cięcia na emocjach' },
+  szok:        { label:'Szok / pattern interrupt',     camera:'mocne zbliżenie na wejściu, dynamiczne cięcia co 1–1,5 s' },
+  edukacja:    { label:'Edukacja / jak to działa',     camera:'kadr ekspercki, plansze z liczbami, ekran produktu/demo' },
+  demo:        { label:'Demo produktu / test na żywo', camera:'makro na produkt, aplikacja/test w kadrze, porównanie przed/po (rzetelnie)' }
+};
+
+/** Moduły generowania (checkboxy w UI). */
+const MODULES = [
+  { id:'hook',        label:'Hook (0–3 s)',        ic:'🪝', wide:false, defaultOn:true },
+  { id:'script',      label:'Scenariusz',          ic:'🎬', wide:true,  defaultOn:true },
+  { id:'shots',       label:'Shot list',           ic:'📸', wide:true,  defaultOn:true },
+  { id:'narration',   label:'Narracja / VO',       ic:'🎙', wide:false, defaultOn:true },
+  { id:'overlay',     label:'Overlay text',        ic:'🔤', wide:false, defaultOn:true },
+  { id:'subtitles',   label:'Napisy',              ic:'💬', wide:false, defaultOn:true },
+  { id:'cta',         label:'CTA',                 ic:'📣', wide:false, defaultOn:true },
+  { id:'description', label:'Opis TikTok',         ic:'📝', wide:false, defaultOn:true },
+  { id:'hashtags',    label:'Hashtagi',            ic:'#️⃣', wide:false, defaultOn:true },
+  { id:'callout',     label:'Callout sprzedażowy', ic:'💰', wide:false, defaultOn:true },
+  { id:'ab',          label:'Notatka A/B + KPI',   ic:'🧪', wide:false, defaultOn:true }
+];
+
+/** Struktury czasowe wideo (beat plan dla każdej długości). */
+const LENGTHS = {
+  7:  { label:'7 s',  beats:[
+        ['Hook', 0, 2], ['Obietnica / dowód', 2, 4], ['CTA', 4, 7] ] },
+  15: { label:'15 s', beats:[
+        ['Hook 0–3 s', 0, 3], ['Problem / napięcie', 3, 5], ['Rozwiązanie – produkt', 5, 9],
+        ['Dowód / efekt', 9, 12], ['CTA', 12, 15] ] },
+  30: { label:'30 s', beats:[
+        ['Hook 0–3 s', 0, 3], ['Problem / kontekst', 3, 7], ['Rozwiązanie – produkt', 7, 13],
+        ['Jak to działa / demo', 13, 18], ['Dowód społeczny', 18, 24], ['Oferta / wartość', 24, 27],
+        ['CTA + domknięcie pętli', 27, 30] ] },
+  45: { label:'45 s', beats:[
+        ['Hook 0–3 s', 0, 3], ['Problem + koszt problemu', 3, 8], ['Historia / kontekst', 8, 13],
+        ['Rozwiązanie – produkt', 13, 20], ['Jak to działa / demo', 20, 26], ['Dowody: liczby + opinie', 26, 32],
+        ['Obiekcja → odpowiedź', 32, 37], ['Oferta / wartość + ryzyko odwrócone', 37, 41],
+        ['CTA mocne + domknięcie pętli', 41, 45] ] }
+};
+
+/** Kąty reklamowe – z nich powstają warianty A/B/C… (maks. 10 wariantów). */
+const ANGLES = [
+  { id:'pain',    label:'Problem → Rozwiązanie',      hypothesis:'Test: czy wejście od bólu (konkretna sytuacja) daje wyższy hook rate niż wejście od produktu.',
+    angleNote:'Otwarcie w środku problemu odbiorcy, produkt wchodzi jako narzędzie, nie bohater.' },
+  { id:'pov',     label:'POV / „to o mnie”',          hypothesis:'Test: czy format POV zwiększa zapisania i udostępnienia (relatable content).',
+    angleNote:'Kamera = oczy odbiorcy. Scenka, którą widz rozpoznaje u siebie w pierwszej sekundzie.' },
+  { id:'proof',   label:'Dowód społeczny / opinie',   hypothesis:'Test: czy wcześniejsze social proof (liczba opinii, cytat) skraca drogę do kliknięcia.',
+    angleNote:'Zaczynamy od cudzego głosu (opinia, liczba, wynik użycia), nie od obietnicy marki.' },
+  { id:'myth',    label:'Myth busting / „przestań”',  hypothesis:'Test: czy negatywne wejście („przestań to robić”) daje wyższy CTR niż benefit-led.',
+    angleNote:'Podważamy popularne przekonanie w niszy i pokazujemy inne podejście.' },
+  { id:'list',    label:'Lista / „3 powody”',         hypothesis:'Test: czy struktura listy zwiększa watch time (łatwo śledzić kolejne punkty).',
+    angleNote:'Wyraźna numeracja na ekranie, jeden punkt = jedno ujęcie.' },
+  { id:'demo',    label:'Demo / jak to działa',       hypothesis:'Test: czy pokazanie mechanizmu działania buduje zaufanie i obniża CPA.',
+    angleNote:'Produkt w akcji, makro, konkretne detale, porównanie wariantów użycia.' },
+  { id:'challenge',label:'Test / wyzwanie (np. 7 dni)','hypothesis':'Test: czy format wyzwania podnosi komentarze i powroty do wideo.',
+    angleNote:'Jasne zasady testu na wstępie, punkty kontrolne, wynik na końcu.' },
+  { id:'bts',     label:'Kulisy / behind the scenes', hypothesis:'Test: czy większa transparentność marki podnosi zaufanie i profil visits.',
+    angleNote:'Pokazujemy proces, ludzi, pakowanie, kontrolę jakości.' },
+  { id:'price',   label:'Cena / wartość za efekt',    hypothesis:'Test: czy framing kosztu („mniej niż…”) zwiększa CVR przy tej samej cenie.',
+    angleNote:'Kontrast: koszt alternatyw vs koszt produktu. Bez obietnic finansowych.' },
+  { id:'founder', label:'Historia założyciela',       hypothesis:'Test: czy twarz marki zwiększa zaangażowanie i komentarze pytań.',
+    angleNote:'Krótka historia „dlaczego to powstało” + dowód, że produkt rozwiązuje realny problem.' },
+  { id:'objection',label:'Obiekcja wprost',           hypothesis:'Test: czy zaadresowanie obiekcji na wizji obniża wątpliwości i poprawia CVR.',
+    angleNote:'Mówimy na głos to, co myśli widz („pewnie znowu nie zadziała”), potem odpowiadamy.' },
+  { id:'season',  label:'Moment / sezonowość',        hypothesis:'Test: czy pilność wynikająca z kontekstu (pora roku, okazja) poprawia CTR.',
+    angleNote:'Kontekst czasu jako naturalna przyczyna działania, bez sztucznej presji.' }
+];
+
+/* ============================================================================
+   B. BAZA BRANŻ – realne presety wiedzy rynkowej
+   ========================================================================== */
+const NICHES = [
+  { id:'beauty', label:'Beauty / kosmetyki',
+    kw:['kosmetyk','beauty','skóra','serum','krem','włos','makijaż','paznok','perfum','pielęgnac','trycholog','barber','fryzjer','paznokcie','brwi','rzęs','lashes','manicure'],
+    audience:'kobiety 22–45, kupują online, aktywnie szukają rozwiązań pielęgnacyjnych, oglądają recenzje i porównania',
+    problem:'rutyna pielęgnacyjna zajmuje za dużo czasu, a efekty nie są widoczne, mimo wydawania pieniędzy na kolejne produkty',
+    promise:'prosty, powtarzalny rytuał pielęgnacji, który da się utrzymać codziennie – bez skomplikowanych kroków',
+    proof:'skład podany na etykiecie, tysiące opinii klientek, zdjęcia z użycia przy naturalnym świetle',
+    offer:'zestaw startowy w niższej cenie, dostawa 24 h, 30 dni na zwrot',
+    objection:'„pewnie znowu nie zobaczę różnicy”, „boję się podrażnienia”',
+    benefits:['oszczędza czas w porannej rutynie','jest wydajny – jedna butelka na ok. 2 miesiące','nie wymaga skomplikowanych kroków','opakowanie nadaje się na prezent'],
+    proofPoints:['9 na 10 klientek wraca po kolejną butelkę','ponad 12 000 sprzedanych sztuk','135 ustawień aparatu przy jednym produkcie na koncie marki'],
+    hashtags:['#pielegnacja','#skincareroutine','#beautypl','#serum','#kosmetykinaturalne','#przedipo','#rutynapielegnacyjna','#beautyhaul'],
+    disclaimers:['Kosmetyk. Wyniki mogą się różnić w zależności od indywidualnych predyspozycji i sposobu stosowania.','Produkt nie zastępuje konsultacji dermatologicznej.'],
+    kpis:['hook rate 3 s','CTR outbound','CVR','ROAS','save rate'] },
+
+  { id:'fitness', label:'Fitness / trening / wellness',
+    kw:['fitness','trening','siłown','gym','suplement','dieta','zdrowe','odchudz','wellness','joga','pilates','rower','bieg','crossfit','masażer','plan treningowy'],
+    audience:'osoby 25–45, praca siedząca, brak czasu na treningi 5× w tygodniu, próbowały już różnych planów',
+    problem:'brak czasu i jasnego planu na trening – efekt: zaczynasz z zapałem i po dwóch tygodniach przestajesz',
+    promise:'plan, który da się wykonać w 20–30 minut dziennie i utrzymać w napiętym tygodniu',
+    proof:'liczba osób trenujących z planem, opinie o łatwości wdrożenia, zaplecze merytoryczne trenera',
+    offer:'pierwszy tydzień testowy, dożywotni dostęp do aktualizacji, zwrot w 14 dni',
+    objection:'„nie mam czasu”, „znowu się zniechęcę”, „to działa tylko dla zaawansowanych”',
+    benefits:['krótsze sesje – łatwiej zmieścić w tygodniu','progresja zapisana od pierwszego dnia','ćwiczenia bez wymagającego sprzętu','gotowe warianty na słabsze dni'],
+    proofPoints:['plan ułożony przez trenera z 8-letnim stażem pracy z klientami (kulisy na koncie)','1 900 osób w grupie wsparcia','90 dni materiały dodatkowe do planu'],
+    hashtags:['#treningwdomu','#fitnesspl','#plan treningowy','#trening','#zdrowenawyki','#motywacja','#silownia','#wellness'],
+    disclaimers:['Aktywność fizyczna może nie być odpowiednia dla każdego – w razie wątpliwości skonsultuj się z lekarzem.','Wyniki zależą od regularności, diety i indywidualnych predyspozycji.','Materiał nie jest poradą medyczną.'],
+    kpis:['hook rate 3 s','watch time','CTR','CVR','CPL'] },
+
+  { id:'ecommerce', label:'E-commerce / gadżety',
+    kw:['sklep','gadżet','ecommerce','dropship','hurt','produkt','akcesori','dom','organizacja','kuchnia','sprzątanie','led','narzędzia','gadżety'],
+    audience:'kupujący impulsywnie 25–45, lubią rozwiązania „mały produkt – duża oszczędność czasu”, kupują z telefonu',
+    problem:'drobny, codzienny problem w domu czy pracy, który zjada czas i nerwy, a „jakoś się go znosi”',
+    promise:'mała zmiana, która realnie skraca codzienną czynność i porządkuje otoczenie',
+    proof:'nagrania z użycia, liczby sztuk wysłanych dziennie, realne opinie kupujących',
+    offer:'wysyłka tego samego dnia do 14:00, druga sztuka -40%, 30 dni na zwrot',
+    objection:'„pewnie tandeta”, „będę musiał odsyłać”',
+    benefits:['oszczędza do kilku minut każdego dnia','nie wymaga montażu ani konfiguracji','mieści się w szufladzie i podróżnym plecaku','sprawdza się na prezent „bez ryzyka”'],
+    proofPoints:['ponad 320 opinii ze średnią 4,8','wysyłka 800 paczek miesięcznie','filmy z użyciem od klientów publikujemy w wyróżnionej relacji'],
+    hashtags:['#gadzety','#mamastyl','#ecommercepl','#domowehacki','#ciekaweprodukty','#prezent','#unboxing','#tiktokmademebuyit'],
+    disclaimers:['Kupuj u sprawdzonego sprzedawcy – opis i dane sprzedawcy znajdziesz na stronie produktu.'],
+    kpis:['hook rate 3 s','CTR','CVR','AOV','ROAS'] },
+
+  { id:'online', label:'Kursy / produkty online / info',
+    kw:['kurs','szkolen','ebook','webinar','mentoring','konsultac','online','wiedza','szkola','szkolenia','agencja','freelanc','pozycjonowan','seo','marketing'],
+    audience:'osoby 25–45 budujące dochód obok pracy lub rozwijające firmę, chcą konkretnego planu, a nie teorii',
+    problem:'mnóstwo darmowych treści, ale brak uporządkowanego procesu – wiedza jest, efektu brak',
+    promise:'krok po kroku uporządkowany proces do wdrożenia w 30 dni, z materiałami, które zostają na stałe',
+    proof:'liczba uczestników, wyniki wdrożeń, materiały próbne, warsztaty na żywo',
+    offer:'pierwsza lekcja w darmowym podglądzie, płatność w ratach, 14 dni na zwrot',
+    objection:'„to pewnie teoria”, „nie mam czasu na kurs”',
+    benefits:['proces zamiast pojedynczych porad','szablony i checklisty gotowe do skopiowania','moduły w krótkich blokach 10–15 minut','wsparcie na grupie w trakcie wdrożenia'],
+    proofPoints:['ponad 4 200 uczestników szkoleń','średnio 6 dni od zakupu do pierwszej realizacji','zaplecze: 11 lat pracy w branży, pokazane w kulisach'],
+    hashtags:['#kurs','#rozwoj','#marketing','#przedsiebiorczosc','#produktywnosc','#wiedza','#freelance','#biznesonline'],
+    disclaimers:['Efekty zależą od zaangażowania i wdrożenia materiałów. Treść ma charakter edukacyjny i nie stanowi porady finansowej ani prawnej.'],
+    kpis:['CTR','koszt pozyskania uczestnika','CVR','wskaźnik ukończenia','LTV'] },
+
+  { id:'saas', label:'Aplikacja / SaaS / narzędzie',
+    kw:['aplikacj','saas','software','system','program','crm','erp','automatyzac','subskrypcj','platforma','api','narzedzi'],
+    audience:'właściciele małych firm i zespoły 2–20 osób, toną w ręcznej robocie i przeklejaniu danych między narzędziami',
+    problem:'praca ręczna w arkuszach i chaos w komunikacji, przez co zadania giną, a klienci czekają',
+    promise:'jedno miejsce na zadania, dane i komunikację – wdrożenie w kilka minut, bez działu IT',
+    proof:'liczba kont, opinie zespołów, demo na żywo, dane o oszczędzonym czasie',
+    offer:'14 dni za 0 zł, brak karty, wsparcie w migracji danych',
+    objection:'„wdrożenie zajmie miesiące”, „zespół się nie przesiądzie”',
+    benefits:['konfiguracja w kilkanaście minut','mniej przeklejania danych ręcznie','jeden widok na to, co blokuje zespół','integracje z narzędziami, których już używasz'],
+    proofPoints:['ponad 1 800 zespołów korzysta codziennie','średnio 3,5 h zaoszczędzone na zespół/tydzień','99,9% dostępności usługi w ostatnim roku'],
+    hashtags:['#saas','#produktywnosc','#malafirma','#automatyzacja','#biznes','#narzedzia','#pracaonline','#zespol'],
+    disclaimers:['Dane o oszczędności czasu pochodzą z badania ankietowego wśród użytkowników i mogą się różnić w zależności od procesów w firmie.'],
+    kpis:['CTR','koszt trial','trial→paid','CPA','MRR'] },
+
+  { id:'local', label:'Usługi lokalne (salon, warsztat, klinika, serwis)',
+    kw:['salon','usług','warsztat','serwis','klinik','gabinet','fryzjer','kosmetyczka','hydraulik','remont','budowlan','mechanik','dentyst','fizjoterap'],
+    audience:'klienci z okolicy, szukają szybkiej realizacji, boją się nierównej jakości usług i ukrytych kosztów',
+    problem:'trudno znaleźć wykonawcę, który robi solidnie i nie zmienia ceny w trakcie realizacji',
+    promise:'jasna wycena, termin potwierdzony w 24 h, realne zdjęcia realizacji przed i po',
+    proof:'zdjęcia realizacji, liczba klientów, opinie z konkretną nazwą usługi',
+    offer:'bezpłatna wycena na podstawie zdjęcia, termin „na teraz” w godziny poranne',
+    objection:'„znowu dopłata po fakcie”, „nie przyjadą w terminie”',
+    benefits:['wycena na piśmie przed startem','stały opiekun zlecenia','realizacja w uzgodnionym oknie czasowym','gwarancja na wykonaną pracę zgodnie z umową'],
+    proofPoints:['ponad 500 realizacji w tym mieście','zapisy na 2 tygodnie do przodu','zdjęcia każdej realizacji publikowane za zgodą klienta'],
+    hashtags:['#uslugilokalne','#wykonawca','#remont','#salon','#serwis','#polskiemiasto','#rekomendacje','#przedipo'],
+    disclaimers:['Zakres usług i termin realizacji potwierdzamy indywidualnie na podstawie zdjęć lub oględzin.'],
+    kpis:['CTR do formularza','koszt leada','CVR lead→klient','koszt rezerwacji'] },
+
+  { id:'food', label:'Gastronomia / food',
+    kw:['restauracj','kawiarn','food','jedzenie','catering','dietabox','pyszne','kuchn','pizz','burger','sushi','zdrowa dieta','kawa'],
+    audience:'osoby 20–45 w mieście, jedzą poza domem, wybierają lokal po zdjęciach jedzenia i opiniach',
+    problem:'codzienny dylemat „co na obiad”, brak czasu na gotowanie, a jedzenie na mieście bywa „byle jakie”',
+    promise:'konkretny placek z realnego produktu, szybkie wydanie zamówienia i stała jakość każdego dnia',
+    proof:'nagrania z kuchni, liczba zamówień dziennie, opinie gości z nazwą dania',
+    offer:'zestaw w cenie niższej niż suma osobno, dostawa w 30 minut, codzienna pozycja dnia',
+    objection:'„pewnie małe porcje”, „znów zimne na dostawie”',
+    benefits:['stałe porcje i gramatura podana na karcie','dostawa własna, bez pośredników','pozycje zmieniają się co tydzień','lokal z realnymi opiniami i zdjęciami'],
+    proofPoints:['ok. 400 zamówień w tygodniu','ocena 4,7 z ponad 900 opinii','nagrania z kuchni publikowane co tydzień'],
+    hashtags:['#food','#jedzenie','#restauracja','#foodtiktok','#dostawa','#kuchnia','#streetfood','#pyszne'],
+    disclaimers:['Informacje o alergenach i pełnym składzie dostępne przy zamówieniu.'],
+    kpis:['CTR','licz  zamówień','koszt zamówienia','średnia wartość koszyka'] },
+
+  { id:'realestate', label:'Nieruchomości / budowa / wnętrza',
+    kw:['nieruchom','mieszkan','dom','budow','działk','wnętrz','deweloper','remont','kredyt hipoteczny','architekt','instalacj'],
+    audience:'osoby 28–50 szukające mieszkania lub budujące dom, porównujące oferty, wrażliwe na ukryte koszty',
+    problem:'godziny przeglądania ofert, w których połowa zdjęć nie pokazuje realnego stanu ani kosztów',
+    promise:'konkretna oferta z liczbami: metraż, koszty miesięczne, zdjęcia z dnia dzisiejszego, bez ukrytych pozycji',
+    proof:'liczba sprzedanych/oddanych inwestycji, wizyty na budowie, opinie klientów',
+    offer:'bezpłatna wycena/konsultacja, wizyta w tygodniu, wyliczenie kosztów utrzymania na piśmie',
+    objection:'„zdjęcia nie pokazują prawdy”, „na pewno są ukryte koszty”',
+    benefits:['pełne koszty podane przed pierwszym spotkaniem','wideo z realnym stanem, nie rendering','jeden doradca prowadzi sprawę do końca','możliwość wideo-spaceru'],
+    proofPoints:['ponad 260 transakcji obsłużonych','średnio 21 dni od pierwszej rozmowy do decyzji','archiwum nagrań z budowy i odbiorów'],
+    hashtags:['#nieruchomosci','#mieszkanie','#budowadomu','#wnetrza','#inwestycja','#deweloper','#działka','#dom'],
+    disclaimers:['Prezentowane dane mają charakter informacyjny; ostateczne warunki potwierdzamy dokumentacją i umową. Treści nie stanowią porady inwestycyjnej ani kredytowej.'],
+    kpis:['CTR','liczba zapisów na wizytę','koszt leada','CVR lead→transakcja'] },
+
+  { id:'auto', label:'Motoryzacja / transport',
+    kw:['auto','samochod','motocyk','opon','serwis','detailing','car','pojazd','części','transport','lawet','wulkanizacj'],
+    audience:'kierowcy 25–50, dbają o auto lub szukają sposobu na niższe koszty eksploatacji i spokój na drodze',
+    problem:'wysokie i nieprzewidywalne koszty auta, brak zaufania do warsztatu, strata czasu na naprawy',
+    promise:'konkretna usługa z jasnym zakresem i czasem realizacji, potwierdzonym przed przyjazdem',
+    proof:'liczba obsłużonych aut, zdjęcia z realizacji, opinie z nazwą usługi',
+    offer:'wycena z numeru VIN przed wizytą, termin w 48 h, auto zastępcze w wybranych usługach',
+    objection:'„policzą podwójnie”, „nie mam kiedy zostawić auto”',
+    benefits:['wycena przed przyjazdem – bez niespodzianek','czas realizacji potwierdzony SMS-em','relacja zdjęciowa z prac','możliwość odbioru po godzinach'],
+    proofPoints:['ponad 2 100 obsłużonych pojazdów','4,8 średniej oceny usług','kanał wideo z realizacjami prowadzony od 3 lat'],
+    hashtags:['#auto','#motoryzacja','#samochody','#serwis','#detailing','#opony','#kierowca','#autohacks'],
+    disclaimers:['Zakres i koszt usługi potwierdzamy po diagnozie pojazdu.'],
+    kpis:['CTR','liczba rezerwacji','koszt rezerwacji','CVR'] },
+
+  { id:'finance', label:'Finanse / ubezpieczenia / doradztwo',
+    kw:['finans','ubezpiecz','księgow','podatk','kredyt','leasing','inwestyc','emerytur','rachunkow','doradca','budżet'],
+    audience:'osoby i mikro-firmy 28–55, chcą uporządkować finanse i podatki, boją się kar i ukrytych opłat',
+    problem:'decyzje finansowe podejmowane na wyczucie i chaotyczna dokumentacja, która „wybucha” raz w roku',
+    promise:'uporządkowany proces i jasne zasady współpracy: zakres, stawka, terminy podane przed startem',
+    proof:'liczba obsługiwanych firm, zakresy usług, opinie, materiały edukacyjne',
+    offer:'pierwsza konsultacja w niższej cenie, stała stawka miesięczna, brak opłat ukrytych',
+    objection:'„doradca weźmie prowizję i zniknie”, „nie wiem, ile to będzie kosztować”',
+    benefits:['stała, znana z góry stawka za obsługę','jasny podział obowiązków na piśmie','przypomnienia o terminach ustawowych','materiały edukacyjne dla klientów'],
+    proofPoints:['obsługa ponad 340 firm i osób','11 lat praktyki, m.in. w rozliczeniach dla MŚP','webinary edukacyjne co miesiąc'],
+    hashtags:['#finanse','#podatki','#ksiegowosc','#ksiegowa','#biznes','#budzetdomowy','#ubezpieczenia','#porzadekwfinansach'],
+    disclaimers:['Treści mają charakter informacyjny i nie stanowią porady finansowej, podatkowej ani inwestycyjnej. Decyzje podejmujesz po indywidualnej analizie lub konsultacji ze specjalistą.'],
+    kpis:['CTR','koszt konsultacji','CVR','koszt pozyskania klienta'] },
+
+  { id:'travel', label:'Podróże / turystyka / wydarzenia',
+    kw:['podro','wakacj','turyst','hotel','wycieczk','bilet','event','festiwal','nocleg','all inclusive','city break'],
+    audience:'osoby 25–50 planujące wyjazd, chcą konkretnego planu i budżetu bez przepłacania',
+    problem:'godziny spędzone na planowaniu, a potem wyjazd „na skróty” z pół listy atrakcji i zbyt wysokim rachunkiem',
+    promise:'gotowy plan wyjazdu z budżetem, trasą i sprawdzonymi miejscami – do wdrożenia od razu',
+    proof:'liczba uczestników wyjazdów, realne nagrania z miejsc, opinie po powrocie',
+    offer:'plan wstępny w cenie promocyjnej, anulowanie rezerwacji do 48 h, wsparcie na czacie w trakcie wyjazdu',
+    objection:'„znowu przepłacę”, „to tylko folder reklamowy”',
+    benefits:['plan z godzinami i budżetem pozycja po pozycji','sprawdzone trasy komunikacją i pieszo','warianty na deszcz i na budżet','kontakt do wsparcia w trakcie wyjazdu'],
+    proofPoints:['ponad 1 200 zaplanowanych wyjazdów','4,9 średniej oceny planów','nagrania z miejsc publikowane w relacjach'],
+    hashtags:['#podroze','#wakacje','#citybreak','#travel','#planwyjazdu','#nocleg','#budzet','#travelhacks'],
+    disclaimers:['Ceny lotów i noclegów zmieniają się dynamicznie – ostateczny koszt potwierdza rezerwacja.'],
+    kpis:['CTR','koszt zapytań','CVR','średnia wartość rezerwacji'] }
+];
+
+/** Branża uniwersalna – gdy nie rozpoznano niszy. */
+const GENERIC_NICHE = {
+  id:'generic', label:'Uniwersalna',
+  kw:[],
+  audience:'klienci 25–45, którzy szukają konkretnego rozwiązania i porównują opcje przed zakupem',
+  problem:'rozwiązanie problemu zajmuje zbyt dużo czasu i pieniędzy, a dostępne opcje są niejasne',
+  promise:'proste, powtarzalne rozwiązanie z jasną ceną i jasnym procesem – bez ukrytych warunków',
+  proof:'realne opinie, liczby i nagrania z użycia produktu',
+  offer:'jasna cena, szybka realizacja, możliwość zwrotu',
+  objection:'„nie zadziała w moim przypadku”, „nie wiem, ile to naprawdę kosztuje”',
+  benefits:['oszczędza czas od pierwszego użycia','prosty start bez instrukcji','jasne warunki i cena','wsparcie po zakupie'],
+  proofPoints:['opinie z nazwą produktu','liczba zrealizowanych zamówień','materiały pokazujące realne użycie'],
+  hashtags:['#tiktokmademebuyit','#polecam','#nowosc','#sprawdzone','#jakosc','#dobrzewybrane','#codzienne','#hack'],
+  disclaimers:['Efekty i opinie są indywidualne; prezentujemy realne zastosowanie i podajemy warunki oferty.'],
+  kpis:['hook rate 3 s','CTR','CVR','ROAS']
+};
+
+/* ============================================================================
+   B2. BANKI TREŚCI – realny język marketingowy (PL pełne, EN pełne,
+       pozostałe języki: EN jako baza + lokalne hooki/CTA z L10N)
+   Slot: {P} problem · {PRODUKT} · {AUD} grupa · {BRANZA} · {CENA} · {OFERTA}
+         {DOWOD} · {OBIEKCJA} · {MARKA} · {OB} obietnica
+   ========================================================================== */
+const TXT = {
+/* ---------------------------------------------------------------- POLSKI -- */
+pl:{
+  hooks:{
+    pain:[ 'Znasz to? {P} – niby nic, a zjada czas każdego tygodnia.',
+           'POV: {P}. Robisz wszystko „dobrze”, a efektu nie widać.',
+           'Nikt o tym nie mówi, a to kosztuje Cię czas każdego tygodnia: {P}.',
+           'Jeden szczegół psuje cały efekt: {P}. Pokażę go w kilkanaście sekund.',
+           'Stop. Zanim wydasz kolejne pieniądze na {BRANZA}: {P} da się ogarnąć prościej.' ],
+    pov:[ 'POV: masz {P} i kilkanaście sekund na decyzję.',
+          'To POV osoby, która właśnie przetestowała {PRODUKT}.',
+          'Dzień jak co dzień: {P}. Aż do momentu, gdy zmieniłem jedną rzecz.',
+          'POV: sprawdzasz, czy {PRODUKT} naprawdę działa – bez ściemy i montażu.' ],
+    proof:[ '„{OPINIA}” – zdanie, które słyszymy najczęściej od klientów.',
+            'Liczby najpierw: {DOWOD}.',
+            'Nie mówię „zaufaj mi”. Pokażę {DOWOD}.',
+            'Sprawdzam rzetelnie: {DOWOD}. Bez filtrów, bez retuszu.' ],
+    myth:[ 'Przestań to robić przy {P}: prawie wszyscy tak robią i dlatego nie widzą efektów.',
+           'Mit: „im więcej, tym lepiej”. Prawda: liczy się kolejność i regularność.',
+           '„Trzeba na to dużo czasu” – najczęstszy mit. Kategoria: {BRANZA}.',
+           'Trzy rzeczy, które słyszysz o {BRANZA} i które nie są prawdą.' ],
+    list:[ 'Trzy powody, dla których warto wybrać {PRODUKT}. Sprawdź, czy dotyczą Ciebie.',
+           'Zostawiam to na ekranie: 3 rzeczy, które robi {PRODUKT}.',
+           'Nie mam pięciu argumentów. Mam trzy i każdy jest konkretny.',
+           '1, 2, 3. Zobacz, który punkt dotyczy Ciebie.' ],
+    demo:[ 'Patrz, co się dzieje, kiedy {PRODUKT} wchodzi do akcji.',
+           'Test na żywo: {PRODUKT} kontra to, co robiłem wcześniej.',
+           'Nie będę opisywać. Pokażę. {PRODUKT} w realnym użyciu.',
+           'Zbliżenie na detal, od którego zależy cała jakość.' ],
+    challenge:[ '7 dni z {PRODUKT}. Nagrywam wszystko, bez efektów specjalnych.',
+                'Test: czy {PRODUKT} faktycznie ogarnia {P}? Sprawdzam na sobie.',
+                'Wyzwanie: przez tydzień robię jedną rzecz inaczej.',
+                'Dzień 1 kontra dzień 7. Ten sam kadr, ta sama lampa, ta sama osoba.' ],
+    bts:[ 'Otwieram kulisy: tak wygląda {PRODUKT} od środka.',
+          'Zobacz, co dzieje się przed wysyłką Twojego zamówienia.',
+          'Bez studia i bez retuszu – tak wygląda u nas codzienność.',
+          'Pokażę osobę, która sprawdza każdą sztukę przed pakowaniem.' ],
+    price:[ '{CENA} za coś, co robisz co tydzień? Policz to w skali roku.',
+            'Podobny efekt bywa kilka razy droższy. Sprawdź, jak to policzyliśmy.',
+            'Zanim zapłacisz, policz koszt alternatywy: czas, nerwy, powtórki.',
+            'Nie sprzedaję „tanio”. Pokazuję, za co dokładnie płacisz.' ],
+    founder:[ 'Zaczęło się od jednego zdania, które usłyszałem setki razy.',
+              'Zbudowałem {MARKA}, bo sam miałem dosyć tego problemu.',
+              'Nie korporacja. Kilka osób i jedna obsesja: zrobić to porządnie.',
+              'Opowiem, dlaczego powstał {PRODUKT} i komu ma służyć.' ],
+    objection:[ '„{OBIEKCJA}” – słyszę to co tydzień. Odpowiadam wprost.',
+                'Pewnie myślisz: „{OBIEKCJA}”. Sprawdźmy to razem.',
+                'Największa wątpliwość klientów i szczera odpowiedź na nią.',
+                'Zanim kupisz: trzy rzeczy, które mogą Cię odstraszyć. Uczciwie.' ],
+    season:[ 'Okno na to masz krótkie – i nie chodzi o marketing.',
+             'Ten moment w roku ma znaczenie. Sprawdź, dlaczego teraz jest łatwiej.',
+             'Zostały dni, nie tygodnie. Pokażę, jak to policzyć.',
+             'Startuje sezon. Oto, co robimy w tym okresie inaczej.' ]
+  },
+  lens:{
+    pain:'Cały przekaz wchodzi w ból odbiorcy, produkt jest narzędziem, nie bohaterem.',
+    pov:'Widz jest w środku scenki – kamera to jego oczy, produkt pojawia się naturalnie.',
+    proof:'Zaczynamy od cudzego głosu i liczb, dopiero potem obietnica marki.',
+    myth:'Podważamy popularne przekonanie i pokazujemy sensowniejszą kolejność działań.',
+    list:'Wyraźna numeracja na ekranie, jeden punkt = jedno ujęcie.',
+    demo:'Mechanizm działania pokazany na żywo, z detalami i bez montażowych skrótów.',
+    challenge:'Test na sobie: zasady, punkty kontrolne i realny wynik na końcu.',
+    bts:'Transparentność: proces, ludzie i kontrola jakości zamiast obietnic.',
+    price:'Framing kosztu: porównanie z kosztem alternatywy, bez obietnic zysku.',
+    founder:'Twarz marki i powód powstania produktu, spięte z realnym problemem.',
+    objection:'Mówimy na głos to, co myśli widz, i odpowiadamy konkretem.',
+    season:'Kontekst czasu i momentu odbiorcy, jako naturalna przyczyna działania.'
+  },
+  beats:{
+    problem:[ 'Problem, który znasz: {P}. Kosztuje Cię to czas, nerwy i powtórki.',
+              'Brzmi drobno, prawda? A zbiera się z tego kilkanaście godzin rocznie.',
+              'Zamiast tego większość sięga po pierwsze rozwiązanie z reklamy i wraca do punktu wyjścia.',
+              'Efekt: wydane pieniądze i rosnąca niechęć do kolejnych prób.' ],
+    solution:[ '{PRODUKT} rozwiązuje dokładnie to jedno: {OB}.',
+                'Dla kogo? {AUD}. Efekt: prosty start bez czytania instrukcji.',
+                'Jeden produkt, jedna decyzja, jedna zmiana w tygodniu – i to wystarcza.',
+                'Nie obiecuję magii. Obiecuję proces, który da się powtarzać.' ],
+    mechanism:[ 'Działa to tak: {BENEFIT1}.',
+                'Dlaczego to działa? {BENEFIT2}.',
+                'Dodatkowo: {BENEFIT3}.',
+                'Cała logika jest prosta: mniej kroków, mniej decyzji, więcej powtarzalności.' ],
+    proof:[ 'Dowody? {DOWOD}.',
+            'Klienci piszą to samo, co widać w opiniach pod produktem.',
+            'Sprawdź sam: opinie, skład/warunki i zdjęcia z użycia są dostępne publicznie.',
+            'Wolę pokazać wynik niż obiecywać – dlatego nagrania są bez filtrów.' ],
+    offer:[ 'Cena: {CENA}. W tym: {OFERTA}.',
+            'Liczę to zawsze tak samo: koszt podzielony przez użytkowanie wychodzi niżej niż alternatywa.',
+            'Do tego pełna informacja o warunkach, dostawie i zwrocie.',
+            'Bez ukrytych opłat – wszystko widzisz przed kliknięciem „kupuję”.' ],
+    objection:[ 'Słyszę: „{OBIEKCJA}”. Rozumiem i odpowiadam konkretem.',
+                'Dlatego warunki są proste: sprawdzasz w swoim trybie, masz czas na decyzję.',
+                'Jeśli coś nie gra – zgłaszasz i dostajesz jasną ścieżkę rozwiązania.',
+                'Wolę, żebyś wiedział wszystko przed zakupem, niż miał zgadywać po.' ],
+    story:[ 'Pamiętam moment, w którym powiedziałem sobie: dość.',
+            'Zaczęło się od jednego problemu, który wracał co tydzień.',
+            'Zamiast kolejnej doraźnej próby, postanowiłem rozpisać to na proces.',
+            'Dziś robię to samo dla innych – z jasnymi zasadami i realnymi efektami.' ],
+    cta:[ 'Kliknij w opisie, a zobaczysz cenę, warunki i dostępność.',
+          'Sprawdź teraz – link masz pod wideo, bez szukania.',
+          'Zapisz wideo i wróć do niego, kiedy będziesz gotowy zamówić.',
+          'Napisz „INFO” w komentarzu, wyślę szczegóły i warunki.' ],
+    close:[ 'I wróć do tego wideo, gdybyś się wahał. Link czeka w opisie.',
+            'Krótka decyzja: sprawdzasz, porównujesz, jesteś albo nie jesteś przekonany.',
+            'Tyle. Reszta to jedno kliknięcie i sprawdzenie w swoim tempie.',
+            'Zapisuj – jedna decyzja teraz, żeby nie wracać do tego za miesiąc.' ]
+  },
+  /* Krótkie kwestie do formatów 7 s i 15 s – realny budżet słów (ok. 2,6 słowa/sekundę) */
+  shortBeats:{
+    hook:[],
+    problem:[ '{P}? Znam to.', 'Codziennie to samo: {P}.', 'I znowu: {P}.' ],
+    story:[ 'Zaczęło się od jednego problemu.', 'Wracało co tydzień – aż do dziś.', 'Próbowałam wszystkiego. Prawie.' ],
+    solution:[ '{PRODUKT}. Jedna zmiana.', 'Jeden produkt, jedna decyzja.', '{PRODUKT} i tyle.' ],
+    mechanism:[ '{BENEFIT1}.', 'Prościej: {BENEFIT1}.', 'Działa, bo {BENEFIT2}.' ],
+    proof:[ '{DOWOD}.', 'Dowód? {DOWOD}.', 'Sprawdź: {DOWOD}.' ],
+    offer:[ '{CENA}. {OFERTA}.', 'Cena: {CENA}.', '{OFERTA}.' ],
+    objection:[ '„{OBIEKCJA}”? Odpowiadam: {OFERTA}.', 'Słyszę to co tydzień: „{OBIEKCJA}”.', 'Twoja obiekcja: „{OBIEKCJA}”.' ],
+    cta:[ 'Link w opisie – sprawdź.', 'Kliknij i zobacz cenę.', 'Sprawdź szczegóły w opisie.', 'Napisz „INFO” w komentarzu.' ],
+    close:[ 'Zapisuj i sprawdź w swoim czasie.', 'Link czeka w opisie.', 'Tyle. Reszta w opisie.' ]
+  },
+  shots:{
+    hook:['Zbliżenie na twarz / produkt, ręka w kadrze, wycinamy statyczny kadr otwarcia',
+          'Pattern interrupt: nietypowy kadr (produkt w ruchu, gwałtowne przejście, „przed/po” w jednym ujęciu)',
+          'Kadr z ręki, zbliżenie na detal, w tle codzienne otoczenie',
+          'Plansza tekstowa w 1 sekundzie: „Nie kupuj, zanim…”, pod spodem nagranie z życia'],
+    product:['Makro na produkt: tekstura, krawędź, etykieta, detal, na którym zależy klientowi',
+             'Produkt w użyciu w realnych warunkach, jedna scena bez cięcia',
+             'Kadr z góry (top-down) z produktem i 2–3 elementami kontekstu',
+             'Porównanie: produkt obok tego, czego używa klient wcześniej'],
+    proof:['Ekran telefonu / ekran laptopa z opiniami lub liczbami (rozmazać dane osobowe)',
+           'Kulisy: pakowanie, kontrola jakości, magazyn, ludzie w pracy',
+           'Zbliżenie na detale jakości: szew, skład, etui, metka, certyfikat',
+           'Reakcja klienta / twarzy przy pierwszym użyciu, bez inscenizacji'],
+    cta:['Twarz w kadrze, spokojne tempo, plansza z CTA w dolnej części ekranu',
+         'Nakładka z ceną i warunkami na B-rollu produktu',
+         'Palec wskazuje na obszar CTA, plansza „link w opisie”',
+         'Ostatni kadr: produkt + logo + hasło, zatrzymanie 1,5 sekundy']
+  },
+  overlay:{
+    hook:['„Nie kupuj, zanim tego nie zobaczysz”','„To robisz źle”','„3 powody”','„Zobacz do końca”','„Sprawdź, czy to Twój problem”'],
+    problem:['„Znasz to?”','„Kosztuje Cię czas”','„Wraca co tydzień”'],
+    solution:['„1 produkt, 1 zmiana”','„Start w 2 minuty”','„Dla {AUD}”'],
+    proof:['„{DOWOD}”','„Ocena 4,8 / 900 opinii”','„Bez filtrów”'],
+    offer:['„{CENA}”','„{OFERTA}”','„Wysyłka 24 h”','„30 dni na zwrot”'],
+    cta:['„Link w opisie”','„Napisz INFO”','„Zapisz na później”','„Sprawdź cenę”']
+  },
+  ctaBank:{
+    soft:['Zapisz to wideo na później i sprawdź, kiedy będziesz gotowy.',
+          'Zobacz szczegóły w opisie – bez zobowiązań, w swoim tempie.',
+          'Obserwuj nas, jeśli chcesz zobaczyć, jak to działa w praktyce.',
+          'Napisz „INFO” w komentarzu – wyślę zakres i warunki.'],
+    hard:['Wejdź w link w opisie i zamów dziś – wysyłka tego samego dnia do 14:00.',
+          'Sprawdź dostępność teraz: liczba sztuk w tej partii jest ograniczona.',
+          'Kliknij i zobacz cenę z dzisiejszej promocji – potem wraca do standardu.',
+          'Decyzja w 30 sekund: link w opisie, cena, warunki, zwrot 30 dni.'],
+    lead:['Zostaw kontakt w formularzu w opisie – odezwiemy się w 24 h.',
+          'Napisz „START” w komentarzu i wyślę Ci checklistę na priv.',
+          'Pobierz bezpłatny materiał w opisie – bez zobowiązań, bez płatności.',
+          'Zapisz się na bezpłatną konsultację 15 minut – link w opisie.'],
+    comment:['Napisz w komentarzu słowo „{SLOWO}”, a wyślę szczegóły.']
+  },
+  callout:{
+    wartosc:['Policz to na spokojnie: {CENA} rozłożone na tygodnie użytkowania wypada mniej niż jedna kawa tygodniowo.',
+             'Nie płacisz za „produkt”. Płacisz za {OB} – i to jest cała różnica.',
+             'Cena jest podana otwarcie, z warunkami: {OFERTA}.'],
+    niedobor:['To partia limitowana – nie „marketingowo”, tylko produkcyjnie: {OFERTA}.',
+              'Ostatnie sztuki z tej dostawy, kolejna po 3 tygodniach. Zapisy na liście w opisie.',
+              'Dostępność zmienia się co kilka dni – sprawdź aktualny stan przed decyzją.'],
+    dowody:['{DOWOD} – i to jest jedyny argument, którego naprawdę potrzebujesz.',
+            'Opinie klientów są publiczne, ze zdjęciami. Sprawdź je przed zakupem.',
+            'Nie musisz wierzyć nam na słowo – sprawdź recenzje i kulisy produkcji.'],
+    gwarancje:['Masz 30 dni na zwrot, więc ryzyko jest po naszej stronie.',
+               'Nie odpowiada Ci efekt? Odsyłasz bez tłumaczenia i dostajesz zwrot.',
+               'Do każdego zamówienia dołączamy wsparcie – piszesz, odpowiadamy w 24 h.'],
+    sezon:['To najlepszy moment w roku, żeby zacząć – inaczej czekasz kolejne miesiące.',
+           'Sezon trwa krótko, a zapotrzebowanie jest najwyższe. Sprawdź, czy są jeszcze sztuki.',
+           'Zamów teraz, żeby nie wracać do tego tematu w kolejnym sezonie.']
+  },
+  desc:{ intro:['{PRODUKT} – {OB}.','Dla {AUD}. {PRODUKT}.','{PRODUKT}: {OB}'],
+         body:['Sprawdź szczegóły, cenę i warunki pod tym linkiem.',
+               'Wszystkie informacje znajdziesz w opisie – bez zapisów i bez ukrytych opłat.',
+               'Jeśli to Twój problem, ten link prowadzi do konkretów.'] },
+  disclaimers:[ 'Wyniki zależą od indywidualnych predyspozycji i sposobu użytkowania.',
+                'Prezentowane opinie są indywidualne i nie stanowią gwarancji efektu.',
+                'Treści mają charakter informacyjny, nie stanowią porady specjalistycznej.' ]
+},
+/* ---------------------------------------------------------------- ENGLISH -- */
+en:{
+  hooks:{
+    pain:[ 'Sound familiar? {P} – small thing, yet it eats your time every week.',
+           'POV: {P}. You do everything “right”, still no result.',
+           'The problem nobody talks about in {BRANZA}: {P}.',
+           'If {P}, there is one gap in your routine. I will show it in 15 seconds.' ],
+    pov:[ 'POV: you have {P} and about 15 seconds to decide.',
+          'This is the POV of someone who just tested {PRODUKT}.',
+          'Same day as always: {P}. Until one thing changed.',
+          'POV: testing {PRODUKT} and checking if it actually works.' ],
+    proof:[ '“{OPINIA}” – what we hear from customers most often.',
+            'Numbers first: {DOWOD}.',
+            'I will not say “trust me”. Let me show you {DOWOD}.',
+            'Raw check: {DOWOD}. No filters, no editing tricks.' ],
+    myth:[ 'Stop doing this with {P} – almost everyone does it and that is why nothing changes.',
+           'Myth: “more is better”. Truth: order and consistency win.',
+           '“It takes too much time” is the number one myth in {BRANZA}.',
+           'Three things you hear about {BRANZA} that simply are not true.' ],
+    list:[ 'Three reasons why {AUD} pick {PRODUKT}.',
+           'On screen: 3 things {PRODUKT} actually does.',
+           'I do not have five arguments. I have three, each of them concrete.',
+           'One, two, three. See which point is about you.' ],
+    demo:[ 'Watch what happens when {PRODUKT} gets to work.',
+           'Live test: {PRODUKT} versus what I used before.',
+           'No description. Just footage. {PRODUKT} in real use.',
+           'Close-up on the detail that decides the whole quality.' ],
+    challenge:[ '7 days with {PRODUKT}. I film everything, no magic effects.',
+                'Test: does {PRODUKT} really fix {P}? I try it on myself.',
+                'Challenge: for one week I change a single habit.',
+                'Day 1 versus day 7. Same frame, same light, same person.' ],
+    bts:[ 'Behind the scenes: what {PRODUKT} looks like on the inside.',
+          'See what happens before your order leaves the warehouse.',
+          'No studio, no retouch – this is what we do every day.',
+          'Meet the person who checks every single unit before packing.' ],
+    price:[ '{CENA} for something you do weekly? Run the yearly math.',
+            'A similar result can cost several times more. See how we counted it.',
+            'Before you pay, count the alternative: time, nerves, retries.',
+            'I am not selling “cheap”. I show you exactly what you pay for.' ],
+    founder:[ 'It started with one sentence I heard hundreds of times.',
+              'I built {MARKA} because I was tired of this problem myself.',
+              'Not a corporation. A few people and one obsession: do it properly.',
+              'Let me tell you why {PRODUKT} exists and who it is for.' ],
+    objection:[ '“{OBIEKCJA}” – I hear it every week. Straight answer below.',
+                'You probably think: “{OBIEKCJA}”. Let us check it together.',
+                'The biggest doubt customers have, answered honestly.',
+                'Before you buy: three things that might put you off. Honestly.' ],
+    season:[ 'Your window for this is short – and it is not marketing talk.',
+             'This time of year matters. See why it is easier right now.',
+             'Days left, not weeks. Let me show the math.',
+             'Season starts. Here is what we do differently this time.' ]
+  },
+  lens:{
+    pain:'Message enters the pain first; the product is the tool, not the hero.',
+    pov:'Viewer is inside the scene – camera is their eyes, product appears naturally.',
+    proof:'We open with someone else’s voice and numbers, then the brand promise.',
+    myth:'We challenge the common belief and show a smarter order of actions.',
+    list:'Clear numbering on screen, one point equals one shot.',
+    demo:'Mechanism shown live, with details and no editing shortcuts.',
+    challenge:'Self-test: rules, checkpoints and a real result at the end.',
+    bts:'Transparency: process, people and quality control instead of promises.',
+    price:'Cost framing: compared with the alternative, no profit promises.',
+    founder:'Face of the brand and the real reason the product exists.',
+    objection:'We say the viewer’s doubt out loud and answer with specifics.',
+    season:'Time context and the viewer’s moment as a natural reason to act.'
+  },
+  beats:{
+    problem:[ 'You know this problem: {P}. It costs you time, energy and retries.',
+              'Sounds small, right? It adds up to dozens of hours per year.',
+              'Most people grab the first ad they see and end up at square one.',
+              'Result: money spent and growing resistance to trying again.' ],
+    solution:[ '{PRODUKT} solves exactly one thing: {OB}.',
+                'For {AUD} it means a simple start with no manual reading.',
+                'One product, one decision, one weekly change – that is enough.',
+                'No magic promised. A process you can repeat – that is the promise.' ],
+    mechanism:[ 'Here is how it works: {BENEFIT1}.',
+                'Why does it work? {BENEFIT2}.',
+                'On top of that: {BENEFIT3}.',
+                'The logic is simple: fewer steps, fewer decisions, more consistency.' ],
+    proof:[ 'Proof? {DOWOD}.',
+            'Customers write the same thing you can read in product reviews.',
+            'Check yourself: reviews, terms and real-use footage are public.',
+            'I would rather show a result than promise one – that is why footage is raw.' ],
+    offer:[ 'Price: {CENA}. Included: {OFERTA}.',
+            'Same math every time: cost divided by usage beats the alternative.',
+            'You also get full information about terms, delivery and returns.',
+            'No hidden fees – you see everything before you click “buy”.' ],
+    objection:[ 'I hear: “{OBIEKCJA}”. I understand – here is a concrete answer.',
+                'That is why terms are simple: you test it your way, in your own time.',
+                'If something is off, you report it and get a clear resolution path.',
+                'Better to know everything before buying than to guess afterwards.' ],
+    story:[ 'I remember the moment I said: enough.',
+            'It started with one problem that came back every single week.',
+            'Instead of another quick fix, I turned it into a process.',
+            'Today I do the same for others – clear rules, real results.' ],
+    cta:[ 'Tap the link in the description to see price, terms and availability.',
+          'Check it now – the link is right under this video.',
+          'Save this video and come back when you are ready to order.',
+          'Comment “INFO” and I will send you the details.' ],
+    close:[ 'Come back to this video if you hesitate. The link waits in the description.',
+            'Short decision: check, compare, be convinced or not.',
+            'That is it. The rest is one click at your own pace.',
+            'Save it – one decision now instead of the same problem next month.' ]
+  },
+  /* Short-format lines for 7 s and 15 s ads – realistic word budget (~2.6 words/second) */
+  shortBeats:{
+    hook:[],
+    problem:[ '{P}? Sounds familiar.', 'Same thing every day: {P}.', 'And again: {P}.' ],
+    story:[ 'It started with one problem.', 'It came back weekly – until now.', 'Tried everything. Almost.' ],
+    solution:[ '{PRODUKT}. One change.', 'One product, one decision.', '{PRODUKT} – that is it.' ],
+    mechanism:[ '{BENEFIT1}.', 'Simply put: {BENEFIT1}.', 'It works because {BENEFIT2}.' ],
+    proof:[ '{DOWOD}.', 'Proof? {DOWOD}.', 'Check it: {DOWOD}.' ],
+    offer:[ '{CENA}. {OFERTA}.', 'Price: {CENA}.', '{OFERTA}.' ],
+    objection:[ '“{OBIEKCJA}”? Here is the answer: {OFERTA}.', 'I hear it weekly: “{OBIEKCJA}”.', 'Your doubt: “{OBIEKCJA}”.' ],
+    cta:[ 'Link in bio – check it.', 'Tap and see the price.', 'Details in the description.', 'Comment “INFO”.' ],
+    close:[ 'Save it and check later.', 'The link waits in bio.', 'That is it. Link in bio.' ]
+  },
+  shots:{
+    hook:['Close-up on face / product, hands in frame, drop the static opening shot',
+          'Pattern interrupt: unusual frame (product in motion, hard cut, before/after in one shot)',
+          'Handheld frame, macro on detail, everyday environment in background',
+          'Text card in second one: “Do not buy before…”, real-life footage underneath'],
+    product:['Macro on product: texture, edge, label, the detail customers care about',
+             'Product in real use, one scene without cuts',
+             'Top-down frame with product and 2–3 context items',
+             'Comparison: your product next to what the customer uses today'],
+    proof:['Phone or laptop screen with reviews or numbers (blur personal data)',
+           'Behind the scenes: packing, quality control, warehouse, real people',
+           'Close-ups on quality details: seam, ingredients, case, tag, certificate',
+           'Customer reaction at first use, unstaged'],
+    cta:['Face in frame, calm pace, CTA card in lower third',
+         'Price and terms overlay on product B-roll',
+         'Finger points at the CTA area, card “link in bio”',
+         'Final frame: product + logo + tagline, hold 1.5 seconds']
+  },
+  overlay:{
+    hook:['“Do not buy before you see this”','“You are doing this wrong”','“3 reasons”','“Watch till the end”','“Is this your problem?”'],
+    problem:['“Sound familiar?”','“It costs you time”','“Comes back weekly”'],
+    solution:['“1 product, 1 change”','“Set up in 2 minutes”','“For {AUD}"'],
+    proof:['“{DOWOD}”','“4.8 rating / 900 reviews”','“No filters”'],
+    offer:['“{CENA}”','“{OFERTA}”','“24 h shipping”','“30-day returns”'],
+    cta:['“Link in bio”','“Comment INFO”','“Save for later”','“Check the price”']
+  },
+  ctaBank:{
+    soft:['Save this video and check it out when you are ready.',
+          'See the details in the description – no commitment, your pace.',
+          'Follow us if you want to see how it works in practice.',
+          'Comment “INFO” and I will send you the scope and terms.'],
+    hard:['Open the link in bio and order today – same-day shipping before 2 pm.',
+          'Check availability now: units in this batch are limited.',
+          'Tap to see today’s price – it goes back to standard afterwards.',
+          'A 30-second decision: link in bio, price, terms, 30-day returns.'],
+    lead:['Leave your contact in the form in bio – we reply within 24 h.',
+          'Comment “START” and I will send you the checklist.',
+          'Download the free resource in bio – no commitment, no payment.',
+          'Book a free 15-minute consultation – link in bio.'],
+    comment:['Comment “{SLOWO}” and I will send the details.']
+  },
+  callout:{
+    wartosc:['Do the math: {CENA} spread over weeks of use costs less than one coffee a week.',
+             'You are not paying for a product. You are paying for {OB} – that is the difference.',
+             'The price is public, with terms: {OFERTA}.'],
+    niedobor:['This is a limited batch – a production limit, not a marketing trick: {OFERTA}.',
+              'Last units from this delivery, the next one lands in 3 weeks.',
+              'Availability changes every few days – check the current stock before deciding.'],
+    dowody:['{DOWOD} – the only argument you really need.',
+            'Customer reviews are public, with photos. Read them before buying.',
+            'You do not have to take our word – check reviews and production footage.'],
+    gwarancje:['You have 30 days to return, so the risk sits on our side.',
+               'Not happy with the result? Send it back, no explanation needed.',
+               'Every order includes support – you write, we reply within 24 h.'],
+    sezon:['This is the best moment of the year to start – otherwise you wait months.',
+           'The window is short and demand is at its peak. Check if units are left.',
+           'Order now so you do not come back to this next season.']
+  },
+  desc:{ intro:['{PRODUKT} – {OB}.','For {AUD}. {PRODUKT}.','{PRODUKT}: {OB}'],
+         body:['Check the details, price and terms under this link.',
+               'All information is in the description – no sign-up, no hidden fees.',
+               'If this is your problem, this link leads to the specifics.'] },
+  disclaimers:[ 'Results depend on individual circumstances and how you use the product.',
+                'Opinions shown are individual and are not a guarantee of results.',
+                'Content is informational and does not constitute professional advice.' ]
+}
+};
+
+/* ============================================================================
+   C. MAGAZYN DANYCH (localStorage)
+   ========================================================================== */
+const LS = {
+  settings:'tikttok_pro_settings_v1'.replace('tikttok','tiktok'),
+  draft:'tiktok_pro_draft_v1',
+  history:'tiktok_pro_history_v1',
+  keys:'tiktok_pro_keys_v1'
+};
+const store = {
+  get(k, fb){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ toast('Brak miejsca w localStorage – wyczyść historię','err'); return false; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+/** Domyślne ustawienia aplikacji. */
+const DEFAULTS = {
+  provider:'openai', model:'', modelCustom:'', key:'', baseurl:'', temp:0.8, timeout:120, maxtok:8000,
+  localPunch:'2', autofix:'on', disclaimer:'on', lang:'pl'
+};
+let settings = Object.assign({}, DEFAULTS, store.get(LS.settings, {}));
+
+/* ============================================================================
+   D. SILNIK LOKALNY – generator pakietu offline
+   ========================================================================== */
+
+/** Deterministyczny RNG (mulberry32) – powtarzalne, ale różnorodne wyniki. */
+function rng(seed){
+  let a = seed >>> 0;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+/** Wybór jednego elementu z tablicy (bez powtórzeń w obrębie wywołania). */
+function makePicker(rand){
+  const used = new Set();
+  return function(arr, id){
+    if(!arr || !arr.length) return '';
+    const key = id || arr.join('|').slice(0,80);
+    let idx = Math.floor(rand() * arr.length);
+    let guard = 0;
+    while(used.has(key + ':' + idx) && guard++ < 12) idx = (idx + 1) % arr.length;
+    used.add(key + ':' + idx);
+    return arr[idx];
+  };
+}
+/** Podstawienie slotów w szablonie. */
+function fill(tpl, V){
+  if(!tpl) return '';
+  return tpl.replace(/\{(P|PRODUKT|AUD|BRANZA|CENA|OFERTA|DOWOD|OBIEKCJA|MARKA|OB|BENEFIT1|BENEFIT2|BENEFIT3|OPINIA|SLOWO)\}/g, (m, k) => (V[k] != null && V[k] !== '' ? V[k] : (k === 'SLOWO' ? 'INFO' : '—')));
+}
+/** Krótka wersja tekstu (do overlay / hooków). */
+function short(t, max){ t = String(t||'').trim(); return t.length <= max ? t : t.slice(0, max - 1).replace(/[\s,.;:]+$/,'') + '…'; }
+function upFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+/** Rozpoznanie branży po słowach kluczowych (case-insensitive). */
+function detectNiche(industry, product){
+  const hay = ((industry||'') + ' ' + (product||'')).toLowerCase();
+  let best = null, bestScore = 0;
+  NICHES.forEach(n => {
+    let score = 0;
+    n.kw.forEach(k => { if(hay.includes(k)) score += k.length >= 5 ? 2 : 1; });
+    if(score > bestScore){ bestScore = score; best = n; }
+  });
+  return bestScore > 0 ? best : GENERIC_NICHE;
+}
+
+/** Zmienne slotowe budowane z briefu + danych branży. */
+function buildVars(brief, niche){
+  const price = brief.price || 'cena podana w opisie';
+  const offer = brief.offer || niche.offer;
+  const promise = brief.promise || niche.promise;
+  const benefitSrc = (niche.benefits && niche.benefits.length) ? niche.benefits : GENERIC_NICHE.benefits;
+  return {
+    P: brief.problem || niche.problem,
+    PRODUKT: brief.product || niche.label,
+    AUD: brief.audience || niche.audience,
+    BRANZA: brief.industry || niche.label,
+    CENA: price, OFERTA: offer,
+    DOWOD: brief.proof || (niche.proofPoints && niche.proofPoints[0]) || niche.proof,
+    OBIEKCJA: brief.objection || niche.objection,
+    MARKA: brief.brand || brief.product || 'nasza marka',
+    OB: promise,
+    BENEFIT1: benefitSrc[0], BENEFIT2: benefitSrc[1] || benefitSrc[0], BENEFIT3: benefitSrc[2] || benefitSrc[0],
+    OPINIA: (niche.proofPoints && niche.proofPoints[0]) || niche.proof,
+    SLOWO: 'INFO'
+  };
+}
+
+/** Dobór kątów A/B w zależności od strategii (kolejność = priorytet testów). */
+function pickAngles(strategyId, count, forceId){
+  // Wymuszony kąt (regeneracja jednej sekcji / duplikat wariantu)
+  if(forceId){
+    const forced = ANGLES.find(a => a.id === forceId);
+    if(forced) return [forced];
+  }
+  const prefer = {
+    viral:['pov','myth','list','challenge','pain','proof','demo','season','objection','bts'],
+    performance:['pain','proof','price','objection','demo','list','myth','challenge','season','founder'],
+    brand:['founder','bts','challenge','story','proof','list','demo','pov','season','price'],
+    lead:['list','proof','myth','objection','demo','pain','challenge','bts','season','founder'],
+    dr:['pain','price','season','objection','proof','myth','demo','list','challenge','founder']
+  }[strategyId] || ANGLES.map(a => a.id);
+  const ordered = prefer.map(id => ANGLES.find(a => a.id === id)).filter(Boolean);
+  ANGLES.forEach(a => { if(!prefer.includes(a.id)) ordered.push(a); });
+  return ordered.slice(0, count);
+}
+
+/** Awaryjna lista, jeśli kąt bez banku hooków (np. 'story'). */
+function hooksFor(angleId, bank){ return bank.hooks[angleId] || bank.hooks.pain; }
+
+/**
+ * Główna funkcja silnika lokalnego – buduje pełny pakiet kampanii offline.
+ * @returns {object} projekt zgodny ze schematem wyników (ten sam co z API)
+ */
+function generateLocalPackage(brief){
+  const niche = detectNiche(brief.industry, brief.product);
+  const V = buildVars(brief, niche);
+  const lang = brief.lang || 'pl';
+  const baseBank = (lang === 'pl') ? TXT.pl : TXT.en;         // bank bazowy
+  const bank = baseBank;
+  const L = L10N[lang] || null;                                // lokalne hooki/CTA
+  const labels = SECTION_LABELS[lang] || SECTION_LABELS.en;
+  const seedBase = hashString(JSON.stringify(brief) + lang) + (Number(brief._seedExtra) || 0);
+  const strategy = STRATEGIES.find(s => s.id === brief.strategy) || STRATEGIES[1];
+  const angles = pickAngles(brief.strategy, brief.variants, brief.angleOverride);
+  const length = LENGTHS[brief.length] ? brief.length : 15;
+  const beatsPurposes = BEAT_PURPOSE[length];
+
+  const variants = angles.map((angle, i) => {
+    const rand = rng(seedBase + i * 7919);
+    const pick = makePicker(rand);
+    const beatCount = BEAT_PURPOSE[length].length;
+    const wordBudgetPerBeat = Math.max(4, Math.round(2.6 * length / beatCount));
+    const VV = Object.assign({}, V);
+    // dodatkowe urozmaicenie: rotacja benefitów między wariantami
+    const ben = (niche.benefits || GENERIC_NICHE.benefits);
+    VV.BENEFIT1 = ben[i % ben.length];
+    VV.BENEFIT2 = ben[(i + 1) % ben.length];
+    VV.BENEFIT3 = ben[(i + 2) % ben.length];
+
+    /* ---- HOOKI (3 propozycje + rekomendacja) ---- */
+    let hookPool = hooksFor(angle.id, bank).slice();
+    // dokładamy lokalne wersje językowe, jeśli dostępne
+    if(L && lang !== 'pl' && lang !== 'en') L.hook.forEach(h => hookPool.push(h + ' — ' + fill('{PRODUKT}', VV)));
+    const hookLines = [];
+    for(let k = 0; k < 3 && hookPool.length; k++){
+      const idx = Math.floor(rand() * hookPool.length);
+      hookLines.push(fill(hookPool.splice(idx, 1)[0], VV));
+    }
+    // Poziom punchu: 4 = mocne wejście (pattern interrupt), 1 = wyciszone frazy
+    const punchN = Number(brief.punch) || 3;
+    if(punchN >= 4){
+      const stop = (lang === 'pl' ? 'STOP. ' : 'Stop. ');
+      for(let k = 0; k < hookLines.length; k++){
+        if(!/^(stop|przestań|nie kupuj|zatrzymaj)/i.test(hookLines[k])) hookLines[k] = stop + hookLines[k];
+      }
+    } else if(punchN <= 1){
+      for(let k = 0; k < hookLines.length; k++) hookLines[k] = hookLines[k].replace(/!+/g, '.').replace(/^(STOP\.\s*)/i, '');
+    }
+    // Dla 7 s i 15 s najkrótszy hook startuje jako główny – musi zmieścić się w 3 s
+    if(length <= 15) hookLines.sort((a, b) => a.split(/\s+/).length - b.split(/\s+/).length);
+    const hookTxt = hookLines.map((h, k) =>
+      `HOOK ${String.fromCharCode(65 + k)} (0–3 s)\n${h}\n  ↳ wariant testowy: ${k === 0 ? 'główny – start kampanii' : (k === 1 ? 'alternatywa A – inny angle wejścia' : 'alternatywa B – test długości zdania')}`
+    ).join('\n\n') + `\n\nREKOMENDACJA: do pierwszej fazy testu wrzuć HOOK A i HOOK B w osobnych grupach reklamowych (po 50/50 budżetu) i porównaj hook rate 3 s.\nPowód wyboru kąta „${angle.label}”: ${angle.angleNote}`;
+
+    /* ---- SCENARIUSZ beat po beat ---- */
+    const scriptBlocks = [];
+    const timeline = [];   // dla napisów i shot listy
+    BEAT_PURPOSE[length].forEach((purpose, bi) => {
+      const [label, from, to] = LENGTHS[length].beats[bi] || [purpose, 0, 0];
+      /* Dobór kwestii do budżetu słów: krótkie banki dla 7/15 s,
+         a przy dłuższych formatach wybieramy wariant, który mieści się w czasie. */
+      const beatCandidates = (pp) => {
+        const out = [];
+        const shortBank = (length <= 15 && bank.shortBeats) ? bank.shortBeats : null;
+        if(shortBank && shortBank[pp] && shortBank[pp].length) out.push(...shortBank[pp]);
+        out.push(...((bank.beats[pp]) || bank.beats.solution));
+        return out.map(t => fill(t, VV));
+      };
+      const fitPick = (pp) => {
+        const list = beatCandidates(pp);
+        const limit = wordBudgetPerBeat * (length <= 15 ? 1.45 : (length <= 30 ? 1.05 : 1.15));
+        const fitting = list.filter(t => t.split(/\s+/).filter(Boolean).length <= limit);
+        const pool = fitting.length ? fitting
+          : [list.reduce((a, b) => (a.split(/\s+/).length <= b.split(/\s+/).length ? a : b))];
+        return pick(pool, pp + i);
+      };
+      let body;
+      if(purpose === 'hook'){ body = hookLines[0]; }
+      else if(purpose === 'cta'){
+        // w 7 s mówimy wyłącznie krótkie CTA, w dłuższych formatach dokładamy zdanie z banku CTA
+        const ctaLine = fitPick('cta');
+        const ctaTail = pick(bank.ctaBank[ctaBankKey(strategy, brief)], 'ctab' + i);
+        body = length <= 30 ? ctaLine : (ctaLine + ' ' + ctaTail);
+      }
+      else if(purpose === 'close'){ body = fitPick('close'); }
+      else if(purpose === 'offer'){
+        body = fitPick('offer');
+        // pełny callout sprzedażowy dokładamy tylko w najdłuższym formacie (ma własną sekcję)
+        if(length >= 45){
+          const callouts = (bank.callout[brief.calloutType] || bank.callout.wartosc).map(t => fill(t, VV));
+          body += ' ' + callouts.reduce((a, b) => (a.split(/\s+/).length <= b.split(/\s+/).length ? a : b));
+        }
+      }
+      else { body = fitPick(purpose); }
+      scriptBlocks.push(`[${from}–${to} s] ${upFirst(label)}\n${body}`);
+      timeline.push({ from, to, label, text: body, purpose });
+    });
+    // Budżet słów: lektor czyta ok. 2,6 słowa na sekundę
+    const totalWords = timeline.reduce((a, t) => a + String(t.text).split(/\s+/).filter(Boolean).length, 0);
+    const wordBudget = Math.round(length * 2.6);
+    const scriptTxt = scriptBlocks.join('\n\n') +
+      `\n\nDLACZEGO TAK: ${pick(bank.lens[angle.id] ? [bank.lens[angle.id]] : [bank.lens.pain], 'lens' + i)}` +
+      `\nTempo: ${tempoHint(brief.style, length, brief.punch)}` +
+      `\nBUDŻET SŁÓW: ${totalWords} słów w scenariuszu / ok. ${wordBudget} słów mieści się w ${length} s mowy (2,6 słowa/s). ` +
+      (totalWords > wordBudget * 1.15
+        ? 'Skróć końcówki zdań na planie albo dodaj plansze tekstowe bez lektora.'
+        : 'Mieści się w czasie – czytaj spokojnie, bez pośpiechu.');
+
+    /* ---- SHOT LIST ---- */
+    const shotBlocks = [];
+    let shotNo = 1;
+    timeline.forEach((t, ti) => {
+      const group = t.purpose === 'hook' ? 'hook' : (t.purpose === 'cta' || t.purpose === 'close' ? 'cta' : (t.purpose === 'proof' ? 'proof' : (t.purpose === 'problem' || t.purpose === 'objection' ? 'hook' : 'product')));
+      const base = pick(bank.shots[group], 'sh' + group + ti + i);
+      shotBlocks.push(
+`UJĘCIE ${shotNo} · ${t.from}–${t.to} s · ${upFirst(t.label)}
+Kadr: ${fill(base, VV)}
+W kadrze: ${short(t.text, 92)}
+Audio: ${brief.style === 'narracja' ? 'voice-over z offu, spokojne tempo' : (ti === 0 ? 'mocny wokal / trending sound z biblioteki TikTok (bez wokalu w tle przy mowie)' : 'mowa twórcy na żywo, dźwięk otoczenia ściszony')}
+Tekst na ekranie: ${fill(pick(bank.overlay[(t.purpose === 'hook' ? 'hook' : (t.purpose === 'cta' || t.purpose === 'close' ? 'cta' : (t.purpose === 'problem' ? 'problem' : (t.purpose === 'proof' ? 'proof' : (t.purpose === 'offer' ? 'offer' : 'solution')))))], 'ov' + ti + i), VV)}`);
+      shotNo++;
+      // dla dłuższych formatów dokładamy drugie ujęcie B-roll na beat
+      if(length >= 30 && ti > 0 && ti < timeline.length - 1){
+        shotBlocks.push(
+`UJĘCIE ${shotNo} · ${t.from}–${t.to} s · B-roll do kroju
+Kadr: ${fill(pick(bank.shots.product, 'broll' + ti + i), VV)}
+Audio: kontynuacja narracji, cięcie na mocniejszym słowie
+Tekst na ekranie: ${fill(pick(bank.overlay.proof, 'ovb' + ti + i), VV)}`);
+        shotNo++;
+      }
+    });
+    const shotsTxt = shotBlocks.join('\n\n') + `\n\nUSTAWIENIA PLANU: ${STYLES[brief.style] ? STYLES[brief.style].camera : STYLES.UGC.camera}. Cięcia co ${length <= 15 ? '1–1,5 s' : '2–3 s'}, pierwszy frame bez czerni, proporcje 9:16, napisy w środkowej strefie (bezpieczne marginesy interfejsu).`;
+
+    /* ---- NARRACJA / VO ---- */
+    const voLines = timeline.map((t, k) => `${k + 1}. ${t.text}`).join('\n');
+    const narrationTxt = `${voLines}\n\nZASADY LEKTORA: ${brief.tone === 'luksusowy' ? 'niższy tembr, dłuższe pauzy, brak wykrzykników' : brief.tone === 'agresywny' ? 'szybkie tempo, mocne akcenty, krótkie zdania' : brief.tone === 'spokojny' ? 'spokojne, równe tempo, akcent na konkretach' : 'energetyczne tempo, uśmiech w głosie, akcenty na liczbach'}.\nDługość: ${Math.round(timeline.reduce((a, t) => a + (String(t.text).split(/\s+/).length), 0) / 2.6)} s czytania (ok. 150 słów/min → dopasuj do ${length} s wideo).`;
+
+    /* ---- OVERLAY (lista globalna) ---- */
+    const overlayTxt = [
+      'SEKWENCJA OVERLAY (kolejność = kolejność na ekranie):',
+      ...timeline.map((t, k) => `${k + 1}. [${t.from}–${t.to} s] ${fill(pick(bank.overlay[(t.purpose === 'hook' ? 'hook' : (t.purpose === 'cta' || t.purpose === 'close' ? 'cta' : (t.purpose === 'proof' ? 'proof' : (t.purpose === 'offer' ? 'offer' : 'problem'))))], 'ovg' + k + i), VV)}`),
+      '',
+      'ZASADY: maks. 6 słów na planszę, kontrast biały/czarny z obwódką, nie zasłaniaj twarzy ani interfejsu TikToka (dolne 25% i prawy pasek).'
+    ].join('\n');
+
+    /* ---- NAPISY ---- */
+    const subs = [];
+    let subIdx = 1;
+    timeline.forEach(t => {
+      const words = String(t.text).split(/\s+/);
+      const chunk = 6;
+      const parts = [];
+      for(let w = 0; w < words.length; w += chunk) parts.push(words.slice(w, w + chunk).join(' '));
+      const span = Math.max(1, (t.to - t.from)) / Math.max(1, parts.length);
+      parts.forEach((p, pi) => {
+        const from = (t.from + pi * span).toFixed(1), to = (t.from + (pi + 1) * span).toFixed(1);
+        subs.push(`${subIdx++}\n${fmtTime(from)} --> ${fmtTime(to)}\n${p}`);
+      });
+    });
+    const subsTxt = subs.join('\n\n') + '\n\nFORMAT: gotowy do wklejenia jako SRT (zapisz jako .srt). Rozmiar napisów: duży, jedna linia, maks. 2 wiersze, bez emoji w napisach.';
+
+    /* ---- CTA ---- */
+    const ctaMain = pick(bank.ctaBank[ctaBankKey(strategy, brief)], 'ctam' + i);
+    const ctaAlt = pick(bank.ctaBank[ctaBankKey(strategy, brief) === 'hard' ? 'soft' : 'hard'], 'ctaa' + i);
+    const ctaTxt = `CTA GŁÓWNE (na końcu wideo, na wizji):\n${fill(ctaMain, VV)}\n\nCTA ALTERNATYWNE (test B):\n${fill(ctaAlt, VV)}\n\nCTA W KOMENTARZU (przypięty komentarz):\n${(L && L.cta ? L.cta[0] : fill(bank.ctaBank.comment[0], VV))}\n\nMIKRO-CTA NA ŚRODKU WIDEO (dla watch time):\n„Trzymaj do końca – na końcu pokazuję warunki i cenę.”\n\nZASADA: maks. jedno CTA na ujęcie, maks. 3 sekundy na wypowiedzenie, CTA mówione i pokazane jednocześnie.`;
+
+    /* ---- OPIS + HASHTAGI ---- */
+    const tagPool = (niche.hashtags || []).concat(['#tiktokpolska','#fyp','#dlaciebie','#polecane','#musthave','#recenzja']);
+    const tags = uniq(tagPool).slice(0, 12);
+    const descTxt = `${fill(pick(bank.desc.intro, 'di' + i), VV)}\n${fill(pick(bank.desc.body, 'db' + i), VV)}\n\n${fill(ctaMain, VV)}\n\n${tags.join(' ')}`;
+    const hashTxt = [
+      'HASHTAGI – ZESTAW ZBALANSOWANY (3 szerokie + 5 niszowych + 2 kontekstowe):',
+      tags.join(' '),
+      '',
+      'STRATEGIA HASHTAGÓW:',
+      '• szerokie (zasięg): ' + tags.slice(-4, -1).join(' '),
+      '• niszowe (precyzja, niższa konkurencja): ' + (niche.hashtags || []).slice(0, 5).join(' '),
+      '• branded (rozpoznawalność – dodaj własny): #' + slug(brief.brand || brief.product || 'twojamarka'),
+      '',
+      'ZASADA: 8–12 tagów, bez tagów niepowiązanych z treścią (spadek dystrybucji). Opis do 150 znaków przed CTA.'
+    ].join('\n');
+
+    /* ---- CALLOUT ---- */
+    const calloutTxt = fill(pick(bank.callout[brief.calloutType] || bank.callout.wartosc, 'cal' + i), VV) +
+      `\n\nWERSJA ${brief.sellMode === 'soft' ? 'SOFT SELL' : brief.sellMode === 'hard' ? 'HARD SELL' : 'AUTO (' + (strategy.ctaStyle === 'soft' ? 'soft' : 'hard') + ')'}:\n` +
+      (brief.sellMode === 'soft'
+        ? 'Ton spokojny: wartość → dowód → zaproszenie do sprawdzenia. Bez presji czasu, bez „ostatnie sztuki”.'
+        : 'Ton bezpośredni: konkretna oferta → powód decyzji dziś → jasne CTA. Bez gwarancji wyników i bez obietnic finansowych.') +
+      `\n\nCZEGO NIE MÓWIMY: gwarancji efektu, obietnic zdrowotnych/finansowych, porównań z konkurencją po nazwie, presji typu „kup teraz, bo zniknie”.`;
+
+    /* ---- NOTATKA A/B ---- */
+    const abTxt = `HIPOTEZA: ${angle.hypothesis}\n\nCO TESTOWANY W TYM WARIANCIE: kąt „${angle.label}” przy stałej ofercie i stałej długości (${length} s).\n\nPIERWSZEŃSTWO TESTU: ${i === 0 ? 'rdzeń kampanii – start' : 'faza ' + (i + 1) + ' – dopiero po zebraniu danych z wariantu A'}\n\nKPI DO OCENY: ${(niche.kpis || GENERIC_NICHE.kpis).join(' · ')}\n\nPRÓG DECYZYJNY: min. 2 000 wyświetleń na wariant i 48 h bez zmian kreacji → wybierz wariant z wyższym hook rate 3 s i CTR przy CPA w granicach celu. Zmieniasz JEDNĄ rzecz naraz (hook, oferta albo CTA).\n\nCO ZROBIĆ Z PRZEGRANYM: zostaw przegrany wariant w grupie na 20% budżetu jako kontrolę – sezonowość potrafi odwrócić wyniki.`;
+
+    /* sekcje: budujemy obiekt zgodnie z wybranymi modułami */
+    const sections = {};
+    // Sekcja trafia do wyniku tylko wtedy, gdy jej moduł jest zaznaczony w UI
+    const push = (key, title, body, wide) => {
+      if(brief.modules && brief.modules.length && !brief.modules.includes(key)) return;
+      if(body && body.trim()) sections[key] = { key, title: labels[key] || title, body, wide: !!wide };
+    };
+    push('hook', labels.hook, hookTxt);
+    push('script', labels.script, scriptTxt, true);
+    push('shots', labels.shots, shotsTxt, true);
+    push('narration', labels.narration, narrationTxt);
+    push('overlay', labels.overlay, overlayTxt);
+    push('subtitles', labels.subtitles, subsTxt);
+    push('cta', labels.cta, ctaTxt);
+    push('description', labels.description, descTxt);
+    push('hashtags', labels.hashtags, hashTxt);
+    push('callout', labels.callout, calloutTxt);
+    push('ab', labels.ab, abTxt);
+
+    return {
+      label: String.fromCharCode(65 + i),
+      angleId: angle.id,
+      angle: angle.label,
+      hypothesis: angle.hypothesis,
+      hookLine: hookLines[0],
+      sections
+    };
+  });
+
+  const project = {
+    id: 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    name: brief.campaign || `${brief.product || 'Kampania'} – ${new Date().toLocaleDateString('pl-PL')}`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    brief, engine:'local', model:'silnik lokalny v1', lang,
+    niche: niche.label,
+    strategy: strategy.id, strategyLabel: strategy.label, strategyHint: strategy.hint,
+    kpis: niche.kpis || GENERIC_NICHE.kpis,
+    variants,
+    abPlan: buildABPlan(brief, variants),
+    checklist: buildChecklist(brief),
+    disclaimers: settings.disclaimer === 'off' ? [] : (niche.disclaimers || GENERIC_NICHE.disclaimers).slice(),
+    compliance: null
+  };
+  project.compliance = complianceScan(project);
+  return project;
+}
+
+/** Dobór banku CTA: sellMode użytkownika wygrywa, potem strategia. */
+function ctaBankKey(strategy, brief){
+  const m = brief.sellMode;
+  if(m === 'soft') return 'soft';
+  if(m === 'hard') return 'hard';
+  if(strategy.ctaStyle === 'lead') return 'lead';
+  if(strategy.ctaStyle === 'soft') return 'soft';
+  return 'hard';
+}
+
+/** Wskazówka o tempie montażu. */
+function tempoHint(style, length, punch){
+  const p = Number(punch || 3);
+  const base = length <= 15 ? 'bardzo szybkie: cięcie co 1–1,5 s, pierwsza sekunda bez wstępu'
+    : length <= 30 ? 'średnio-szybkie: cięcie co 2 s, dwa „pattern interrupty” w środku'
+    : 'spokojniejsze: cięcie co 2–3 s, ale zmiana kadru lub planszy co 5 s';
+  return base + (p >= 4 ? ', dodatkowo mocne akcenty dźwiękowe i napisy-uderzenia' : p <= 1 ? ', bez krzyków i bez sztucznych efektów' : '');
+}
+
+/** Budowa planu testu A/B dla całego pakietu. */
+function buildABPlan(brief, variants){
+  const lines = [];
+  lines.push(`FAZA 1 (48–72 h, 60% budżetu): warianty ${variants.slice(0, Math.min(2, variants.length)).map(v => v.label + ' – ' + v.angle).join(' oraz ')}.`);
+  if(variants.length > 2) lines.push(`FAZA 2 (kolejne 72 h, 40% budżetu): ${variants.slice(2).map(v => v.label + ' – ' + v.angle).join(', ')}.`);
+  lines.push('STAŁE ELEMENTY TESTU: ta sama grupa docelowa, ten sam budżet dzienny, ta sama pora publikacji, ta sama oferta i landing page.');
+  lines.push('ZMIENNE: wyłącznie kąt wejścia (hook) w wariancie A vs B; CTA testujemy dopiero w kolejnej iteracji.');
+  lines.push('PROGI: min. 2 000 wyświetleń i min. 24 h od startu, zanim ocenisz wynik. Wyłączasz kreację dopiero poniżej progu, nie na podstawie 1 dnia.');
+  lines.push(`KPI GŁÓWNE: ${(variants[0] ? '' : '')}hook rate 3 s (cel: > 25%), CTR outbound (cel: branżowy +20%), CVR / CPA w granicach celu kampanii.`);
+  lines.push('ITERACJA: zwycięski hook przenosisz do nowej kreacji z nowym CTA → kolejny test. Jedna zmiana na raz.');
+  return lines.join('\n');
+}
+
+/** Checklista publikacji – operacyjna, nie marketingowa. */
+function buildChecklist(brief){
+  const platform = brief.platform || 'TikTok Feed';
+  return [
+    `Format 9:16, 1080×1920, pierwsza klatka bez czerni (bez „fade in”) – wymóg dystrybucji w ${platform}.`,
+    'Napisy wypalone w wideo (większość osób ogląda bez dźwięku) + poprawna polska typografia.',
+    'Bezpieczna strefa: dolne 25% wolne od kluczowych treści (interfejs TikToka zasłania CTA i podpisy).',
+    `CTA mówione, pokazane i w opisie – trzy miejsca, jedna treść. Link: ${brief.brand || '(uzupełnij link/docelowy URL)'}.`,
+    'Landing page sprawdzony na telefonie: czas ładowania < 2,5 s, cena i warunki widoczne bez przewijania.',
+    'Ustawienia reklamy: grupa docelowa bez zawężania do „wszyscy”, budżet dzienny pozwalający na min. 2 000 wyświetleń w 48 h.',
+    'Tracking: piksel + zdarzenie zakupu/leada aktywne PRZED startem (test bez pomiaru = strata budżetu).',
+    'Sprawdź zgodność z politykami TikToka: brak obietnic medycznych, finansowych i gwarancji efektu (patrz sekcja zgodności).',
+    'Wersja bez dźwięku i wersja z dźwiękiem – obie eksportowane i sprawdzone na telefonie.',
+    'Komentarze: przygotuj odpowiedzi na 3 najczęstsze pytania (cena, wysyłka, zwroty) i przypnij jedną odpowiedź z linkiem.'
+  ].join('\n');
+}
+
+/** Hashowanie stringa (seed RNG). */
+function hashString(s){
+  let h = 2166136261;
+  for(let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+/** Unikalne elementy tablicy. */
+function uniq(a){ return Array.from(new Set(a.filter(Boolean))); }
+/** Slug do tagów marki. */
+function slug(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9ąćęłńóśźż]+/gi,'').slice(0,24) || 'marka'; }
+/** Format czasu SRT. */
+function fmtTime(sec){
+  const s = Number(sec) || 0;
+  const mm = String(Math.floor(s / 60)).padStart(2,'0');
+  const ss = String(Math.floor(s % 60)).padStart(2,'0');
+  const ms = String(Math.round((s % 1) * 1000)).padStart(3,'0');
+  return `00:${mm}:${ss},${ms}`;
+}
+
+/* ============================================================================
+   D2. MAPOWANIE BEATÓW – cel narracyjny dla każdej długości wideo
+   ========================================================================== */
+const BEAT_PURPOSE = {
+  7:  ['hook','proof','cta'],
+  15: ['hook','problem','solution','proof','cta'],
+  30: ['hook','problem','solution','mechanism','proof','offer','cta'],
+  45: ['hook','problem','story','solution','mechanism','proof','objection','offer','cta']
+};
+
+/* ============================================================================
+   E. PROMPTY + KLIENT API
+   ========================================================================== */
+
+/** Opisuje zasady zgodności – wspólne dla promptu i filtrów lokalnych. */
+const COMPLIANCE_RULES = [
+  'Zero deklaracji gwarantujących efekt („na pewno”, „gwarantujemy”, „100%”, „natychmiastowe efekty”).',
+  'Zero obietnic medycznych i zdrowotnych (leczy, usuwa, wyleczy, redukuje choroby) – dozwolone opisy kosmetyczne i użytkowe.',
+  'Zero obietnic finansowych (zysk, dochód, „zarobisz”, „inwestycja bez ryzyka”, „szybki zwrot kosztów gwarantowany”).',
+  'Zero presji i fałszywej pilności: bez „ostatnia szansa”, „kup teraz albo stracisz”, bez sztucznego licznika.',
+  'Zero porównań z konkurencją po nazwie i zero dyskredytowania innych firm.',
+  'Zero elementów dyskryminujących, seksualnych, wulgarnych i skierowanych do dzieci.',
+  'Dane liczbowe muszą być realne i weryfikowalne albo opisane jako opinia („w opiniach klientów”).',
+  'Twierdzenia o produkcie muszą dotyczyć jego funkcji, nie cech odbiorcy ("jeśli masz problem X" nie może oznaczać choroby).'
+].join('\n- ');
+
+/** Buduje prompt systemowy – rola, kontekst, zasady, format odpowiedzi. */
+function buildSystemPrompt(brief){
+  const strategy = STRATEGIES.find(s => s.id === brief.strategy) || STRATEGIES[1];
+  const niche = detectNiche(brief.industry, brief.product);
+  return [
+    'Jesteś Senior AI Product Architect + Performance Marketing Expert specjalizującym się w TikTok Ads dla e-commerce, usług i produktów cyfrowych.',
+    'Tworzysz reklamy o wysokim CTR, które przechodzą przez polityki reklamowe TikToka (brak obietnic medycznych, finansowych i gwarancji efektu).',
+    '',
+    'KONTEKST STRATEGICZNY:',
+    `- Tryb strategii: ${strategy.label} – ${strategy.hint}`,
+    `- KPI kampanii: ${strategy.kpi}`,
+    `- Rozpoznana branża (dane referencyjne): ${niche.label}`,
+    `- Ton komunikacji: ${brief.tone}`,
+    `- Styl realizacji: ${STYLES[brief.style] ? STYLES[brief.style].label : STYLES.UGC.label} (${STYLES[brief.style] ? STYLES[brief.style].camera : STYLES.UGC.camera})`,
+    `- Język treści: ${(LANGS.find(l => l.id === brief.lang) || LANGS[0]).label} – pisz całą treść w tym języku, naturalnie, bez tłumaczenia „słowo w słowo”.`,
+    '',
+    'ZASADY TWORZENIA TREŚCI:',
+    '- Konkret zamiast ogólników: liczby, detale produktu, realne sceny. Zakaz pustych fraz typu „innowacyjne rozwiązanie”.',
+    '- Każdy hook 0–3 s musi zatrzymać przewijanie: napięcie, pytanie, kontrast, zaskoczenie albo liczba.',
+    '- Scenariusz opisuj ujęcie po ujęciu z realnymi przedziałami czasu (s) dopasowanymi do zadanej długości wideo.',
+    '- Mów językiem korzyści i scen z życia, nie językiem parametrów.',
+    '- Pisz treści gotowe do wdrożenia: bez placeholderów, bez „[uzupełnij]”, bez komentarzy dla użytkownika.',
+    '',
+    'ZASADY ZGODNOŚCI (OBOWIĄZKOWE):',
+    '- ' + COMPLIANCE_RULES,
+    '',
+    'FORMAT ODPOWIEDZI – KRYTYCZNY, BEZ ŻADNEGO TEKSTU POZA FORMATEM:',
+    `Dla każdego wariantu użyj dokładnie tego szablonu (nagłówki ### i #### są obowiązkowe):`,
+    '### WARIANT A',
+    'KĄT: [nazwa kąta reklamowego] | HIPOTEZA: [jedno zdanie, co testujemy]',
+    '#### HOOK',
+    'HOOK A: [tekst]',
+    'HOOK B: [tekst]',
+    'HOOK C: [tekst]',
+    'REKOMENDACJA: [jedno zdanie, który hook startuje pierwszy i dlaczego]',
+    '#### SCENARIUSZ',
+    '[0–3 s] Ujęcie: [co się dzieje]\\nTekst/audio: [co mówi twarz lub lektor]',
+    '(…kolejne przedziały czasowe aż do końca wideo…)',
+    '#### SHOT LIST',
+    'UJĘCIE 1 | [czas] | [typ kadru] | [co w kadrze] | [audio] | [tekst na ekranie]',
+    '(…kolejne ujęcia…)',
+    '#### NARRACJA',
+    '[linia po linii, do czytania na głos, bez didaskaliów]',
+    '#### OVERLAY',
+    '[kolejne plansze tekstowe, maks. 6 słów każda, jedna na linię]',
+    '#### NAPISY',
+    '[kolejne linie napisów pocięte na krótkie fragmenty po 4–6 słów, jedna na linię]',
+    '#### CTA',
+    'CTA GŁÓWNE: [tekst]\\nCTA ALTERNATYWNE: [tekst]\\nCTA W KOMENTARZU: [tekst]',
+    '#### OPIS',
+    '[opis TikToka: 1–3 zdania + CTA, maks. 300 znaków łącznie z hashtagami]',
+    '#### HASHTAGI',
+    '[8–12 hashtagów w jednej linii, w tym 3 szerokie, 5 niszowych, 2 kontekstowe]',
+    '#### CALLOUT',
+    '[callout sprzedażowy dopasowany do typu: ' + brief.calloutType + ']',
+    '#### NOTATKA A/B',
+    '[hipoteza testu, kolejność wdrożenia, KPI, próg decyzyjny]',
+    '',
+    'Pisz zwięźle – to materiał produkcyjny, nie esej.'
+  ].join('\n');
+}
+
+/** Buduje prompt użytkownika z briefem i zakresem generacji. */
+function buildUserPrompt(brief){
+  const n = brief.variants;
+  const angles = pickAngles(brief.strategy, n).map((a, i) => `${String.fromCharCode(65 + i)}: ${a.label} (${a.angleNote})`);
+  const modules = brief.modules.map(id => (MODULES.find(m => m.id === id) || {}).label).filter(Boolean);
+  return [
+    'BRIEF KAMPANII:',
+    `Branża / nisza: ${brief.industry || '—'}`,
+    `Produkt / usługa: ${brief.product || '—'}`,
+    `Grupa docelowa: ${brief.audience || '—'}`,
+    `Problem klienta: ${brief.problem || '—'}`,
+    `Główna obietnica: ${brief.promise || '—'}`,
+    `Cena: ${brief.price || 'brak – nie wymyślaj ceny, napisz „cena w opisie”'}`,
+    `Dowód / argument: ${brief.proof || 'brak danych – użyj sformułowań opisowych bez wymyślania liczb'}`,
+    `Oferta / bonus: ${brief.offer || 'brak – nie wymyślaj promocji'}`,
+    `Obiekcja klienta: ${brief.objection || '—'}`,
+    `Marka / link: ${brief.brand || '—'}`,
+    '',
+    'PARAMETRY:',
+    `Długość wideo: ${brief.length} s – trzymaj się dokładnie tej długości i przedziałów czasowych.`,
+    `Ilość wariantów: ${n} (A–${String.fromCharCode(64 + n)}) – każdy wariant MUSI używać innego kąta:`,
+    ...angles.map(a => `  • ${a}`),
+    `Wersja sprzedażowa: ${brief.sellMode === 'auto' ? 'dopasuj do trybu strategii' : (brief.sellMode === 'soft' ? 'soft sell – spokojnie, bez presji' : 'hard sell – bezpośrednio, konkretna oferta, jasne CTA')}`,
+    `Typ calloutu sprzedażowego: ${brief.calloutType}`,
+    `Poziom „punchu” (1–4): ${brief.punch}`,
+    '',
+    `MODUŁY DO WYGENEROWANIA (tylko te sekcje): ${modules.join(', ')}`,
+    'Dla każdego wariantu podaj wyłącznie wybrane sekcje, ale ZAWSZE w kolejności z szablonu.',
+    '',
+    `Wygeneruj ${n} pełnych wariantów reklamy. Zwróć wyłącznie treść w formacie z instrukcji systemowej.`
+  ].join('\n');
+}
+
+/** Wywołanie API OpenAI (chat/completions). */
+async function callOpenAI(system, user, cfg){
+  const url = (cfg.provider === 'custom' && cfg.baseurl) ? cfg.baseurl : 'https://api.openai.com/v1/chat/completions';
+  const body = {
+    model: cfg.model || 'gpt-4o-mini',
+    temperature: Number(cfg.temp) || 0.8,
+    max_tokens: Number(cfg.maxtok) || 4000,
+    messages: [ { role:'system', content: system }, { role:'user', content: user } ]
+  };
+  const res = await fetchWithTimeout(url, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + cfg.key },
+    body: JSON.stringify(body)
+  }, cfg.timeout);
+  if(!res.ok) throw new Error(await apiErrorText(res, 'OpenAI'));
+  const data = await res.json();
+  const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  if(!txt) throw new Error('Pusta odpowiedź modelu (OpenAI).');
+  return txt;
+}
+
+/** Wywołanie API Google Gemini (generateContent). */
+async function callGemini(system, user, cfg){
+  const model = cfg.model || 'gemini-2.0-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(cfg.key)}`;
+  const body = {
+    system_instruction:{ parts:[ { text: system } ] },
+    contents:[ { role:'user', parts:[ { text: user } ] } ],
+    generationConfig:{ temperature: Number(cfg.temp) || 0.8, maxOutputTokens: Number(cfg.maxtok) || 4000 }
+  };
+  const res = await fetchWithTimeout(url, {
+    method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body)
+  }, cfg.timeout);
+  if(!res.ok) throw new Error(await apiErrorText(res, 'Gemini'));
+  const data = await res.json();
+  const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
+  const txt = Array.isArray(parts) ? parts.map(p => p.text || '').join('') : '';
+  if(!txt) throw new Error('Pusta odpowiedź modelu (Gemini). Może zadziałał filtr bezpieczeństwa – zmień treść briefu.');
+  return txt;
+}
+
+/** fetch z timeoutem (AbortController). */
+async function fetchWithTimeout(url, opts, timeoutSec){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), (Number(timeoutSec) || 120) * 1000);
+  try{ return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal })); }
+  finally{ clearTimeout(t); }
+}
+
+/** Czytelny komunikat błędu z odpowiedzi API. */
+async function apiErrorText(res, name){
+  let detail = '';
+  try{ const j = await res.json(); detail = (j.error && (j.error.message || j.error.status)) || JSON.stringify(j).slice(0, 400); }
+  catch(e){ try{ detail = (await res.text()).slice(0, 400); }catch(e2){} }
+  if(res.status === 401) return `${name}: nieprawidłowy klucz API (401). Sprawdź klucz w Ustawieniach.`;
+  if(res.status === 429) return `${name}: limit zapytań lub brak środków (429). Spróbuj ponownie za chwilę.`;
+  if(res.status === 404) return `${name}: nie znaleziono modelu lub endpointu (404). Zmień nazwę modelu.`;
+  return `${name}: błąd ${res.status}. ${detail}`;
+}
+
+/** Uniwersalne wywołanie: retry raz dla błędów przejściowych. */
+async function callAPI(system, user, cfg, retry){
+  try{
+    if(cfg.provider === 'gemini') return await callGemini(system, user, cfg);
+    return await callOpenAI(system, user, cfg);
+  }catch(err){
+    if(!retry && /429|500|502|503|timeout|abort|Failed to fetch|NetworkError/i.test(String(err.message))){
+      await new Promise(r => setTimeout(r, 1800));
+      return callAPI(system, user, cfg, true);
+    }
+    throw err;
+  }
+}
+
+/* ============================================================================
+   F. PARSER ODPOWIEDZI – rozbijanie tekstu modelu na warianty i sekcje
+   ========================================================================== */
+
+/** Normalizacja nagłówka do porównań (bez diakrytyków, małe litery). */
+function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim(); }
+
+/** Dopasowanie nagłówka sekcji do klucza modułu. */
+function headingToKey(h){
+  const n = norm(h);
+  const map = [
+    ['hook','hook'],['hooks','hook'],['hooki','hook'],
+    ['scenariusz','script'],['script','script'],['script beat by beat','script'],
+    ['shot list','shots'],['shotlist','shots'],['shots','shots'],['ujecia','shots'],['lista ujec','shots'],
+    ['narracja','narration'],['voice over','narration'],['voiceover','narration'],['narration','narration'],
+    ['overlay','overlay'],['tekst na ekranie','overlay'],
+    ['napisy','subtitles'],['subtitles','subtitles'],['srt','subtitles'],
+    ['cta','cta'],['call to action','cta'],
+    ['opis','description'],['description','description'],['caption','description'],['opis tiktok','description'],
+    ['hashtag','hashtags'],['hashtagi','hashtags'],['hashtags','hashtags'],['tagi','hashtags'],
+    ['callout','callout'],['callout sprzedazowy','callout'],['sales callout','callout'],
+    ['notatka a b','ab'],['notatka ab','ab'],['a b test','ab'],['ab test','ab'],['a/b','ab'],['kpi','ab']
+  ];
+  for(const [needle, key] of map){ if(n === needle || n.startsWith(needle)) return key; }
+  return null;
+}
+
+/**
+ * Parsuje odpowiedź modelu do struktury projektu.
+ * Obsługuje format wymagany w prompcie oraz warianty zapisu (np. ## zamiast ###).
+ */
+function parseApiAnswer(text, brief){
+  const modules = brief.modules.slice();
+  const lines = String(text).replace(/\r/g,'').split('\n');
+  const variants = [];
+  let cur = null, curSec = null, secBuf = [], variantMeta = '';
+
+  const flushSection = () => {
+    if(cur && curSec && secBuf.join('\n').trim()){
+      cur.sections[curSec] = { key:curSec, title:(SECTION_LABELS[brief.lang]||SECTION_LABELS.en)[curSec] || curSec.toUpperCase(),
+        body: secBuf.join('\n').trim(), wide: !!((MODULES.find(m => m.id === curSec)||{}).wide) };
+    }
+    secBuf = [];
+  };
+  const flushVariant = () => { flushSection(); if(cur) variants.push(cur); cur = null; curSec = null; };
+
+  lines.forEach(raw => {
+    const line = raw.trimEnd();
+    const mVar = line.match(/^#{2,4}\s*WARIANT\s+([A-J])\b(.*)$/i);
+    if(mVar){
+      flushVariant();
+      variantMeta = (mVar[2] || '').replace(/^[\s|\-–:]+/,'').trim();
+      cur = { label: mVar[1].toUpperCase(), meta: variantMeta, angle:'', hypothesis:'', hookLine:'', sections:{} };
+      return;
+    }
+    const mSec = line.match(/^#{2,4}\s*(.+?)\s*$/);
+    if(mSec && !/^wariant\s/i.test(mSec[1]) && headingToKey(mSec[1])){
+      flushSection();
+      curSec = headingToKey(mSec[1]);
+      return;
+    }
+    if(curSec){ secBuf.push(line.replace(/^[-•*]\s?/,'')); return; }
+    // metadane wariantu przed pierwszą sekcją
+    if(cur){
+      const k = line.match(/^\s*(KĄT|KAT|ANGLE)\s*:\s*(.+)$/i);
+      if(k){
+        cur.angle = k[2].split('|')[0].replace(/^KĄT\s*:\s*/i,'').trim();
+        // kąt i hipoteza bywają w jednej linii (KĄT: … | HIPOTEZA: …)
+        const hyInline = k[2].match(/HIPOTEZA\s*:\s*(.+)$/i);
+        if(hyInline) cur.hypothesis = hyInline[1].trim();
+        return;
+      }
+      const hy = line.match(/HIPOTEZA\s*:\s*(.+)$/i);
+      if(hy){ cur.hypothesis = hy[1].trim(); if(!cur.angle && variantMeta) cur.angle = variantMeta.split('|')[0].replace(/^KĄT\s*:\s*/i,'').trim(); return; }
+      if(variantMeta && !cur.angle){ cur.angle = variantMeta.split('|')[0].replace(/^KĄT\s*:\s*/i,'').trim(); }
+    }
+  });
+  flushVariant();
+
+  // jeśli model nie zwrócił nagłówków WARIANT – traktujemy całość jako jeden wariant
+  if(!variants.length){
+    const single = parseSingleBlock(text, brief);
+    variants.push(single);
+  }
+  variants.forEach((v, i) => {
+    if(!v.label) v.label = String.fromCharCode(65 + i);
+    if(!v.angle) v.angle = 'Kąt dobrany przez model';
+    if(!v.hypothesis) v.hypothesis = 'Hipoteza: porównanie kreacji pod kątem hook rate 3 s i CTR.';
+    // filtry modułów i porządkowanie sekcji
+    v.sections = Object.fromEntries(Object.entries(v.sections).filter(([k]) => modules.includes(k)));
+    const hook = v.sections.hook ? v.sections.hook.body : '';
+    v.hookLine = (hook.match(/(?:HOOK\s*A[:\-]|^)\s*(.+)$/im) || [,''])[1].slice(0, 160);
+  });
+  return variants;
+}
+
+/** Fallback: gdy odpowiedź nie ma nagłówków wariantów – szukamy samych sekcji. */
+function parseSingleBlock(text, brief){
+  const sections = {};
+  const parts = String(text).split(/^#{2,4}\s*(.+?)\s*$/m);
+  for(let i = 1; i < parts.length; i += 2){
+    const key = headingToKey(parts[i]);
+    if(key) sections[key] = { key, title:(SECTION_LABELS[brief.lang]||SECTION_LABELS.en)[key] || parts[i], body:(parts[i+1]||'').trim(), wide: !!((MODULES.find(m => m.id === key)||{}).wide) };
+  }
+  if(!Object.keys(sections).length){
+    sections.raw = { key:'raw', title:'Odpowiedź modelu (nieznany format)', body:String(text).trim(), wide:true };
+  }
+  return { label:'A', meta:'', angle:'Odpowiedź modelu', hypothesis:'', hookLine:'', sections };
+}
+
+/* ============================================================================
+   J. ZGODNOŚĆ Z POLITYKAMI – skaner ryzykownych fraz + auto-fix
+   ========================================================================== */
+const RISKY_RULES = [
+  { re:/gwarant(?:uje|ujemy|owany|owana|owane|owana skuteczność)/gi,
+    label:'Gwarancja efektu / wyniku',
+    fix:'napisz „sprawdź sam”, „zobacz, jak to działa”, „wspieramy Cię w procesie”',
+    to:'sprawdź sam, jak to działa' },
+  { re:/100\s?%|stuprocentow\w+/gi, label:'Obietnica 100% pewności',
+    fix:'usuń wartość procentową albo opisz jako „w opiniach klientów”', to:'wg opinii klientów' },
+  { re:/na pewno zadziała|zadziała zawsze|bez wyjątku/gi, label:'Obietnica pewnego efektu',
+    fix:'zamień na „u większości osób w opiniach” / „zobacz, jak działa u Ciebie”', to:'zobacz, jak działa u Ciebie' },
+  { re:/natychmiastow\w+ efekt\w*|efekt w 24\s?h|efekt w (?:jeden|1) dzie\w+/gi, label:'Obietnica natychmiastowego efektu',
+    fix:'opisz uczciwie czas: „pierwsze zmiany wg opinii klientów po kilku tygodniach stosowania”', to:'efekty widoczne w dłuższym okresie stosowania' },
+  { re:/leczy|wylecz\w*|usuwa chorob\w*|redukuje (?:tłuszcz|wagę|celulit)|uzdrawia/gi, label:'Twierdzenia medyczne',
+    fix:'opisz funkcję wyrobu/kosmetyku: „pielęgnuje”, „nawilża”, „wspiera wygląd skóry”', to:'wspiera codzienną pielęgnację' },
+  { re:/bez skutków ubocznych|w 100% bezpieczn\w+/gi, label:'Obietnica braku skutków ubocznych',
+    fix:'usuń kategorię ryzyka – podaj skład/warunki i zalecenie konsultacji w razie wątpliwości', to:'szczegółowy skład i warunki użycia podane w opisie' },
+  { re:/zarobisz|pasywn\w+ dochód|szybki zwrot kosztów|inwestycja bez ryzyka|gwarantowany zysk|zysk bez ryzyka/gi,
+    label:'Obietnice finansowe', fix:'treść edukacyjna bez obietnic; opisz zakres materiału, nie wynik', to:'materiał edukacyjny o metodzie' },
+  { re:/najlepsz\w+ na rynku|nr\s?1 w (?:polsce|europie|świecie)|bezkonkurencyjn\w+/gi,
+    label:'Porównania i superlatywy bez dowodu', fix:'podaj weryfikowalny fakt (liczba opinii, ocena, parametry)', to:'oceniane wysoko w opiniach klientów' },
+  { re:/ostatnia szansa|kup teraz albo|albo stracisz|ostatni dzień promocji/gi,
+    label:'Fałszywa pilność', fix:'opisz realne ograniczenie (stan magazynu, termin dostawy)', to:'sprawdź aktualną dostępność' },
+  { re:/wyleczymy|gwarancja zdrowia|zamiast lekarza|bez konsultacji z lekarzem/gi,
+    label:'Zastępowanie konsultacji medycznej', fix:'dodaj zachętę do konsultacji specjalistą', to:'w razie wątpliwości skonsultuj się ze specjalistą' },
+  { re:/zapewnia (?:natychmiastową|pełną) (?:utratę|redukcję) wagi/gi, label:'Obietnice dot. wagi ciała',
+    fix:'usuń deklaracje efektu wagowego', to:'wspiera codzienne nawyki' }
+];
+
+/**
+ * Skanuje projekt pod kątem zgodności z politykami reklamowymi.
+ * Gdy auto-fix jest włączony, zamienia ryzykowne frazy na neutralne.
+ * @returns {{issues:Array, replaced:number}}
+ */
+function complianceScan(project){
+  const autoFix = settings.autofix === 'on';
+  const issues = [];
+  let replaced = 0;
+  const brief = project.brief || {};
+  const fixText = (text, where) => {
+    let out = String(text || '');
+    RISKY_RULES.forEach(r => {
+      const hits = out.match(r.re);
+      if(hits && hits.length){
+        issues.push({ where, phrase: uniq(hits.map(h => h.trim())).slice(0,3).join(', '), label:r.label, fix:r.fix });
+        if(autoFix){ out = out.replace(r.re, r.to); replaced += hits.length; }
+      }
+    });
+    return out;
+  };
+  (project.variants || []).forEach(v => {
+    const parts = [];
+    Object.values(v.sections || {}).forEach(s => { s.body = fixText(s.body, `Wariant ${v.label} · ${s.title}`); parts.push(s.body); });
+    v.hookLine = fixText(v.hookLine || '', `Wariant ${v.label} · hook`);
+    v.hypothesis = fixText(v.hypothesis || '', `Wariant ${v.label} · hipoteza`);
+  });
+  project.abPlan = fixText(project.abPlan || '', 'Plan A/B');
+  project.checklist = fixText(project.checklist || '', 'Checklista');
+  return { issues, replaced, autoFix };
+}
+
+/* ============================================================================
+   G. RENDER – panele wyników, kopiowanie, regeneracja sekcji
+   ========================================================================== */
+let currentProject = null;      // aktualnie wyświetlany pakiet
+
+/** Escape HTML. */
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/** Renderuje cały pakiet kampanii w zakładce „Wyniki”. */
+function renderProject(project){
+  currentProject = project;
+  const area = document.getElementById('resultsArea');
+  const sum = document.getElementById('projSummary');
+  document.getElementById('pillVariants').textContent = project.variants.length;
+  document.getElementById('projEngine').textContent = project.engine === 'api' ? ('API · ' + (project.model || '')) : project.engine === 'mix' ? 'mix: API + lokalny' : 'silnik lokalny';
+
+  const b = project.brief || {};
+  sum.innerHTML = `
+    <div class="grid-4">
+      <div><div class="hint">Kampania</div><div style="font-weight:600">${esc(project.name)}</div></div>
+      <div><div class="hint">Produkt / branża</div><div style="font-weight:600">${esc(b.product || '—')} · ${esc(project.niche || '—')}</div></div>
+      <div><div class="hint">Strategia</div><div style="font-weight:600">${esc(project.strategyLabel)}</div></div>
+      <div><div class="hint">Format</div><div style="font-weight:600">${esc(String(b.length || 0))} s · ${esc(STYLES[b.style] ? STYLES[b.style].label : b.style || '')} · ${esc((LANGS.find(l => l.id === b.lang) || {}).label || b.lang || '')}</div></div>
+    </div>
+    <div class="grid-4" style="margin-top:12px">
+      <div><div class="hint">Grupa docelowa</div><div>${esc(b.audience || '—')}</div></div>
+      <div><div class="hint">Obietnica</div><div>${esc(b.promise || '—')}</div></div>
+      <div><div class="hint">KPI</div><div>${esc((project.kpis || []).join(' · '))}</div></div>
+      <div><div class="hint">Warianty</div><div>${project.variants.map(v => '<span class="chip pink">' + esc(v.label) + ' · ' + esc(short(v.angle, 34)) + '</span>').join(' ')}</div></div>
+    </div>
+    <p class="hint" style="margin-top:12px">${esc(project.strategyHint || '')}</p>`;
+
+  const cards = project.variants.map((v, vi) => {
+    const secs = Object.values(v.sections).map(s => `
+      <section class="sec${s.wide ? ' wide' : ''}" data-variant="${vi}" data-key="${esc(s.key)}">
+        <header>
+          <div class="t"><span class="ic">${esc(sectionIcon(s.key))}</span>${esc(s.title)}</div>
+          <div class="acts">
+            <button class="btn mini" data-act="copy-sec">⧉ Kopiuj</button>
+            <button class="btn mini" data-act="regen-sec">↻ Regeneruj tylko to</button>
+          </div>
+        </header>
+        <pre>${esc(s.body)}</pre>
+      </section>`).join('');
+    return `
+    <div class="var-card" data-variant-card="${vi}">
+      <div class="var-head">
+        <div class="left">
+          <div class="var-tag">${esc(v.label)}</div>
+          <div>
+            <h3>Wariant ${esc(v.label)} · ${esc(v.angle)}</h3>
+            <div class="angle">${esc(short(v.hookLine || '—', 120))}</div>
+            <div class="hyp">${esc(v.hypothesis || '')}</div>
+          </div>
+        </div>
+        <div class="meta-chips">
+          <span class="chip cyan">${esc((STYLES[b.style] || {}).label || b.style || '')}</span>
+          <span class="chip">${esc(String(b.length || ''))} s</span>
+          <span class="chip">${esc(b.sellMode === 'soft' ? 'soft sell' : b.sellMode === 'hard' ? 'hard sell' : 'auto')}</span>
+          <span class="chip pink">${esc(project.strategyLabel)}</span>
+          <button class="btn mini" data-act="copy-var">⧉ Cały wariant</button>
+          <button class="btn mini" data-act="regen-var">↻ Wszystkie sekcje</button>
+        </div>
+      </div>
+      <div class="sections">${secs}</div>
+    </div>`;
+  }).join('');
+
+  const cmp = project.compliance || { issues: [], replaced: 0, autoFix: settings.autofix === 'on' };
+  const cmpHtml = `
+    <div class="panel" style="margin-bottom:18px">
+      <div class="head"><h2>🛡 Kontrola zgodności z politykami TikTok Ads</h2>
+        <span class="badge ${cmp.issues.length ? 'warn' : 'ok'}"><span class="dot"></span>${cmp.issues.length ? cmp.issues.length + ' uwag' : 'brak zastrzeżeń'}</span>
+      </div>
+      <div class="body">
+        ${cmp.replaced ? `<p class="hint ok">Auto-filtr zamienił ${cmp.replaced} ryzykownych fraz na neutralne odpowiedniki.</p>` : ''}
+        ${cmp.issues.length
+          ? `<div class="cmp"><h4>Wykryte frazy i rekomendowana zamiana</h4><ul>${
+              cmp.issues.slice(0, 30).map(i => `<li><b>${esc(i.label)}</b> – ${esc(i.where)}<br><span class="hint">fraza: „${esc(i.phrase)}” → <span class="fix">${esc(i.fix)}</span></span></li>`).join('')
+            }</ul></div>`
+          : `<p class="hint">Nie wykryto fraz ryzykownych. Pamiętaj: to automatyczny filtr pomocniczy – finalną treść sprawdź w Menedżerze reklam TikToka przed publikacją.</p>`}
+        <p class="hint" style="margin-top:10px">Aplikacja nie daje gwarancji akceptacji kreacji. Nie używamy obietnic medycznych, finansowych ani gwarancji efektów.</p>
+      </div>
+    </div>`;
+
+  const extras = `
+    <div class="grid-2">
+      <div class="panel">
+        <div class="head"><h2>🧪 Plan testów A/B całego pakietu</h2><div class="acts"><button class="btn mini" data-act="copy-abplan">⧉ Kopiuj</button></div></div>
+        <div class="body"><pre class="log" style="max-height:none">${esc(project.abPlan || '')}</pre></div>
+      </div>
+      <div class="panel">
+        <div class="head"><h2>✅ Checklista publikacji w TikToku</h2><div class="acts"><button class="btn mini" data-act="copy-checklist">⧉ Kopiuj</button></div></div>
+        <div class="body"><pre class="log" style="max-height:none">${esc(project.checklist || '')}</pre></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <div class="head"><h2>⚖ Gotowe disclaimery (disclaimer-ready copy)</h2><div class="acts"><button class="btn mini" data-act="copy-disc">⧉ Kopiuj</button></div></div>
+      <div class="body">
+        ${(project.disclaimers || []).length
+          ? `<ul style="margin:0;padding-left:18px">${(project.disclaimers || []).map(d => `<li>${esc(d)}</li>`).join('')}</ul>`
+          : '<p class="hint">Disclaimery wyłączone w Ustawieniach. Włącz je dla kampanii dotyczących zdrowia, finansów lub efektów zależnych od użytkownika.</p>'}
+        <p class="hint" style="margin-top:9px">Dodawaj disclaimer w opisie lub na planszy końcowej, gdy kampania dotyczy zdrowia, finansów lub wyników, które mogą być różne dla różnych osób.</p>
+      </div>
+    </div>`;
+
+  area.innerHTML = cards + cmpHtml + extras;
+  bindResultActions();   // funkcja sama pilnuje, by listener podpiąć tylko raz
+}
+
+/** Ikona sekcji. */
+function sectionIcon(key){
+  const m = MODULES.find(x => x.id === key);
+  return m ? m.ic : '📄';
+}
+
+/** Obsługa przycisków w panelach wyników (kopiowanie, regeneracja). */
+function bindResultActions(){
+  if(bindResultActions.bound) return;      // guard: jeden listener na cały czas życia aplikacji
+  bindResultActions.bound = true;
+  const area = document.getElementById('resultsArea');
+  area.addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]');
+    if(!btn) return;
+    const act = btn.dataset.act;
+    const secEl = btn.closest('.sec');
+    if(act === 'copy-sec' && secEl){
+      const key = secEl.dataset.key, vi = Number(secEl.dataset.variant);
+      const body = currentProject.variants[vi].sections[key].body;
+      copyText(body, btn); return;
+    }
+    if(act === 'regen-sec' && secEl){
+      const key = secEl.dataset.key, vi = Number(secEl.dataset.variant);
+      await regenerateSection(vi, key, secEl, btn); return;
+    }
+    if(act === 'copy-var'){
+      const vi = Number(btn.closest('.var-card').dataset.variantCard);
+      copyText(variantToText(currentProject, currentProject.variants[vi]), btn); return;
+    }
+    if(act === 'regen-var'){
+      const vi = Number(btn.closest('.var-card').dataset.variantCard);
+      await regenerateVariant(vi, btn); return;
+    }
+    if(act === 'copy-abplan'){ copyText(currentProject.abPlan, btn); return; }
+    if(act === 'copy-checklist'){ copyText(currentProject.checklist, btn); return; }
+    if(act === 'copy-disc'){ copyText((currentProject.disclaimers || []).join('\n'), btn); return; }
+  });
+}
+
+/** Kopiowanie do schowka z awaryjną ścieżką dla file:// . */
+function copyText(text, btn){
+  const done = () => { toast('Skopiowane do schowka','ok'); if(btn){ const t = btn.textContent; btn.textContent = '✓ Skopiowano'; setTimeout(() => btn.textContent = t, 1400); } };
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); done(); }catch(e){ toast('Nie udało się skopiować – zaznacz tekst ręcznie','err'); }
+  document.body.removeChild(ta);
+}
+
+/** Ekstrakcja tekstu wariantu (do kopiowania/eksportu). */
+function variantToText(project, v){
+  const head = `WARIANT ${v.label} · ${v.angle}\nHipoteza: ${v.hypothesis || '—'}\nKPI: ${(project.kpis || []).join(' · ')}\n`;
+  const body = Object.values(v.sections).map(s => `\n${'—'.repeat(30)}\n${s.title.toUpperCase()}\n${'—'.repeat(30)}\n${s.body}`).join('\n');
+  return head + body;
+}
+
+/**
+ * Regeneracja pojedynczej sekcji.
+ * Priorytet: API (jeśli klucz) → silnik lokalny (offline).
+ * @param {number} vi indeks wariantu
+ * @param {string} key klucz modułu
+ * @param {HTMLElement} secEl element sekcji (do stanu „busy”)
+ * @param {HTMLElement} btn przycisk
+ */
+async function regenerateSection(vi, key, secEl, btn){
+  const v = currentProject.variants[vi];
+  const brief = currentProject.brief;
+  const old = v.sections[key].body;
+  if(secEl) secEl.classList.add('busy');
+  log(`Regeneruję: Wariant ${v.label} · ${v.sections[key].title}…`);
+  try{
+    let fresh = '';
+    const useApi = currentProject.engine !== 'local' && settings.key && brief.engine !== 'local';
+    if(useApi){
+      const system = buildSystemPrompt(brief) +
+        '\n\nTRYB REGENERACJI JEDNEJ SEKCJI: zwróć TYLKO jedną sekcję w formacie:\n### WARIANT ' + v.label + '\nKĄT: ' + v.angle + '\n#### ' + v.sections[key].title.toUpperCase() + '\n[nowa, inna wersja treści]';
+      const user = buildUserPrompt(brief) +
+        `\n\nKONTEKST: to regeneracja sekcji „${v.sections[key].title}” w wariancie ${v.label} (kąt: ${v.angle}).\n` +
+        `POPRZEDNIA WERSJA (napisz inną, ale spójną – zmień sformułowania, nie strategię):\n${short(old, 1600)}\n\nNapisz 1 nową wersję tej sekcji.`;
+      const raw = await callAPI(system, user, apiConfig());
+      const parsed = parseApiAnswer(raw, Object.assign({}, brief, { modules:[key] }));
+      fresh = (parsed[0] && parsed[0].sections[key] && parsed[0].sections[key].body) || stripHeadings(raw);
+    } else {
+      fresh = generateLocalSection(brief, v.angleId, key, vi + Math.floor(Math.random() * 997));
+    }
+    if(!fresh || !fresh.trim()) throw new Error('Pusta odpowiedź – spróbuj ponownie.');
+    v.sections[key].body = fresh.trim();
+    currentProject.compliance = complianceScan(currentProject);
+    renderProject(currentProject);
+    const el = document.querySelector(`.sec[data-variant="${vi}"][data-key="${key}"]`);
+    if(el){ el.classList.add('flash'); el.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+    saveDraft();
+    log(`✔ Nowa wersja: Wariant ${v.label} · ${key}`, 'ok');
+    toast('Sekcja zregenerowana','ok');
+  }catch(err){
+    log('✖ ' + err.message, 'e');
+    toast('Błąd regeneracji: ' + err.message, 'err', 6000);
+    if(secEl) secEl.classList.remove('busy');
+    if(btn) btn.disabled = false;
+    return;
+  }
+  if(secEl) secEl.classList.remove('busy');
+  if(btn) btn.disabled = false;
+}
+
+/** Regeneracja wszystkich sekcji wariantu (nowe ziarno / nowe wywołanie API). */
+async function regenerateVariant(vi, btn){
+  const v = currentProject.variants[vi];
+  const keys = Object.keys(v.sections);
+  if(btn) btn.disabled = true;
+  log(`Regeneruję cały wariant ${v.label} (${keys.length} sekcji)…`);
+  if(currentProject.engine === 'local' || !settings.key || currentProject.brief.engine === 'local'){
+    const fresh = generateLocalPackage(Object.assign({}, currentProject.brief, {
+      variants:1, angleOverride:v.angleId, modules:keys, _seedExtra: Math.floor(Math.random() * 99999)
+    })).variants[0];
+    Object.keys(v.sections).forEach(k => { if(fresh.sections[k]) v.sections[k].body = fresh.sections[k].body; });
+    v.hookLine = fresh.hookLine; currentProject.compliance = complianceScan(currentProject);
+    renderProject(currentProject); saveDraft();
+    log('✔ Wariant zregenerowany silnikiem lokalnym','ok'); toast('Wariant zregenerowany','ok');
+  } else {
+    for(const k of keys){
+      const el = document.querySelector(`.sec[data-variant="${vi}"][data-key="${k}"]`);
+      await regenerateSection(vi, k, el, null);
+    }
+  }
+  if(btn) btn.disabled = false;
+}
+
+/**
+ * Regeneracja jednej sekcji silnikiem lokalnym (offline).
+ * Buduje pakiet jednosekcyjny dla wskazanego kąta, z nowym ziarnem losowości.
+ */
+function generateLocalSection(brief, angleId, key, seedExtra){
+  const b = Object.assign({}, brief, {
+    variants:1, modules:[key], angleOverride: angleId, _seedExtra: seedExtra || 0
+  });
+  const pack = generateLocalPackage(b);
+  const sec = pack.variants[0] && pack.variants[0].sections[key];
+  return sec ? sec.body : '';
+}
+
+/** Usuwa nagłówki markdown z surowego tekstu modelu. */
+function stripHeadings(t){ return String(t).replace(/^#{2,4}\s*.+$/gm, '').trim(); }
+
+/** Konfiguracja API z ustawień. */
+function apiConfig(){
+  return { provider: settings.provider, key: settings.key, model: settings.modelCustom || settings.model || '', temp: settings.temp, maxtok: settings.maxtok, timeout: settings.timeout, baseurl: settings.baseurl };
+}
+
+/* ============================================================================
+   H. EKSPORT – TXT / MD / JSON / pełny pakiet kampanii
+   ========================================================================== */
+
+/** Sekcja briefu w formie listy klucz→wartość (dla eksportów). */
+function briefRows(brief){
+  return [
+    ['Nazwa kampanii', brief.campaign || '—'],
+    ['Branża / nisza', brief.industry || '—'],
+    ['Produkt / usługa', brief.product || '—'],
+    ['Cena', brief.price || '—'],
+    ['Grupa docelowa', brief.audience || '—'],
+    ['Problem klienta', brief.problem || '—'],
+    ['Główna obietnica', brief.promise || '—'],
+    ['Dowód / argument', brief.proof || '—'],
+    ['Oferta / bonus', brief.offer || '—'],
+    ['Obiekcja klienta', brief.objection || '—'],
+    ['Ton komunikacji', brief.tone || '—'],
+    ['Styl reklamy', (STYLES[brief.style] || {}).label || brief.style || '—'],
+    ['Platforma', brief.platform || '—'],
+    ['Długość', (brief.length || '') + ' s'],
+    ['Język', (LANGS.find(l => l.id === brief.lang) || {}).label || brief.lang || '—'],
+    ['Wersja sprzedażowa', brief.sellMode || 'auto'],
+    ['Strategia', (STRATEGIES.find(s => s.id === brief.strategy) || {}).label || brief.strategy || '—'],
+    ['Typ calloutu', brief.calloutType || '—'],
+    ['Poziom punchu', String(brief.punch || '—')],
+    ['Moduły', (brief.modules || []).join(', ')]
+  ];
+}
+
+/** Projekt → czysty tekst. */
+function projectToTxt(p){
+  const L = [];
+  L.push('='.repeat(64));
+  L.push('AUTOMAT DO REKLAM TIKTOK – PRO · PAKIET KAMPANII');
+  L.push('='.repeat(64));
+  L.push(`Projekt: ${p.name}`);
+  L.push(`Wygenerowano: ${new Date(p.updatedAt || p.createdAt).toLocaleString('pl-PL')}`);
+  L.push(`Silnik: ${p.engine === 'api' ? 'API · ' + (p.model || '') : 'silnik lokalny (offline)'}`);
+  L.push(`Strategia: ${p.strategyLabel} | KPI: ${(p.kpis || []).join(' · ')}`);
+  L.push('');
+  L.push('--- BRIEF ---');
+  briefRows(p.brief || {}).forEach(([k, v]) => L.push(`${k}: ${v}`));
+  (p.variants || []).forEach(v => {
+    L.push('');
+    L.push('#'.repeat(64));
+    L.push(`WARIANT ${v.label} · ${v.angle}`);
+    L.push(`Hipoteza: ${v.hypothesis || '—'}`);
+    L.push('#'.repeat(64));
+    Object.values(v.sections || {}).forEach(s => {
+      L.push('');
+      L.push(`--- ${s.title.toUpperCase()} ---`);
+      L.push(s.body);
+    });
+  });
+  L.push('');
+  L.push('--- PLAN TESTÓW A/B ---'); L.push(p.abPlan || '');
+  L.push('');
+  L.push('--- CHECKLISTA PUBLIKACJI ---'); L.push(p.checklist || '');
+  L.push('');
+  L.push('--- DISCLAIMERY ---'); (p.disclaimers || []).forEach(d => L.push('• ' + d));
+  L.push('');
+  L.push('Wygenerowano w aplikacji „Automat do Reklam TikTok – PRO”. Treści przed publikacją sprawdź pod kątem zgodności z politykami TikToka.');
+  return L.join('\n');
+}
+
+/** Projekt → Markdown. */
+function projectToMd(p){
+  const L = [];
+  L.push(`# ${p.name}`);
+  L.push('');
+  L.push(`> Wygenerowano: ${new Date(p.updatedAt || p.createdAt).toLocaleString('pl-PL')} · Silnik: **${p.engine === 'api' ? 'API · ' + (p.model || '') : 'silnik lokalny (offline)'}** · Strategia: **${p.strategyLabel}**`);
+  L.push('');
+  L.push(`**KPI kampanii:** ${(p.kpis || []).join(' · ')}`);
+  L.push('');
+  L.push('## Brief kampanii');
+  L.push('');
+  L.push('| Pole | Wartość |');
+  L.push('| --- | --- |');
+  briefRows(p.brief || {}).forEach(([k, v]) => L.push(`| ${k} | ${String(v).replace(/\|/g,'\\|')} |`));
+  (p.variants || []).forEach(v => {
+    L.push('');
+    L.push(`## Wariant ${v.label} · ${v.angle}`);
+    L.push('');
+    L.push(`**Hipoteza:** ${v.hypothesis || '—'}`);
+    L.push('');
+    Object.values(v.sections || {}).forEach(s => {
+      L.push(`### ${s.title}`);
+      L.push('');
+      L.push('```');
+      L.push(s.body);
+      L.push('```');
+      L.push('');
+    });
+  });
+  L.push('## Plan testów A/B');
+  L.push('');
+  L.push('```');
+  L.push(p.abPlan || '');
+  L.push('```');
+  L.push('');
+  L.push('## Checklista publikacji');
+  L.push('');
+  L.push('```');
+  L.push(p.checklist || '');
+  L.push('```');
+  L.push('');
+  L.push('## Disclaimery');
+  L.push('');
+  (p.disclaimers || []).forEach(d => L.push('- ' + d));
+  L.push('');
+  L.push('---');
+  L.push('*Dokument roboczy wygenerowany lokalnie w aplikacji „Automat do Reklam TikTok – PRO”.*');
+  return L.join('\n');
+}
+
+/** Projekt → JSON (pełny = z briefem i metadanymi, inaczej tylko wyniki). */
+function projectToJson(p, full){
+  const results = { variants: p.variants };
+  if(!full) return JSON.stringify(results, null, 2);
+  return JSON.stringify({
+    app:'Automat do Reklam TikTok – PRO', version:1, exportType:'full-campaign-package',
+    id:p.id, name:p.name, createdAt:p.createdAt, updatedAt:p.updatedAt,
+    engine:p.engine, model:p.model, niche:p.niche, lang:p.lang,
+    strategy:p.strategy, strategyLabel:p.strategyLabel, kpis:p.kpis,
+    brief:p.brief, variants:p.variants, abPlan:p.abPlan, checklist:p.checklist,
+    disclaimers:p.disclaimers, compliance:p.compliance,
+    exportedAt:new Date().toISOString()
+  }, null, 2);
+}
+
+/** Pobranie pliku z treścią (Blob, bez backendu). */
+function download(filename, content, mime){
+  const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 400);
+  toast('Pobrano: ' + filename, 'ok');
+}
+function safeName(s){ return String(s || 'pakiet').toLowerCase().replace(/[^a-z0-9ąćęłńóśźż\-_ ]/gi,'').replace(/\s+/g,'-').slice(0,60); }
+
+/** Eksport bieżącego pakietu w wybranym formacie. */
+function exportProject(format){
+  if(!currentProject){ toast('Najpierw wygeneruj pakiet','warn'); return; }
+  const p = currentProject, base = safeName(p.name || 'kampania-tiktok');
+  if(format === 'txt') download(base + '.txt', projectToTxt(p), 'text/plain;charset=utf-8');
+  if(format === 'md') download(base + '.md', projectToMd(p), 'text/markdown;charset=utf-8');
+  if(format === 'json') download(base + '-wyniki.json', projectToJson(p, false), 'application/json');
+  if(format === 'package'){
+    download(base + '-pakiet.json', projectToJson(p, true), 'application/json');
+    setTimeout(() => download(base + '-pakiet.md', projectToMd(p), 'text/markdown;charset=utf-8'), 700);
+    toast('Eksport pakietu: JSON (do reimportu) + MD (do pracy)','info',5000);
+  }
+}
+
+/* ============================================================================
+   I. HISTORIA PROJEKTÓW – zapis, wczytanie, duplikacja, edycja, import
+   ========================================================================== */
+function getHistory(){ return store.get(LS.history, []); }
+function setHistory(list){ store.set(LS.history, list); document.getElementById('pillHistory').textContent = list.length; document.getElementById('histCount').textContent = list.length; }
+
+/** Zapis projektu do historii (aktualizacja po id, maks. 60 wpisów). */
+function saveToHistory(project){
+  const list = getHistory();
+  project.updatedAt = new Date().toISOString();
+  const idx = list.findIndex(p => p.id === project.id);
+  if(idx >= 0) list[idx] = project; else list.unshift(project);
+  while(list.length > 60) list.pop();
+  setHistory(list);
+  renderHistory();
+}
+
+/** Render listy historii. */
+function renderHistory(){
+  const list = getHistory();
+  const box = document.getElementById('historyList');
+  document.getElementById('pillHistory').textContent = list.length;
+  document.getElementById('histCount').textContent = list.length;
+  if(!list.length){ box.innerHTML = '<p class="hint">Brak zapisanych projektów. Wygeneruj pakiet i kliknij „Zapisz projekt” (Ctrl + S).</p>'; return; }
+  box.innerHTML = list.map(p => `
+    <div class="hist-card" data-id="${esc(p.id)}">
+      <div style="min-width:240px">
+        <div class="n">${esc(p.name || 'Bez nazwy')} <span class="chip pink">${p.variants ? p.variants.length : 0} warianty</span></div>
+        <div class="m">${esc(new Date(p.updatedAt || p.createdAt).toLocaleString('pl-PL'))} · ${esc(p.strategyLabel || '')} · ${esc(p.engine === 'api' ? 'API' : 'offline')} · ${esc(((p.brief || {}).product) || '')}</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn mini" data-hact="open">📂 Otwórz</button>
+        <button class="btn mini" data-hact="edit">✎ Edytuj brief</button>
+        <button class="btn mini" data-hact="dup">⧉ Duplikuj</button>
+        <button class="btn mini" data-hact="export">⬇ Eksport</button>
+        <button class="btn mini danger" data-hact="del">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+/** Obsługa akcji historii. */
+function bindHistory(){
+  document.getElementById('historyList').addEventListener('click', e => {
+    const btn = e.target.closest('[data-hact]'); if(!btn) return;
+    const id = btn.closest('.hist-card').dataset.id;
+    const list = getHistory(); const p = list.find(x => x.id === id); if(!p) return;
+    const act = btn.dataset.hact;
+    if(act === 'open'){ renderProject(p); switchTab('results'); toast('Projekt wczytany','ok'); }
+    if(act === 'edit'){ applyBriefToForm(p.brief); currentProject = p; switchTab('campaign'); toast('Brief wczytany do edycji – po zmianach kliknij GENERUJ','info',4500); }
+    if(act === 'dup'){
+      const copy = JSON.parse(JSON.stringify(p));
+      copy.id = 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      copy.name = (p.name || 'Kampania') + ' (kopia)';
+      copy.createdAt = copy.updatedAt = new Date().toISOString();
+      saveToHistory(copy); toast('Projekt zduplikowany','ok');
+    }
+    if(act === 'export'){
+      saveToHistory(p); // upewniamy się, że wpis jest aktualny
+      download(safeName(p.name) + '-pakiet.json', projectToJson(p, true), 'application/json');
+    }
+    if(act === 'del'){
+      if(!confirm('Usunąć projekt „' + (p.name || '') + '” z historii?')) return;
+      setHistory(getHistory().filter(x => x.id !== id)); renderHistory(); toast('Projekt usunięty','info');
+    }
+  });
+}
+
+/* ============================================================================
+   K. FORMULARZ, GENEROWANIE, UI, INIT
+   ========================================================================== */
+
+/** Zbiera brief z formularza (z automatycznym uzupełnieniem w trybie AUTOMAT). */
+function collectBrief(){
+  const get = id => (document.getElementById(id) || {}).value || '';
+  const mode = getSegValue('segMode');
+  let brief = {
+    mode,
+    industry: get('f_industry').trim(),
+    product: get('f_product').trim(),
+    price: get('f_price').trim(),
+    audience: get('f_audience').trim(),
+    problem: get('f_problem').trim(),
+    promise: get('f_promise').trim(),
+    tone: get('f_tone'),
+    proof: get('f_proof').trim(),
+    offer: get('f_offer').trim(),
+    objection: get('f_objection').trim(),
+    brand: get('f_brand').trim(),
+    campaign: get('f_campaign').trim(),
+    length: Number(getSegValue('segLen')) || 15,
+    style: get('f_style'),
+    platform: get('f_platform'),
+    lang: get('f_lang'),
+    variants: Number(get('f_variants')) || 3,
+    sellMode: getSegValue('segSell'),
+    engine: get('f_engine'),
+    strategy: getSegValue('segStrategy') || 'performance',
+    calloutType: get('f_calloutType'),
+    punch: get('f_punch'),
+    modules: Array.from(document.querySelectorAll('#modChecks input:checked')).map(i => i.value)
+  };
+  // TRYB AUTOMAT: branża + produkt wystarczą – resztę uzupełniamy wiedzą rynkową
+  if(mode === 'auto'){
+    const niche = detectNiche(brief.industry, brief.product);
+    brief.audience = brief.audience || niche.audience;
+    brief.problem  = brief.problem  || niche.problem;
+    brief.promise  = brief.promise  || niche.promise;
+    brief.proof    = brief.proof    || niche.proof;
+    brief.offer    = brief.offer    || niche.offer;
+    brief.objection= brief.objection|| niche.objection;
+    brief.price    = brief.price    || '';
+  }
+  if(!brief.modules.length) brief.modules = MODULES.filter(m => m.defaultOn).map(m => m.id);
+  // Ustawienie „Agresywność słownika” z Ustawień koryguje poziom punchu z formularza
+  const lp = Number(settings.localPunch) || 2;
+  let punch = Number(brief.punch) || 3;
+  if(lp === 1) punch = Math.min(punch, 2);
+  if(lp === 3) punch = Math.max(punch, 3);
+  brief.punch = String(punch);
+  return brief;
+}
+
+/** Wypełnia formularz briefem (edycja projektu z historii). */
+function applyBriefToForm(b){
+  if(!b) return;
+  const set = (id, v) => { const el = document.getElementById(id); if(el && v != null) el.value = v; };
+  set('f_industry', b.industry); set('f_product', b.product); set('f_price', b.price);
+  set('f_audience', b.audience); set('f_problem', b.problem); set('f_promise', b.promise);
+  set('f_tone', b.tone); set('f_proof', b.proof); set('f_offer', b.offer);
+  set('f_objection', b.objection); set('f_brand', b.brand); set('f_campaign', b.campaign);
+  set('f_style', b.style); set('f_platform', b.platform); set('f_lang', b.lang);
+  set('f_engine', b.engine || 'auto'); set('f_calloutType', b.calloutType); set('f_punch', b.punch);
+  const rng2 = document.getElementById('f_variants'); if(rng2 && b.variants){ rng2.value = Math.min(10, Math.max(1, b.variants)); document.getElementById('lblVariants').textContent = rng2.value; }
+  setSegValue('segLen', String(b.length || 15));
+  setSegValue('segSell', b.sellMode || 'auto');
+  setSegValue('segStrategy', b.strategy || 'performance');
+  setSegValue('segMode', b.mode || 'manual');
+  document.querySelectorAll('#modChecks input').forEach(i => { i.checked = (b.modules || []).includes(i.value); syncCheckStyle(i); });
+}
+
+/** Odczyt wartości z grupy segmentów (przycisków). */
+function getSegValue(id){ const el = document.querySelector('#' + id + ' button.on'); return el ? el.dataset.v : ''; }
+/** Ustawienie wartości w grupie segmentów. */
+function setSegValue(id, val){ document.querySelectorAll('#' + id + ' button').forEach(b => b.classList.toggle('on', b.dataset.v === String(val))); }
+
+/** Silnik generowania na podstawie wyboru w formularzu. */
+function decideEngine(brief, forceLocal){
+  if(forceLocal || brief.engine === 'local') return 'local';
+  if(brief.engine === 'api') return settings.key ? 'api' : 'local';
+  return settings.key ? 'api' : 'local';
+}
+
+/** Ustawia postęp i log generacji. */
+function setProgress(pct){ document.getElementById('genBar').style.width = Math.max(0, Math.min(100, pct)) + '%'; }
+function log(msg, cls){
+  const el = document.getElementById('genLog');
+  const line = document.createElement('div');
+  if(cls) line.className = cls;
+  line.textContent = msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+/** Główne generowanie pakietu. */
+async function runGeneration(forceLocal){
+  const brief = collectBrief();
+  if(!brief.product && !brief.industry){
+    toast('Uzupełnij przynajmniej branżę lub produkt','warn');
+    document.getElementById('f_industry').focus();
+    return;
+  }
+  if(!brief.product) brief.product = brief.industry;
+  const engine = decideEngine(brief, forceLocal);
+  const genBtn = document.getElementById('btnGenerate'), quickBtn = document.getElementById('btnQuickLocal');
+  genBtn.disabled = true; quickBtn.disabled = true;
+  document.getElementById('genLog').textContent = '';
+  setProgress(8);
+  log(`Start generacji · tryb: ${engine === 'api' ? 'API (' + settings.provider + ')' : 'silnik lokalny offline'} · warianty: ${brief.variants} · długość: ${brief.length}s · język: ${brief.lang}`);
+
+  let project = null;
+  try{
+    if(engine === 'api'){
+      setProgress(22);
+      log('Buduję prompt reklamowy…');
+      const system = buildSystemPrompt(brief), user = buildUserPrompt(brief);
+      log(`Wysyłam zapytanie do ${settings.provider === 'gemini' ? 'Google Gemini' : settings.provider === 'custom' ? 'własnego endpointu' : 'OpenAI'} (model: ${settings.modelCustom || settings.model || 'domyślny'})…`);
+      setProgress(42);
+      const raw = await callAPI(system, user, apiConfig());
+      setProgress(72);
+      log('Odpowiedź odebrana – rozbijam na sekcje i warianty…');
+      const variants = parseApiAnswer(raw, brief);
+      const niche = detectNiche(brief.industry, brief.product);
+      const strategy = STRATEGIES.find(s => s.id === brief.strategy) || STRATEGIES[1];
+      project = {
+        id:'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        name: brief.campaign || `${brief.product} – ${new Date().toLocaleDateString('pl-PL')}`,
+        createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(),
+        brief, engine:'api', model: settings.modelCustom || settings.model || '', lang: brief.lang,
+        niche: niche.label, strategy: strategy.id, strategyLabel: strategy.label, strategyHint: strategy.hint,
+        kpis: niche.kpis || GENERIC_NICHE.kpis,
+        variants, abPlan: buildABPlan(brief, variants), checklist: buildChecklist(brief),
+        disclaimers: settings.disclaimer === 'off' ? [] : (niche.disclaimers || GENERIC_NICHE.disclaimers).slice(), compliance:null
+      };
+      log(`✔ Odebrano ${variants.length} wariant(y), sekcje: ${Object.keys(variants[0].sections).length}`, 'ok');
+    } else {
+      setProgress(35);
+      log('Silnik lokalny: buduję hooki, scenariusze, shot listy i callouty…');
+      await new Promise(r => setTimeout(r, 120));   // chwila dla UI
+      project = generateLocalPackage(brief);
+      setProgress(80);
+      log(`✔ Zbudowano ${project.variants.length} wariant(ów) offline`, 'ok');
+    }
+
+    // filtry modułów – wyłącznie wybrane sekcje
+    project.variants.forEach(v => {
+      v.sections = Object.fromEntries(Object.entries(v.sections).filter(([k]) => brief.modules.includes(k)));
+    });
+    project.compliance = complianceScan(project);
+    if(project.compliance.replaced) log(`Auto-filtr zgodności: zamieniono ${project.compliance.replaced} ryzykownych fraz`, 'w');
+    if(project.compliance.issues.length) log(`Uwagi zgodności: ${project.compliance.issues.length} (zobacz panel kontroli w wynikach)`, 'w');
+    else log('Kontrola zgodności: brak zastrzeżeń', 'ok');
+
+    saveToHistory(project);      // automatyczne zapisanie kampanii
+    saveDraft(project);
+    setProgress(100);
+    renderProject(project);
+    switchTab('results');
+    toast('Pakiet gotowy: ' + project.variants.length + ' wariant(y)', 'ok');
+    log('Pakiet gotowy. Skopiuj sekcje, eksportuj lub zapisz projekt.', 'ok');
+  }catch(err){
+    log('✖ Błąd generacji: ' + err.message, 'e');
+    toast('Błąd API: ' + err.message + ' – przełączam na silnik lokalny.', 'warn', 7000);
+    try{
+      const fallback = generateLocalPackage(brief);
+      fallback.compliance = complianceScan(fallback);
+      saveToHistory(fallback); saveDraft(fallback);
+      renderProject(fallback); switchTab('results');
+      log('✔ Pakiet wygenerowany silnikiem lokalnym (awaryjnie).', 'ok');
+      setProgress(100);
+    }catch(e2){
+      log('✖ Nie udało się wygenerować pakietu awaryjnie: ' + e2.message, 'e');
+      toast('Generacja nie powiodła się: ' + e2.message, 'err', 7000);
+    }
+  }finally{
+    genBtn.disabled = false; quickBtn.disabled = false;
+    setTimeout(() => setProgress(0), 1500);
+  }
+}
+
+/** Wypełnienie briefu bez API – z bazy branż (tryb „Auto-uzupełnij”). */
+function autoFillBrief(){
+  const industry = document.getElementById('f_industry').value.trim();
+  const product = document.getElementById('f_product').value.trim();
+  if(!industry && !product){ toast('Wpisz branżę lub produkt','warn'); return; }
+  const niche = detectNiche(industry, product);
+  const setIf = (id, v) => { const el = document.getElementById(id); if(el && !el.value.trim()) el.value = v; };
+  setIf('f_audience', niche.audience);
+  setIf('f_problem', niche.problem);
+  setIf('f_promise', niche.promise);
+  setIf('f_proof', niche.proof);
+  setIf('f_offer', niche.offer);
+  setIf('f_objection', niche.objection);
+  log(`Auto-uzupełnienie z profilu branżowego: ${niche.label}`,'ok');
+  toast('Brief uzupełniony na podstawie profilu: ' + niche.label, 'ok', 4500);
+  saveDraft();
+}
+
+/** Uzupełnienie briefu przez API (opcjonalne). */
+async function aiFillBrief(){
+  if(!settings.key){ toast('Brak klucza API – używam profilu branżowego','warn'); autoFillBrief(); return; }
+  const industry = document.getElementById('f_industry').value.trim();
+  const product = document.getElementById('f_product').value.trim();
+  if(!industry && !product){ toast('Wpisz branżę lub produkt','warn'); return; }
+  const btn = document.getElementById('btnAiFill'); btn.disabled = true;
+  log('Uzupełniam brief przez API…');
+  try{
+    const system = 'Jesteś strategiem TikTok Ads. Odpowiadasz wyłącznie w formacie JSON bez komentarzy: {"audience":"","problem":"","promise":"","proof":"","offer":"","objection":""} – po polsku, konkretnie, bez obietnic medycznych i finansowych, maks. 1 zdanie na pole.';
+    const user = `Branża: ${industry}\nProdukt: ${product}\nUzupełnij brief marketingowy dla reklamy TikTok (grupa docelowa, problem klienta, obietnica, dowód, oferta, obiekcja).`;
+    const raw = await callAPI(system, user, apiConfig());
+    const jsonTxt = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1);
+    const data = JSON.parse(jsonTxt);
+    ['audience','problem','promise','proof','offer','objection'].forEach(k => {
+      const el = document.getElementById('f_' + k);
+      if(el && data[k]) el.value = data[k];
+    });
+    log('✔ Brief uzupełniony przez API','ok'); toast('Brief uzupełniony przez AI','ok');
+    saveDraft();
+  }catch(err){
+    log('✖ ' + err.message,'e'); toast('Nie udało się: ' + err.message + ' – używam profilu branżowego','warn',6000);
+    autoFillBrief();
+  }finally{ btn.disabled = false; }
+}
+
+/** Test połączenia z API. */
+async function testApi(){
+  if(!settings.key){ toast('Najpierw zapisz klucz API','warn'); return; }
+  const btn = document.getElementById('btnTestApi'); btn.disabled = true;
+  try{
+    const r = await callAPI('Odpowiadaj jednym słowem.', 'Napisz: OK', apiConfig());
+    toast('Połączenie działa. Odpowiedź modelu: ' + String(r).trim().slice(0,40),'ok',6000);
+  }catch(err){ toast('Test nieudany: ' + err.message,'err',8000); }
+  finally{ btn.disabled = false; }
+}
+
+/* --------------------------- draft / autosave --------------------------- */
+function saveDraft(project){
+  store.set(LS.draft, { brief: project ? project.brief : collectBrief(), project: project || currentProject || null, savedAt:new Date().toISOString() });
+}
+let draftTimer = null;
+function scheduleAutosave(){ clearTimeout(draftTimer); draftTimer = setTimeout(() => saveDraft(), 700); }
+
+/** Odtworzenie ostatniego stanu po otwarciu aplikacji. */
+function restoreDraft(){
+  const d = store.get(LS.draft, null);
+  if(!d) return;
+  if(d.brief) applyBriefToForm(d.brief);
+  if(d.project && d.project.variants){
+    currentProject = d.project;
+    renderProject(d.project);
+    log('Przywrócono ostatni pakiet z autosave (' + new Date(d.savedAt).toLocaleString('pl-PL') + ').','ok');
+  }
+}
+
+/* --------------------------- toasty --------------------------- */
+function toast(msg, kind, ms){
+  const box = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (kind || 'info');
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = '.25s'; setTimeout(() => el.remove(), 300); }, ms || 3600);
+}
+
+/* --------------------------- zakładki --------------------------- */
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* --------------------------- badge / ustawienia --------------------------- */
+function updateBadges(){
+  const hasKey = !!settings.key;
+  const engineBadge = document.getElementById('badgeEngine'), apiBadge = document.getElementById('badgeApi');
+  engineBadge.className = 'badge ' + (hasKey ? 'ok' : 'warn');
+  document.getElementById('badgeEngineTxt').textContent = hasKey ? 'Silnik: API + lokalny' : 'Silnik: lokalny (offline)';
+  apiBadge.className = 'badge ' + (hasKey ? 'ok' : 'err');
+  document.getElementById('badgeApiTxt').textContent = hasKey
+    ? 'API: ' + (settings.provider === 'openai' ? 'OpenAI' : settings.provider === 'gemini' ? 'Gemini' : 'custom') + ' · ' + (settings.modelCustom || settings.model || 'model domyślny')
+    : 'API: brak klucza';
+}
+
+/** Modele proponowane w zależności od dostawcy. */
+const MODELS = {
+  openai:['gpt-4o-mini','gpt-4o','gpt-4.1-mini','gpt-4.1','o4-mini'],
+  gemini:['gemini-2.0-flash','gemini-2.5-flash','gemini-2.5-pro','gemini-1.5-flash'],
+  custom:['openai/gpt-4o-mini','anthropic/claude-3.5-sonnet','meta-llama/llama-3.1-70b-instruct','local-model']
+};
+function fillModelSelects(){
+  ['s_model','m_model'].forEach(id => {
+    const sel = document.getElementById(id);
+    const list = MODELS[settings.provider] || MODELS.openai;
+    sel.innerHTML = list.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    sel.value = list.includes(settings.model) ? settings.model : list[0];
+    if(!settings.model) settings.model = sel.value;
+  });
+}
+function saveSettings(){ store.set(LS.settings, settings); updateBadges(); }
+
+/** Wypełnia formularze ustawień i modala wartościami z pamięci. */
+function syncSettingsUI(){
+  document.getElementById('s_provider').value = settings.provider;
+  document.getElementById('m_provider').value = settings.provider;
+  fillModelSelects();
+  document.getElementById('s_modelCustom').value = settings.modelCustom || '';
+  document.getElementById('s_baseurl').value = settings.baseurl || '';
+  document.getElementById('s_temp').value = settings.temp;
+  document.getElementById('s_timeout').value = settings.timeout;
+  document.getElementById('s_maxtok').value = settings.maxtok;
+  document.getElementById('s_localPunch').value = settings.localPunch;
+  document.getElementById('s_autofix').value = settings.autofix;
+  document.getElementById('s_disclaimer').value = settings.disclaimer;
+  document.getElementById('s_key').value = settings.key || '';
+  document.getElementById('m_key').value = settings.key || '';
+  updateBadges();
+}
+
+/* --------------------------- budowa UI --------------------------- */
+function buildUI(){
+  // języki
+  document.getElementById('f_lang').innerHTML = LANGS.map(l => `<option value="${l.id}"${l.id === 'pl' ? ' selected' : ''}>${esc(l.label)}</option>`).join('');
+  // presety branż
+  document.getElementById('dl_industries').innerHTML = NICHES.map(n => `<option value="${esc(n.label)}"></option>`).join('') +
+    '<option value="Moda i akcesoria"></option><option value="Zwierzęta"></option><option value="Gry i aplikacje mobilne"></option><option value="Edukacja i kursy"></option>';
+  // strategie
+  document.getElementById('segStrategy').innerHTML = STRATEGIES.map((s, i) =>
+    `<button data-v="${s.id}" class="${s.id === 'performance' ? 'on' : ''}"><span class="t">${esc(s.label)}</span><span class="d">${esc(s.desc)}</span></button>`).join('');
+  // moduły
+  document.getElementById('modChecks').innerHTML = MODULES.map(m =>
+    `<label class="check${m.defaultOn ? ' on' : ''}"><input type="checkbox" value="${m.id}" ${m.defaultOn ? 'checked' : ''}><span>${m.ic} ${esc(m.label)}</span></label>`).join('');
+  // suwaki / segmenty
+  document.getElementById('lblVariants').textContent = document.getElementById('f_variants').value;
+  document.getElementById('f_lang').value = settings.lang || 'pl';
+  showStrategyHint();
+}
+
+/** Podpowiedź dla wybranej strategii. */
+function showStrategyHint(){
+  const id = getSegValue('segStrategy') || 'performance';
+  const s = STRATEGIES.find(x => x.id === id);
+  const el = document.getElementById('strategyHint');
+  if(s) el.innerHTML = `<b>${esc(s.label)}</b> · KPI: ${esc(s.kpi)}<br>${esc(s.hint)}`;
+  // rekomendacja modułów zależna od strategii (miękka – nie nadpisujemy decyzji użytkownika)
+  document.querySelectorAll('#segStrategy button').forEach(b => b.classList.toggle('on', b.dataset.v === id));
+}
+function syncCheckStyle(input){ input.closest('.check').classList.toggle('on', input.checked); }
+
+/* --------------------------- zdarzenia --------------------------- */
+function bindUI(){
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  // segmenty
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.addEventListener('click', e => {
+      const btn = e.target.closest('button'); if(!btn) return;
+      seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+      if(seg.id === 'segStrategy'){ showStrategyHint(); log('Tryb strategii: ' + btn.textContent.trim()); }
+      if(seg.id === 'segMode'){
+        const auto = btn.dataset.v === 'auto';
+        document.getElementById('modeHint').textContent = auto
+          ? 'AUTOMAT: wpisz tylko branżę i produkt – pozostałe pola uzupełni profil branżowy (lub AI).'
+          : 'Wypełniasz brief ręcznie – pełna kontrola nad treścią.';
+        toast(auto ? 'Tryb AUTOMAT: branża + produkt wystarczą' : 'Tryb manualny', 'info', 3200);
+      }
+    });
+  });
+
+  // checkboxy modułów
+  document.getElementById('modChecks').addEventListener('change', e => { if(e.target.matches('input')) syncCheckStyle(e.target); scheduleAutosave(); });
+  document.getElementById('btnAllMods').addEventListener('click', () => { document.querySelectorAll('#modChecks input').forEach(i => { i.checked = true; syncCheckStyle(i); }); });
+  document.getElementById('btnNoneMods').addEventListener('click', () => { document.querySelectorAll('#modChecks input').forEach(i => { i.checked = false; syncCheckStyle(i); }); });
+
+  // formularz → autosave
+  document.querySelectorAll('.view input, .view select, .view textarea').forEach(el => {
+    el.addEventListener('change', scheduleAutosave);
+    if(el.type === 'text' || el.tagName === 'TEXTAREA') el.addEventListener('input', scheduleAutosave);
+  });
+  document.getElementById('f_variants').addEventListener('input', e => { document.getElementById('lblVariants').textContent = e.target.value; scheduleAutosave(); });
+
+  // akcje główne
+  document.getElementById('btnGenerate').addEventListener('click', () => runGeneration(false));
+  document.getElementById('btnQuickLocal').addEventListener('click', () => runGeneration(true));
+  document.getElementById('btnAutoFill').addEventListener('click', autoFillBrief);
+  document.getElementById('btnAiFill').addEventListener('click', aiFillBrief);
+  document.getElementById('btnSaveProject').addEventListener('click', () => {
+    if(!currentProject){ toast('Najpierw wygeneruj pakiet (Ctrl + Enter)','warn'); return; }
+    currentProject.brief = collectBrief();
+    saveToHistory(currentProject); saveDraft(currentProject);
+    log('Projekt zapisany w historii: ' + currentProject.name,'ok');
+    toast('Projekt zapisany w historii','ok');
+  });
+
+  // eksport
+  document.querySelectorAll('[data-exp]').forEach(b => b.addEventListener('click', () => exportProject(b.dataset.exp)));
+  document.getElementById('btnCopyAll').addEventListener('click', () => { if(currentProject) copyText(projectToTxt(currentProject)); else toast('Brak pakietu','warn'); });
+
+  // klucz API – modal
+  const modal = document.getElementById('modalKey');
+  const openModal = () => { document.getElementById('m_key').value = settings.key || ''; document.getElementById('m_provider').value = settings.provider; fillModelSelects(); modal.classList.add('open'); };
+  document.getElementById('btnKey').addEventListener('click', openModal);
+  document.getElementById('btnCloseKey').addEventListener('click', () => modal.classList.remove('open'));
+  modal.addEventListener('click', e => { if(e.target === modal) modal.classList.remove('open'); });
+  document.getElementById('btnModalSave').addEventListener('click', () => {
+    settings.provider = document.getElementById('m_provider').value;
+    settings.key = document.getElementById('m_key').value.trim();
+    settings.model = document.getElementById('m_model').value;
+    saveSettings(); syncSettingsUI();
+    modal.classList.remove('open');
+    toast(settings.key ? 'Klucz zapisany lokalnie' : 'Klucz usunięty','ok');
+  });
+  document.getElementById('btnModalWipe').addEventListener('click', () => { settings.key = ''; saveSettings(); syncSettingsUI(); toast('Klucz usunięty z tej przeglądarki','info'); });
+  document.getElementById('m_provider').addEventListener('change', e => { settings.provider = e.target.value; fillModelSelects(); });
+  document.getElementById('m_model').addEventListener('change', e => { settings.model = e.target.value; });
+
+  // ustawienia
+  document.getElementById('s_provider').addEventListener('change', e => { settings.provider = e.target.value; fillModelSelects(); saveSettings(); });
+  document.getElementById('s_model').addEventListener('change', e => { settings.model = e.target.value; saveSettings(); });
+  ['s_modelCustom','s_baseurl'].forEach(id => document.getElementById(id).addEventListener('input', e => { settings[id.replace('s_','')] = e.target.value.trim(); saveSettings(); }));
+  ['s_temp','s_timeout','s_maxtok','s_localPunch','s_autofix','s_disclaimer'].forEach(id => document.getElementById(id).addEventListener('change', e => { settings[id.replace('s_','')] = e.target.value; saveSettings(); }));
+  document.getElementById('btnSaveKey').addEventListener('click', () => { settings.key = document.getElementById('s_key').value.trim(); saveSettings(); syncSettingsUI(); toast('Klucz zapisany lokalnie','ok'); });
+  document.getElementById('btnShowKey').addEventListener('click', () => { const k = document.getElementById('s_key'); k.type = k.type === 'password' ? 'text' : 'password'; });
+  document.getElementById('btnWipeKey').addEventListener('click', () => { settings.key = ''; saveSettings(); syncSettingsUI(); toast('Klucz usunięty','info'); });
+  document.getElementById('btnWipeAll').addEventListener('click', () => {
+    if(!confirm('Usunąć wszystkie dane aplikacji (brief, historia, ustawienia, klucz)?')) return;
+    Object.values(LS).forEach(k => store.del(k));
+    location.reload();
+  });
+  document.getElementById('btnTestApi').addEventListener('click', testApi);
+
+  // historia
+  bindHistory();
+  document.getElementById('btnClearHistory').addEventListener('click', () => { if(confirm('Wyczyścić całą historię projektów?')){ setHistory([]); renderHistory(); toast('Historia wyczyszczona','info'); } });
+  document.getElementById('btnImportProject').addEventListener('click', () => document.getElementById('fileImport').click());
+  document.getElementById('fileImport').addEventListener('change', e => {
+    const f = e.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{
+        const data = JSON.parse(rd.result);
+        if(!data.variants) throw new Error('Plik nie zawiera wariantów (to nie jest pakiet kampanii).');
+        data.id = data.id || ('p_' + Date.now());
+        saveToHistory(data); renderProject(data); applyBriefToForm(data.brief); switchTab('results');
+        toast('Projekt zaimportowany','ok');
+      }catch(err){ toast('Import nieudany: ' + err.message,'err',6000); }
+    };
+    rd.readAsText(f);
+    e.target.value = '';
+  });
+
+  // skróty klawiszowe
+  document.addEventListener('keydown', e => {
+    const ctrl = e.ctrlKey || e.metaKey;
+    if(ctrl && e.key === 'Enter'){ e.preventDefault(); runGeneration(false); }
+    if(ctrl && e.key.toLowerCase() === 's'){ e.preventDefault(); document.getElementById('btnSaveProject').click(); }
+    if(ctrl && e.key.toLowerCase() === 'k'){ e.preventDefault(); document.getElementById('btnKey').click(); }
+    if(ctrl && e.shiftKey && e.key.toLowerCase() === 'l'){ e.preventDefault(); runGeneration(true); }
+    if(e.key === 'Escape') document.getElementById('modalKey').classList.remove('open');
+  });
+
+  // zapis stanu przy zamykaniu
+  window.addEventListener('beforeunload', () => { try{ saveDraft(); }catch(e){} });
+}
+
+/* --------------------------- start --------------------------- */
+(function init(){
+  buildUI();
+  syncSettingsUI();
+  bindUI();
+  renderHistory();
+  restoreDraft();
+  log('Aplikacja gotowa. Skróty: Ctrl+Enter (generuj), Ctrl+Shift+L (pakiet lokalny), Ctrl+S (zapisz projekt), Ctrl+K (klucz API).');
+  if(!settings.key){
+    log('Brak klucza API – pracujesz na silniku lokalnym offline. Klucz możesz dodać w „Ustawieniach” (albo przyciskiem 🔑 w nagłówku).','w');
+  }
+  updateBadges();
+  saveSettings();   // utrwala domyślny model wybrany przy pierwszym starcie
+})();
+</script>
+</body>
+</html>
