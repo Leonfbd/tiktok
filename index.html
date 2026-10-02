@@ -715,7 +715,10 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
         <h2>🏭 Masowa produkcja – lista kampanii</h2>
         <div class="btn-row">
           <button class="btn sm" id="btnBatchSample">Wstaw przykład</button>
+          <button class="btn sm" id="btnBatchImport">⬆ Import listy (CSV / JSON)</button>
+          <button class="btn sm" id="btnBatchTemplate">⬇ Szablon CSV</button>
           <button class="btn sm" id="btnBatchClear">Wyczyść</button>
+          <input type="file" id="fileBatchImport" accept=".csv,.txt,.json,text/csv,application/json" style="display:none">
         </div>
       </div>
       <div class="body">
@@ -895,6 +898,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
             <div class="btn-row" style="margin-top:11px">
               <button class="btn sm" id="btnPruneHistory">✂ Przytnij historię do 10 najnowszych</button>
               <button class="btn sm" id="btnRefreshStorage">↻ Odśwież</button>
+            </div>
+            <div class="btn-row" style="margin-top:9px">
+              <button class="btn sm" id="btnWorkspaceExport" title="Eksport briefu, historii i presetów do jednego pliku JSON">⬇ Kopia zapasowa (bez klucza API)</button>
+              <button class="btn sm" id="btnWorkspaceImport">⬆ Wczytaj kopię</button>
+              <input type="file" id="fileWorkspaceImport" accept=".json,application/json" style="display:none">
             </div>
             <p class="hint" style="margin-top:9px">Przeglądarki dają zwykle ok. 5 MB na localStorage. Historia jest automatycznie przycinana, gdy przekroczy bezpieczny rozmiar.</p>
           </div>
@@ -1216,7 +1224,7 @@ const NICHES = [
     kpis:['hook rate 3 s','CTR outbound','CVR','ROAS','save rate'] },
 
   { id:'fitness', label:'Fitness / trening / wellness',
-    kw:['fitness','trening','siłown','gym','suplement','dieta','zdrowe','odchudz','wellness','joga','pilates','rower','bieg','crossfit','masażer','plan treningowy'],
+    kw:['fitness','trening','siłown','gym','dieta','zdrowe','odchudz','wellness','joga','pilates','rower','bieg','crossfit','plan treningowy'],
     audience:'osoby 25–45, praca siedząca, brak czasu na treningi 5× w tygodniu, próbowały już różnych planów',
     problem:'brak czasu i jasnego planu na trening – efekt: zaczynasz z zapałem i po dwóch tygodniach przestajesz',
     promise:'plan, który da się wykonać w 20–30 minut dziennie i utrzymać w napiętym tygodniu',
@@ -1423,7 +1431,76 @@ const NICHES = [
     proofPoints:['sezon z ponad 1 400 zestawami','relacje ze wzrostem roślin co tydzień','instrukcja wideo do każdego zestawu'],
     hashtags:['#ogrod','#dzialka','#ekologicznie','#rosliny','#ogrodnictwo','#balkon','#uprawa','#sezon'],
     disclaimers:['Efekty uprawy zależą od warunków pogodowych, gleby i regularności pielęgnacji.'],
-    kpis:['hook rate 3 s','CTR','CVR','koszt sprzedaży','ROAS w sezonie'] }
+    kpis:['hook rate 3 s','CTR','CVR','koszt sprzedaży','ROAS w sezonie'] },
+  { id:'electronics', label:'Elektronika / technologia / akcesoria',
+    kw:['elektronik','technolog','słuchawk','sluchawk','ładowark','ladowark','powerbank','smartwatch','laptop','telefon','kabel','głośnik','glosnik','dron','monitor','klawiatur','tech'],
+    audience:'osoby 20–45 kupujące sprzęt przez internet, porównujące parametry i opinie przed zakupem',
+    problem:'tanie zamienniki padają po kilku tygodniach, a parametry na stronach nie odpowiadają rzeczywistości',
+    promise:'sprzęt z realnymi, sprawdzonymi parametrami i jasną gwarancją – bez zgadywania',
+    proof:'testy na urządzeniach, pomiary parametrów, opinie z okresu użytkowania',
+    offer:'gwarancja 24 miesiące, wysyłka 24 h, zwrot 30 dni',
+    objection:'„pewnie podróbka albo parametry z sufitu”',
+    benefits:['działa od razu po wyjęciu z pudełka, bez konfiguracji','parametry potwierdzone pomiarami na kanale','kompatybilny z Androidem i iOS','obudowa i kabel w zestawie, nie osobno'],
+    proofPoints:['ponad 6 500 wysłanych sztuk','testy porównawcze na 12 urządzeniach','opinia serwisu naprawczego o trwałości złączy'],
+    hashtags:['#tech','#elektronika','#gadzety','#sprzęt','#test','#recenzja','#nowetechnologie','#tiktokmademebuyit'],
+    disclaimers:['Parametry podane przez producenta; deklarowane wartości mogą różnić się w zależności od warunków użytkowania. Gwarancja obowiązuje na warunkach opisanych w karcie produktu.'],
+    kpis:['hook rate 3 s','CTR','CVR','wskaźnik zwrotów','ROAS'] },
+
+  { id:'health', label:'Zdrowie / suplementy / fizjoterapia',
+    kw:['suplement','suplementacj','witamin','fizjoterap','masaż','masaz','zdrowie','klinika','rehabilitacj','orto','wsparcie stawów','probiotyk','omega','magnez','kolagen','fizjo'],
+    audience:'osoby 30–55 dbające o codzienne samopoczucie, aktywne fizycznie, czytające skład przed zakupem',
+    problem:'brak stałej, prostej rutyny wspierającej codzienną aktywność i regenerację w napiętym tygodniu',
+    promise:'prosta codzienna rutyna wsparcia, z pełnym składem i jasnymi zasadami stosowania',
+    proof:'skład na etykiecie, opinie użytkowników, materiały edukacyjne specjalisty',
+    offer:'opakowanie na 2 miesiące, dostawa 48 h, wsparcie przy wyborze wariantu',
+    objection:'„nie wiem, czy to dla mnie odpowiednie”',
+    benefits:['prosta forma: jedna porcja dziennie','pełny skład podany na etykiecie','instrukcja stosowania w zestawie','możliwość konsultacji wariantu przed zakupem'],
+    proofPoints:['ponad 9 000 sprzedanych opakowań','skład i pochodzenie komponentów opublikowane na stronie','opinie z informacją o okresie stosowania'],
+    hashtags:['#zdrowie','#suplementy','#suplementacja','#fizjoterapia','#regeneracja','#codziennarutyna','#zdrowystylzycia','#pielegnacja'],
+    disclaimers:['Suplement diety nie zastępuje zróżnicowanej diety ani zdrowego trybu życia. Nie przekraczaj zalecanej porcji. Treści mają charakter informacyjny i nie stanowią porady medycznej – w razie wątpliwości skonsultuj się z lekarzem lub farmaceutą.'],
+    kpis:['hook rate 3 s','CTR','CVR','powracalność klientów','CPA'] },
+
+  { id:'wedding', label:'Śluby / eventy / fotografia',
+    kw:['ślub','slub','wesele','wesel','event','fotograf','fotografia','kamerzyst','dj','dekoracj','sala','panna młoda','pan młody','uroczystoś','konferencj'],
+    audience:'pary 24–38 planujące ślub lub wydarzenie 6–18 miesięcy wcześniej, porównujące wykonawców i budżet',
+    problem:'setki ofert, niejasne ceny „od” i brak pewności, czy wykonawca dowiezie jakość w dniu, którego nie da się powtórzyć',
+    promise:'jasny pakiet, umowa z harmonogramem i realne materiały z poprzednich realizacji przed rezerwacją',
+    proof:'pełne relacje z realizacji, opinie par, liczba obsłużonych wydarzeń w sezonie',
+    offer:'bezpłatna konsultacja i próbny materiał, rezerwacja terminu z zaliczką, elastyczne pakiety',
+    objection:'„na zdjęciach wygląda dobrze, ale nie u mnie”',
+    benefits:['harmonogram dnia ustalony na piśmie przed umową','podgląd materiałów z podobnych wydarzeń','jeden opiekun kontaktu od rezerwacji do realizacji','wsparcie w planie dnia i liście ujęć'],
+    proofPoints:['ponad 240 obsłużonych wydarzeń','opinie par z pełnych relacji','zapisy na sezon zamykane na kilka miesięcy wcześniej'],
+    hashtags:['#slub','#wesele','#fotografia','#fotografslubny','#dekoracje','#event','#panstwork','#zareczyny'],
+    disclaimers:['Rezerwacja terminu obowiązuje po podpisaniu umowy. Warunki, zakres i terminy realizacji ustalamy indywidualnie na piśmie.'],
+    kpis:['CTR','liczba zapytań o termin','konwersja zapytanie→umowa','koszt zapytania'] },
+
+  { id:'crafts', label:'Rękodzieło / handmade / prezenty',
+    kw:['rękodzieł','rekodziel','handmade','prezent','personalizow','grawer','biżuteri','bizuteri','ceramik','świec','swiec','haf','włóczk','wloczk','upominek'],
+    audience:'osoby 25–50 szukające prezentu z pomysłem, gotowe dopłacić za personalizację i podgląd projektu',
+    problem:'masowe prezenty bez charakteru i ryzyko, że zamówiona personalizacja przyjdzie inna, niż sobie wyobrażaliśmy',
+    promise:'podgląd projektu do akceptacji i realistyczny termin realizacji przed wysyłką',
+    proof:'galeria realizacji, opinie z zamówień personalizowanych, liczby zamówień w szczycie sezonu',
+    offer:'podgląd projektu w 24 h, pakowanie na prezent, wysyłka 48 h w sezonie',
+    objection:'„nie zdążę na termin albo wyjdzie inaczej niż na zdjęciu”',
+    benefits:['projekt do akceptacji przed produkcją','ręczna praca i kontrola każdej sztuki','pakowanie prezentowe w cenie','realny termin potwierdzony przy zamówieniu'],
+    proofPoints:['ponad 4 100 zrealizowanych zamówień','galeria 300+ realizacji z opiniami','w szczycie sezonu realizacja w 5 dni roboczych'],
+    hashtags:['#handmade','#rekodzielo','#prezent','#personalizowany','#upominek','#diy','#prezentdlaniego','#rekodzieloartystyczne'],
+    disclaimers:['Produkty wykonywane ręcznie mogą różnić się minimalnie od zdjęć (odcień, struktura materiału). Termin realizacji potwierdzamy przy zamówieniu.'],
+    kpis:['hook rate 3 s','CTR','CVR','średnia wartość zamówienia','koszt pozyskania zamówienia'] },
+
+  { id:'b2b', label:'B2B / przemysł / usługi dla firm',
+    kw:['b2b','przemysł','przemysl','maszyn','produkcj','wytwarzanie','logistyk','hala','magazyn','komponent','podwykonawc','dostawca'],
+    audience:'właściciele firm produkcyjnych i osoby odpowiedzialne za zakupy w firmach 10–200 osób',
+    problem:'przestoje przez nieterminowe dostawy i brak jasnych ustaleń, ile naprawdę kosztuje zmiana dostawcy',
+    promise:'terminy i parametry potwierdzone na piśmie, z jedną osobą kontaktową prowadzącą zlecenie',
+    proof:'liczba zrealizowanych zleceń, karty katalogowe, referencje firm',
+    offer:'wycena w 48 h, partia próbna, wsparcie techniczne przy wyborze',
+    objection:'„w firmie przy zmianie dostawcy wszystko się opóźni”',
+    benefits:['terminy potwierdzone w zamówieniu, nie „na słowo”','jedna osoba prowadzi zlecenie od wyceny do dostawy','partia próbna przed stałą współpracą','dokumentacja i karty katalogowe w komplecie'],
+    proofPoints:['ponad 180 firm w stałej współpracy','średni czas odpowiedzi na zapytanie: 6 h','próbne partie zrealizowane w 10 dni roboczych'],
+    hashtags:['#b2b','#przemysl','#produkcja','#logistyka','#firma','#zakupy','#wspolpracab2b','#technologia'],
+    disclaimers:['Oferta kierowana do firm. Warunki handlowe, terminy i parametry potwierdzamy indywidualnie w zamówieniu.'],
+    kpis:['koszt pozyskania firmy','liczba zapytań ofertowych','konwersja zapytanie→zamówienie','wartość zamówienia','cykl sprzedaży'] }
 ];
 
 /** Branża uniwersalna – gdy nie rozpoznano niszy. */
@@ -3445,8 +3522,112 @@ function parseBatchLine(line){
   return { industry, product, price, lang, length };
 }
 
+/** Kolumny rozpoznawane w plikach CSV/JSON (nazwy PL i EN). */
+const BATCH_COL_KEYS = {
+  industry:['branza','industry','nisza','niche','kategoria','category','sektor'],
+  product:['produkt','product','usluga','service','oferta','item','nazwa'],
+  price:['cena','price','koszt','cost'],
+  lang:['jezyk','lang','language'],
+  length:['dlugosc','length','duration','sekundy','seconds']
+};
+/** Normalizacja nagłówka/klucza do porównań. */
+function normHeader(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+}
+/** Rozdziela wiersz CSV z obsługą cudzysłowów. */
+function splitCsvRow(line, delim){
+  const out = []; let cur = '', q = false;
+  for(let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if(q){
+      if(ch === '"'){
+        if(line[i + 1] === '"'){ cur += '"'; i++; } else q = false;
+      } else cur += ch;
+    } else if(ch === '"'){ q = true; }
+    else if(ch === delim){ out.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur.trim());
+  return out;
+}
+/** Wykrywa separator listy (średnik, przecinek albo tabulator). */
+function detectDelimiter(line){
+  let best = ';', bestCount = 0;
+  [';', ',', '\t'].forEach(d => {
+    let count = 0, q = false;
+    for(const ch of String(line)){
+      if(ch === '"') q = !q;
+      else if(ch === d && !q) count++;
+    }
+    if(count > bestCount){ bestCount = count; best = d; }
+  });
+  return best;
+}
+/** Lista kampanii z CSV/TXT → linie „branża | produkt | cena | język | długość”. */
+function batchListFromCsv(text){
+  // komentarze (#) odfiltrowujemy PRZED wykryciem nagłówka i separatora
+  const rows = String(text || '').replace(/\r/g, '').split('\n')
+    .map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if(!rows.length) return { lines:[], skipped:0, header:false };
+  const delim = detectDelimiter(rows[0]);
+  const cols = splitCsvRow(rows[0], delim).map(normHeader);
+  const looksHeader = cols.some(c => ['industry','product'].some(k =>
+    BATCH_COL_KEYS[k].some(key => c.includes(normHeader(key)))));
+  const idx = { industry:0, product:1, price:2, lang:3, length:4 };
+  let start = 0;
+  if(looksHeader){
+    Object.keys(idx).forEach(key => {
+      const found = cols.findIndex(c => BATCH_COL_KEYS[key].some(k => c.includes(normHeader(k))));
+      if(found >= 0) idx[key] = found;
+    });
+    start = 1;
+  }
+  const out = []; let skipped = 0;
+  for(let i = start; i < rows.length; i++){
+    const f = splitCsvRow(rows[i], delim);
+    const get = k => String(f[idx[k]] == null ? '' : f[idx[k]]).trim();
+    if(!get('industry') && !get('product')){ skipped++; continue; }
+    out.push([get('industry') || get('product'), get('product') || get('industry'), get('price'), get('lang'), get('length')].join(' | '));
+  }
+  return { lines: out, skipped, header: looksHeader };
+}
+/** Lista kampanii z JSON → linie. Obsługuje tablicę stringów, obiektów i {lines|items|campaigns}. */
+function batchListFromJson(data){
+  let arr = data;
+  if(data && !Array.isArray(data)) arr = data.lines || data.items || data.campaigns || data.batch || null;
+  if(!Array.isArray(arr)) return { lines:[], skipped:0, error:'Nie rozpoznano listy kampanii w pliku JSON.' };
+  const pickKey = (o, keys) => {
+    for(const k of keys){
+      const hit = Object.keys(o).find(x => normHeader(x) === normHeader(k) || normHeader(x).includes(normHeader(k)));
+      if(hit && o[hit] != null && String(o[hit]).trim()) return String(o[hit]).trim();
+    }
+    return '';
+  };
+  const out = []; let skipped = 0;
+  arr.forEach(entry => {
+    if(typeof entry === 'string'){ if(entry.trim()) out.push(entry.trim()); else skipped++; return; }
+    if(entry && typeof entry === 'object'){
+      const industry = pickKey(entry, BATCH_COL_KEYS.industry);
+      const product = pickKey(entry, BATCH_COL_KEYS.product);
+      if(!industry && !product){ skipped++; return; }
+      out.push([industry || product, product || industry,
+                pickKey(entry, BATCH_COL_KEYS.price), pickKey(entry, BATCH_COL_KEYS.lang), pickKey(entry, BATCH_COL_KEYS.length)].join(' | '));
+      return;
+    }
+    skipped++;
+  });
+  return { lines: out, skipped, error:null };
+}
+/** Szablon CSV listy kampanii do pobrania. */
+function csvTemplate(){
+  return ['branza;produkt;cena;jezyk;dlugosc',
+          'kosmetyki naturalne;serum z witaminą C;89 zł;pl;15',
+          'fitness;plan treningowy 20 minut;59 zł;pl;30',
+          'gadżety do domu;organizer kuchenny;49 zł;pl;7'].join('\n');
+}
+
 /** Generuje całą partię (silnik lokalny – natychmiast, bez limitów API). */
-function runBatch(){
+async function runBatch(){
   const raw = document.getElementById('batchInput').value;
   const lines = raw.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
   if(!lines.length){ toast('Wklej listę kampanii (jedna linia = jedna kampania)','warn'); return; }
@@ -3460,9 +3641,12 @@ function runBatch(){
   setBatchProgress(4);
 
   const failed = [];
-  lines.forEach((line, i) => {
+  for(let i = 0; i < lines.length; i++){
+    const line = lines[i];
+    // co kilka kampanii oddajemy wątek, żeby pasek postępu i UI pozostały responsywne
+    if(i > 0 && i % 4 === 0) await new Promise(r => setTimeout(r, 0));
     const parsed = parseBatchLine(line);
-    if(!parsed){ failed.push(line); return; }
+    if(!parsed){ failed.push(line); continue; }
     const brief = inherit
       ? Object.assign({}, base, { industry: parsed.industry, product: parsed.product, campaign: (parsed.product || parsed.industry) + ' · partia', modules: base.modules, variants: base.variants })
       : {
@@ -3498,7 +3682,7 @@ function runBatch(){
       batchResults.push(p);
     }catch(err){ failed.push(line + '  (' + err.message + ')'); }
     setBatchProgress(4 + Math.round((i + 1) / lines.length * 92));
-  });
+  }
 
   setBatchProgress(100);
   renderBatchTable();
@@ -3556,6 +3740,25 @@ function bindBatch(){
       'zwierzęta | mata chłodząca dla psa | 79 zł | pl | 15'
     ].join('\n');
     toast('Wstawiono przykład – możesz go dowolnie edytować','info');
+  });
+  document.getElementById('btnBatchImport').addEventListener('click', () => document.getElementById('fileBatchImport').click());
+  document.getElementById('fileBatchImport').addEventListener('change', e => {
+    const f = e.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{
+        const text = String(rd.result || '');
+        const res = /\.json$/i.test(f.name) ? batchListFromJson(JSON.parse(text)) : batchListFromCsv(text);
+        if(res.error) throw new Error(res.error);
+        if(!res.lines.length) throw new Error('Nie znaleziono kampanii w pliku.');
+        document.getElementById('batchInput').value = res.lines.join('\n');
+        toast(`Zaimportowano ${res.lines.length} kampanii${res.skipped ? ' (pominięto ' + res.skipped + ' linii)' : ''}`, 'ok', 5000);
+      }catch(err){ toast('Import nieudany: ' + err.message, 'err', 6000); }
+    };
+    rd.readAsText(f); e.target.value = '';
+  });
+  document.getElementById('btnBatchTemplate').addEventListener('click', () => {
+    download('szablon-listy-kampanii.csv', csvTemplate(), 'text/csv;charset=utf-8');
   });
   document.getElementById('btnBatchClear').addEventListener('click', () => {
     document.getElementById('batchInput').value = ''; batchResults = []; renderBatchTable();
@@ -3717,6 +3920,29 @@ function renderStorage(){
     return `<tr><td>${esc(label)}</td><td><b>${fmtBytes(size)}</b> <span class="hint">(${pct}% limitu)</span></td></tr>`;
   }).join('') + `<tr><td>Liczba projektów w historii</td><td>${getHistory().length}</td></tr>` +
   `<tr><td>Liczba własnych presetów</td><td>${getPresets().length}</td></tr>`;
+}
+
+/** Zawartość kopii zapasowej (klucz API domyślnie pomijany – bezpieczeństwo). */
+function workspacePayload(includeKey){
+  const s = Object.assign({}, settings);
+  if(!includeKey) delete s.key;
+  return {
+    app:'Automat do Reklam TikTok – PRO', type:'workspace-backup', version:2,
+    exportedAt:new Date().toISOString(),
+    counts:{ history:getHistory().length, presets:getPresets().length, hasDraft: !!store.get(LS.draft, null) },
+    settings:s, draft:store.get(LS.draft, null), history:getHistory(), presets:getPresets()
+  };
+}
+/** Wczytuje kopię workspace. Klucz API zostaje lokalny – nie jest nadpisywany z pliku. */
+function applyWorkspace(data){
+  if(!data || data.type !== 'workspace-backup') throw new Error('To nie jest plik kopii zapasowej aplikacji.');
+  const keepKey = settings.key;
+  settings = Object.assign({}, DEFAULTS, data.settings || {}, { key: keepKey });
+  store.set(LS.settings, settings);
+  if(Array.isArray(data.presets)) store.set(LS.presets, data.presets);
+  if(Array.isArray(data.history)) store.set(LS.history, data.history);
+  if(data.draft) store.set(LS.draft, data.draft);
+  return { history:(data.history || []).length, presets:(data.presets || []).length, draft: !!data.draft };
 }
 
 /* ============================================================================
@@ -4203,6 +4429,28 @@ function bindUI(){
     renderHistory(); renderStorage();
     toast('Historia przycięta z ' + list.length + ' do 10 projektów','ok');
   });
+  document.getElementById('btnWorkspaceExport').addEventListener('click', () => {
+    const payload = workspacePayload(false);
+    download('automat-tiktok-kopia-' + new Date().toISOString().slice(0,10) + '.json', JSON.stringify(payload, null, 2), 'application/json');
+    toast('Kopia zapasowa zapisana: brief, historia i presety (bez klucza API)', 'ok', 5000);
+  });
+  document.getElementById('btnWorkspaceImport').addEventListener('click', () => document.getElementById('fileWorkspaceImport').click());
+  document.getElementById('fileWorkspaceImport').addEventListener('change', e => {
+    const f = e.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{
+        const res = applyWorkspace(JSON.parse(rd.result));
+        toast(`Kopia wczytana: ${res.history} projektów, ${res.presets} presetów`, 'ok', 6000);
+        // odświeżenie widoku (w przeglądarce i tak nastąpi przeładowanie strony)
+        syncSettingsUI(); renderPresets(); renderHistory(); renderStorage(); updateBadges();
+        if(res.draft) restoreDraft();
+        try{ location.reload(); }catch(err){}
+      }catch(err){ toast('Import nieudany: ' + err.message, 'err', 6000); }
+    };
+    rd.readAsText(f); e.target.value = '';
+  });
+
   document.getElementById('btnPrint').addEventListener('click', () => {
     if(!currentProject){ toast('Najpierw wygeneruj pakiet','warn'); return; }
     switchTab('results');

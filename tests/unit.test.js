@@ -151,7 +151,58 @@ const scan = A.complianceScan(bad);
 check('compliance wykrywa frazy', scan.issues.length >= 4, scan.issues.length);
 check('auto-fix zamienia frazy', scan.replaced >= 4 && !/Gwarantujemy 100%/.test(bad.variants[0].sections.cta.body));
 
-/* ---------- 13. Modele rozumujące ---------- */
+/* ---------- 13. Import listy kampanii (CSV / JSON) ---------- */
+const csvA = A.batchListFromCsv('branza;produkt;cena;jezyk;dlugosc\nkosmetyki naturalne;serum;89 zł;pl;15\nfitness;plan treningowy;59 zł;pl;30');
+check('CSV: wykryty nagłówek i 2 kampanie', csvA.header === true && csvA.lines.length === 2, JSON.stringify(csvA));
+check('CSV: linia znormalizowana do formatu z kreskami', csvA.lines[0] === 'kosmetyki naturalne | serum | 89 zł | pl | 15', csvA.lines[0]);
+const csvNoHead = A.batchListFromCsv('moda, kurtka zimowa, 299 zł, pl, 15\ndziecko, klocki edukacyjne');
+check('CSV: przecinek jako separator, bez nagłówka', csvNoHead.header === false && csvNoHead.lines.length === 2, JSON.stringify(csvNoHead));
+check('CSV: brakujące kolumny uzupełnione pustymi', csvNoHead.lines[1].split(' | ').length === 5, csvNoHead.lines[1]);
+const csvQuoted = A.batchListFromCsv('branza;produkt\n"gadżety, domowe";"organizer; kuchenny; 2 szt"');
+check('CSV: cudzysłowy i separator w polu', csvQuoted.lines[0] === 'gadżety, domowe | organizer; kuchenny; 2 szt |  |  | ', csvQuoted.lines[0]);
+const csvSkip = A.batchListFromCsv('# komentarz\n;;;\nfitness;plan');
+check('CSV: komentarze ignorowane, puste wiersze liczone jako pominięte',
+  csvSkip.lines.length === 1 && csvSkip.skipped === 1 &&
+  csvSkip.lines[0].startsWith('fitness') && !/#/.test(csvSkip.lines[0]), JSON.stringify(csvSkip));
+const jsonA = A.batchListFromJson([{ branza:'moda', produkt:'kurtka', cena:'299 zł', jezyk:'pl', dlugosc:'15' }, { industry:'gry', product:'aplikacja', length:30 }]);
+check('JSON: obiekty z kluczami PL i EN', jsonA.lines.length === 2 && jsonA.lines[0].startsWith('moda | kurtka | 299 zł | pl | 15'), JSON.stringify(jsonA.lines));
+const jsonB = A.batchListFromJson({ lines:['fitness | plan | | pl | 30'] });
+check('JSON: obiekt z kluczem lines', jsonB.lines.length === 1 && jsonB.lines[0].includes('fitness'));
+const jsonC = A.batchListFromJson('nie-listа');
+check('JSON: nieprawidłowa struktura → komunikat', !!jsonC.error && jsonC.lines.length === 0);
+check('CSV: szablon ma nagłówek i 3 przykłady', A.csvTemplate().split('\n').length === 4);
+
+/* ---------- 14. Nowe profile branżowe (21 łącznie) ---------- */
+check('21 profili branż', A.NICHES.length === 21, A.NICHES.length);
+[['powerbank 20 000 mAh','', 'Elektronika'], ['suplement z witaminą D','', 'Zdrowie'],
+ ['fotograf ślubny','', 'Śluby'], ['handmade świece sojowe','', 'Rękodzieło'],
+ ['dostawca komponentów dla firm','', 'B2B']].forEach(([ind, prod, expected]) => {
+  const n = A.detectNiche(ind, prod);
+  check(`nowa branża: ${expected}`, n.label.startsWith(expected), n.label);
+});
+const pHealth = A.generateLocalPackage(Object.assign({}, baseBrief, { industry:'suplement diety', product:'magnez', variants:1, modules:['callout','script'] }));
+check('profil zdrowie: disclaimer o suplemencie', /Suplement diety nie zastępuje/.test(pHealth.disclaimers.join(' ')), pHealth.disclaimers.join(' ').slice(0, 120));
+check('profil zdrowie: brak obietnic medycznych w pakiecie', A.complianceScan(pHealth).issues.length === 0);
+
+/* ---------- 15. Kopia zapasowa workspace ---------- */
+A.savePresets([{ id:'np_x', label:'Preset X', kw:['x'], audience:'A', problem:'P', promise:'O', proof:'D', offer:'F', objection:'B', benefits:[], proofPoints:[], hashtags:[], kpis:[], disclaimers:[], custom:true }]);
+A.storeSet('tiktok_pro_history_v1', [{ id:'p1', name:'Kampania testowa', variants:[] }]);
+const payload = A.workspacePayload(false);
+check('kopia: typ i wersja', payload.type === 'workspace-backup' && payload.version === 2);
+check('kopia: bez klucza API', payload.settings.key === undefined, JSON.stringify(Object.keys(payload.settings)));
+check('kopia: zawiera historię i presety', payload.history.length === 1 && payload.presets.length === 1);
+check('kopia: liczniki zgodne', payload.counts.history === 1 && payload.counts.presets === 1);
+A.storeSet('tiktok_pro_history_v1', []);
+A.savePresets([]);
+const keptKey = JSON.parse(global.localStorage.getItem('tiktok_pro_settings_v1') || '{}');
+const res = A.applyWorkspace(payload);
+check('przywracanie: historia i presety wróciły', res.history === 1 && res.presets === 1 && A.getPresets().length === 1);
+check('przywracanie: klucz API nie został nadpisany', JSON.parse(global.localStorage.getItem('tiktok_pro_settings_v1')).key === keptKey.key);
+let threw = false;
+try{ A.applyWorkspace({ type:'cos-innego' }); }catch(e){ threw = true; }
+check('przywracanie: odrzuca obcy plik', threw);
+
+/* ---------- 16. Modele rozumujące ---------- */
 check('o4-mini rozpoznany jako reasoning', A.isReasoningModel('o4-mini') === true);
 check('gpt-5-mini rozpoznany jako reasoning', A.isReasoningModel('gpt-5-mini') === true);
 check('gpt-4o-mini NIE jest reasoning', A.isReasoningModel('gpt-4o-mini') === false);

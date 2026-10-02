@@ -17,9 +17,9 @@ export NODE_PATH=/tmp/tt/node_modules
 ```bash
 cd /home/user/tiktok
 
-node tests/unit.test.js                        # silnik lokalny, eksporty, CSV, presety, pamięć (65 asercji)
-NODE_PATH=/tmp/tt/node_modules node tests/e2e.test.js   # interfejs: hurt, presety, storyboard, CSV, pamięć (49 asercji)
-NODE_PATH=/tmp/tt/node_modules node tests/api.test.js   # OpenAI / Gemini / custom / reasoning / partie (27 asercji)
+node tests/unit.test.js                                  # silnik, eksporty, CSV, import listy, presety, pamięć (90 asercji)
+NODE_PATH=/tmp/tt/node_modules node tests/e2e.test.js    # UI: hurt, import listy, presety, storyboard, kopia zapasowa (64 asercje)
+NODE_PATH=/tmp/tt/node_modules node tests/api.test.js    # OpenAI / Gemini / custom / reasoning / partie (27 asercji)
 ```
 
 Albo jednym poleceniem:
@@ -42,6 +42,8 @@ bash tests/run-all.sh
 - guard pamięci localStorage (symulacja `QuotaExceededError`)
 - filtr zgodności z politykami TikTok Ads + auto-fix
 - rozpoznawanie modeli rozumujących
+- import listy kampanii z CSV (separatory ; , tab, nagłówki PL/EN, cudzysłowy, komentarze `#`) i z JSON
+- kopia zapasowa workspace: eksport bez klucza API, przywracanie danych, zachowanie lokalnego klucza
 
 **e2e.test.js**
 
@@ -50,6 +52,9 @@ bash tests/run-all.sh
 - storyboard 9:16: beaty, overlay, opis kadru, odtwarzanie, prędkość, przeskoki
 - eksport CSV bieżącego pakietu i panel pamięci lokalnej
 - fallback: błąd 401 → pakiet z silnika lokalnego
+- import listy kampanii z pliku CSV/JSON + szablon CSV
+- kopia zapasowa workspace: eksport, czyszczenie danych, wczytanie kopii, zachowanie klucza API
+- partia asynchroniczna (6 kampanii) – UI pozostaje responsywne
 
 **api.test.js**
 

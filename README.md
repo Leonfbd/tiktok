@@ -3,8 +3,11 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.1:** import listy kampanii z CSV/JSON, kopia zapasowa całego workspace, 21 profili branżowych,
+partie generowane asynchronicznie (UI nie zamarza).
+
 **v2.0:** tryb hurtowy (partie kampanii + CSV), własne presety branżowe, podgląd storyboardu 9:16,
-16 profili branżowych, generacja partiami przez API, wsparcie modeli rozumujących, guard pamięci localStorage.
+generacja partiami przez API, wsparcie modeli rozumujących, guard pamięci localStorage.
 
 - **Jeden plik:** `index.html` — HTML + CSS + JS, zero bibliotek, zero backendu.
 - **Działa offline:** wbudowany silnik lokalny generuje gotowy pakiet bez internetu i bez klucza API.
@@ -58,8 +61,9 @@ Hashtagi, Callout sprzedażowy, Notatka A/B + KPI.
 **Języki:** PL, EN, DE, ES, FR, IT, PT, NL, SV, CS, UK, DA (PL domyślnie). Pełne banki treści: PL i EN;
 pozostałe języki offline = baza EN + lokalne hooki i CTA, pełna lokalizacja copy w trybie API.
 
-**Branże (16 profili wiedzy):** beauty, fitness, e-commerce, kursy/produkty online, SaaS, usługi lokalne,
-gastronomia, nieruchomości, motoryzacja, finanse, podróże, moda, zwierzęta, gry/aplikacje, dziecko/mama, eko/ogród.
+**Branże (21 profili wiedzy):** beauty, fitness, e-commerce, kursy/produkty online, SaaS, usługi lokalne,
+gastronomia, nieruchomości, motoryzacja, finanse, podróże, moda, zwierzęta, gry/aplikacje, dziecko/mama, eko/ogród,
+elektronika/tech, zdrowie/suplementy, śluby/eventy, rękodzieło/prezenty, B2B/przemysł.
 Każdy profil wnosi grupę docelową, problem, obietnicę, dowody, korzyści, hashtagi, KPI i disclaimery.
 
 **Ilość wariantów:** 1–10. W trybie API więcej niż 3 warianty generowane są partiami po 3 (stabilniejszy format
@@ -76,9 +80,15 @@ fitness | plan treningowy 20 minut
 gadżety do domu | organizer kuchenny | 49 zł | en | 30
 ```
 
-Partia pracuje na silniku lokalnym: 50 kampanii w kilka sekund, bez kosztów API. Wynik można otwierać
-pojedynczo w zakładce „Wyniki”, zapisać wszystkie do historii i wyeksportować do **CSV** (jeden wiersz = jeden wariant)
-albo JSON.
+Partia pracuje na silniku lokalnym: 50 kampanii w kilka sekund, bez kosztów API. Generowanie jest asynchroniczne
+(partiami po 4 kampanie), więc interfejs i pasek postępu pozostają responsywne nawet przy długiej liście.
+Wynik można otwierać pojedynczo w zakładce „Wyniki”, zapisać wszystkie do historii i wyeksportować do **CSV**
+(jeden wiersz = jeden wariant) albo JSON.
+
+**Import listy z pliku:** przycisk „⬆ Import listy (CSV / JSON)” wczytuje plik CSV (separator `;`, `,` lub tabulator,
+nagłówki PL/EN, obsługa cudzysłowów, komentarze `#`) albo JSON (tablica obiektów z kluczami `branza`/`industry`,
+`produkt`/`product`, `cena`/`price`, `jezyk`/`lang`, `dlugosc`/`length` lub tablica gotowych linii).
+Przycisk „⬇ Szablon CSV” pobiera gotowy wzór pliku.
 
 ## Własne presety branżowe
 
@@ -103,6 +113,10 @@ Historia projektów: automatyczny zapis po każdej generacji, otwieranie, edycja
 import/eksport JSON. Panel **💾 Pamięć lokalna** pokazuje zużycie miejsca (brief, historia, presety, ustawienia),
 pozwala przyciąć historię do 10 najnowszych projektów i automatycznie chroni przed przepełnieniem (limitu ~5 MB).
 
+**Kopia zapasowa workspace** (ten sam panel): „⬇ Kopia zapasowa” zapisuje brief, historię i własne presety do jednego
+pliku JSON (klucz API celowo pomijany), a „⬆ Wczytaj kopię” przywraca dane na innym komputerze — klucz API zostaje
+przy tym lokalny i nie jest nadpisywany z pliku.
+
 ## Zgodność z politykami TikTok Ads
 
 Wbudowany skaner wyłapuje frazy ryzykowne (gwarancje efektu, obietnice medyczne/finansowe, fałszywa pilność,
@@ -123,7 +137,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 141 asercji: jednostkowe + E2E + API
+bash tests/run-all.sh        # 181 asercji: jednostkowe (90) + E2E (64) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.

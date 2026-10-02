@@ -204,7 +204,135 @@ const { check, finish } = makeChecker();
     document.createElement = origCreate;
   }
 
-  /* ================= 5. FALLBACK API → SILNIK LOKALNY ================= */
+  /* ================= 5. IMPORT LISTY DO HURTOWNI (CSV / JSON) ================= */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    const downloads = [];
+    const origCreate = document.createElement.bind(document);
+    document.createElement = function(tag){
+      const el = origCreate(tag);
+      if(tag === 'a') el.click = function(){ downloads.push(el.download); };
+      return el;
+    };
+    Array.from(document.querySelectorAll('.tab')).forEach(t => { if(t.dataset.tab === 'batch') t.click(); });
+
+    // szablon CSV
+    $('#btnBatchTemplate').click();
+    check('import: szablon CSV pobrany', downloads.some(d => d.endsWith('.csv')), downloads.join(','));
+
+    // import pliku CSV (średnik + nagłówek + komentarz + pusty wiersz)
+    const csv = [
+      '# lista kampanii na październik',
+      'branza;produkt;cena;jezyk;dlugosc',
+      'kosmetyki naturalne;serum z witaminą C;89 zł;pl;15',
+      'fitness;plan treningowy;59 zł;pl;30',
+      ';;;'
+    ].join('\n');
+    const csvFile = new window.File([csv], 'lista.csv', { type:'text/csv' });
+    const batchInput = $('#fileBatchImport');
+    Object.defineProperty(batchInput, 'files', { value:[csvFile], configurable:true });
+    batchInput.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(250);
+    const imported = $('#batchInput').value.split('\n');
+    check('import CSV: 2 kampanie w polu listy', imported.length === 2, JSON.stringify(imported));
+    check('import CSV: format z kreskami', imported[0] === 'kosmetyki naturalne | serum z witaminą C | 89 zł | pl | 15', imported[0]);
+
+    // generacja z zaimportowanej listy
+    $('#btnRunBatch').click();
+    await tick(400);
+    check('import CSV: partia wygenerowana', document.querySelectorAll('#batchTable tbody tr').length === 2, document.querySelectorAll('#batchTable tbody tr').length);
+
+    // import pliku JSON z obiektami
+    const jsonFile = new window.File([JSON.stringify([
+      { branza:'moda', produkt:'kurtka zimowa', cena:'299 zł', jezyk:'pl', dlugosc:15 },
+      { industry:'gry mobilne', product:'aplikacja logiczna', length:7 }
+    ])], 'lista.json', { type:'application/json' });
+    Object.defineProperty(batchInput, 'files', { value:[jsonFile], configurable:true });
+    batchInput.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(250);
+    const importedJson = $('#batchInput').value.split('\n');
+    check('import JSON: 2 kampanie (klucze PL i EN)', importedJson.length === 2 && /moda \| kurtka zimowa/.test(importedJson[0]), JSON.stringify(importedJson));
+
+    // partia większa niż 4 kampanie → ścieżka asynchroniczna (oddawanie wątku dla UI)
+    $('#batchInput').value = ['a | produkt 1','b | produkt 2','c | produkt 3','d | produkt 4','e | produkt 5','f | produkt 6'].join('\n');
+    $('#btnRunBatch').click();
+    await tick(500);
+    check('partia: 6 kampanii w ścieżce asynchronicznej', document.querySelectorAll('#batchTable tbody tr').length === 6, document.querySelectorAll('#batchTable tbody tr').length);
+
+    // import błędnego pliku → komunikat, lista bez zmian
+    const beforeBad = $('#batchInput').value;
+    const badFile = new window.File(['{"nope":true}'], 'zle.json', { type:'application/json' });
+    Object.defineProperty(batchInput, 'files', { value:[badFile], configurable:true });
+    batchInput.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(250);
+    check('import JSON: błędny plik nie psuje listy', $('#batchInput').value === beforeBad);
+    document.createElement = origCreate;
+  }
+
+  /* ================= 6. KOPIA ZAPASOWA WORKSPACE ================= */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    const downloads = [];
+    const origCreate = document.createElement.bind(document);
+    document.createElement = function(tag){
+      const el = origCreate(tag);
+      if(tag === 'a') el.click = function(){ downloads.push({ name: el.download }); };
+      return el;
+    };
+    window.URL.createObjectURL = () => 'blob:test';
+
+    // przygotowanie danych: preset + projekt w historii + klucz API
+    $('#f_industry').value = 'elektronika';
+    $('#f_product').value = 'powerbank 20 000 mAh';
+    $('#f_campaign').value = 'Powerbank Q4';
+    $('#btnAutoFill').click();      // uzupełnia grupę docelową, problem i obietnicę z profilu branżowego
+    await tick(60);
+    $('#btnPresetFromBrief').click();
+    $('#btnPresetSave').click();
+    $('#btnQuickLocal').click();
+    await tick(300);
+    $('#s_key').value = 'sk-tajny-klucz';
+    $('#btnSaveKey').click();
+
+    check('kopia: historia i presety istnieją', Number($('#pillHistory').textContent) >= 1 && document.querySelectorAll('#presetList .preset-row').length === 1);
+
+    // eksport kopii
+    $('#btnWorkspaceExport').click();
+    check('kopia: plik kopii pobrany', downloads.some(d => /automat-tiktok-kopia.*\.json/.test(d.name)), JSON.stringify(downloads));
+
+    // zrzut danych z pliku kopii (przechwytujemy treść przez Blob → FileReader)
+    let exportedJson = null;
+    const origBlob = window.Blob;
+    window.Blob = function(parts){ exportedJson = String(parts[0]); return new origBlob(parts); };
+    $('#btnWorkspaceExport').click();
+    window.Blob = origBlob;
+    check('kopia: klucz API NIE trafia do pliku', exportedJson && !/sk-tajny-klucz/.test(exportedJson));
+    check('kopia: plik zawiera typ workspace-backup', exportedJson && /"type": "workspace-backup"/.test(exportedJson), (exportedJson || '').slice(0, 80));
+
+    // czyszczenie danych i wczytanie kopii
+    window.localStorage.removeItem('tiktok_pro_history_v1');
+    window.localStorage.removeItem('tiktok_pro_presets_v1');
+    check('kopia: dane wyczyszczone', Number($('#pillHistory').textContent) === 0 || JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]').length === 0);
+
+    const file = new window.File([exportedJson], 'kopia.json', { type:'application/json' });
+    const input = $('#fileWorkspaceImport');
+    Object.defineProperty(input, 'files', { value:[file], configurable:true });
+    input.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(400);
+
+    const hist = JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]');
+    const pres = JSON.parse(window.localStorage.getItem('tiktok_pro_presets_v1') || '[]');
+    const sett = JSON.parse(window.localStorage.getItem('tiktok_pro_settings_v1') || '{}');
+    check('kopia: historia przywrócona', hist.length >= 1, hist.length);
+    check('kopia: presety przywrócone', pres.length === 1, pres.length);
+    check('kopia: klucz API zachowany lokalnie (nie z pliku)', sett.key === 'sk-tajny-klucz', sett.key);
+    check('kopia: UI odświeżone (preset na liście)', document.querySelectorAll('#presetList .preset-row').length === 1);
+    document.createElement = origCreate;
+  }
+
+  /* ================= 7. FALLBACK API → SILNIK LOKALNY ================= */
   {
     const { document, window } = bootJsdom({ responder: () => ({ __status:401, error:{ message:'Incorrect API key' } }) });
     const $ = s => document.querySelector(s);
