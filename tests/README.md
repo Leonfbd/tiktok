@@ -17,8 +17,8 @@ export NODE_PATH=/tmp/tt/node_modules
 ```bash
 cd /home/user/tiktok
 
-node tests/unit.test.js                                  # silnik, eksporty, CSV, import listy, presety, pamięć (90 asercji)
-NODE_PATH=/tmp/tt/node_modules node tests/e2e.test.js    # UI: hurt, import listy, presety, storyboard, kopia zapasowa (64 asercje)
+node tests/unit.test.js                                  # silnik, eksporty, CSV, kąty, tracker, presety, pamięć (121 asercji)
+NODE_PATH=/tmp/tt/node_modules node tests/e2e.test.js    # UI: hurt, kąty, tracker, presety, storyboard, kopia (98 asercji)
 NODE_PATH=/tmp/tt/node_modules node tests/api.test.js    # OpenAI / Gemini / custom / reasoning / partie (27 asercji)
 ```
 
@@ -43,7 +43,9 @@ bash tests/run-all.sh
 - filtr zgodności z politykami TikTok Ads + auto-fix
 - rozpoznawanie modeli rozumujących
 - import listy kampanii z CSV (separatory ; , tab, nagłówki PL/EN, cudzysłowy, komentarze `#`) i z JSON
-- kopia zapasowa workspace: eksport bez klucza API, przywracanie danych, zachowanie lokalnego klucza
+- kopia zapasowa workspace: eksport bez klucza API, przywracanie danych (historia, presety, kąty), zachowanie lokalnego klucza
+- własne kąty: priorytet w doborze wariantów, bank hooków, styl CTA, hipoteza, nadpisywanie przez jawny sellMode
+- tracker wyników: kliknięcia/konwersje/CPA, zwycięzca wg metryki, próg decyzyjny 2 000 wyświetleń, raport CSV, wyniki w TXT/MD/JSON
 
 **e2e.test.js**
 
@@ -55,6 +57,8 @@ bash tests/run-all.sh
 - import listy kampanii z pliku CSV/JSON + szablon CSV
 - kopia zapasowa workspace: eksport, czyszczenie danych, wczytanie kopii, zachowanie klucza API
 - partia asynchroniczna (6 kampanii) – UI pozostaje responsywne
+- własne kąty w UI: tworzenie, walidacja nazwy, duplikacja, edycja, usuwanie, eksport/import
+- tracker w UI: wpisywanie danych, kalkulacja na żywo, chip zwycięzcy, zmiana metryki, raport CSV, reset, trwałość w projekcie
 
 **api.test.js**
 

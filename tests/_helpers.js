@@ -67,7 +67,8 @@ function stubEnv(code){
     generateLocalSection, pickAngles, STRATEGIES, MODULES, ANGLES, NICHES, LANGS, LENGTHS, BEAT_PURPOSE,
     toList, projectsToCsv, parseBatchLine, approxSize, fmtBytes, storeSet, isReasoningModel, pickAngles,
     getPresets, savePresets, allNiches, GENERIC_NICHE,
-    batchListFromCsv, batchListFromJson, csvTemplate, workspacePayload, applyWorkspace };`;
+    batchListFromCsv, batchListFromJson, csvTemplate, workspacePayload, applyWorkspace,
+    getAngles, saveAngles, computeResults, resultsToCsv, ensureResults, TRACK_METRICS, HOOK_STYLES, hookStyleLabel };`;
   eval(code + exports);
   return globalThis.__API;
 }

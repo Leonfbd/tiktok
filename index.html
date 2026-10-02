@@ -389,6 +389,25 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 .story-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
 @media (max-width:820px){.story{grid-template-columns:1fr}}
 
+/* --- 25. Tracker wyników testu A/B --- */
+.track-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.track-table th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2);color:var(--muted);
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.track-table td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.track-table tr.win td{background:rgba(49,214,143,.07)}
+.track-table input{width:92px;padding:6px 8px;border-radius:7px;background:var(--bg-2);
+  border:1px solid var(--line-2);color:var(--text);font-size:12.5px}
+.track-table input:focus{outline:none;border-color:var(--pink)}
+.track-table .calc{font-family:var(--mono);font-size:11.8px;color:var(--text-2)}
+.chip.win{border-color:rgba(49,214,143,.6);color:#b6f2d4;background:rgba(49,214,143,.12);font-weight:600}
+.track-sum{padding:13px 15px;border:1px solid var(--line);border-radius:var(--radius-s);
+  background:var(--bg-2);margin-top:12px;font-size:12.6px;line-height:1.6}
+.track-sum .hd{font-weight:700;margin-bottom:6px}
+.track-sum ul{margin:6px 0 0;padding-left:18px}
+.track-sum .ok{color:var(--ok)}
+.track-sum .warn{color:var(--warn)}
+.track-scroll{overflow-x:auto}
+
 @media print{
   body{background:#fff;color:#000}
   .topbar,.tabs,.btn,.toasts,.modal{display:none !important}
@@ -407,13 +426,13 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
     <div class="logo">TT</div>
     <div>
       <h1>Automat do Reklam TikTok<span class="pro">PRO</span></h1>
-      <p>Scenariusze · hooki 0–3s · shot list · storyboard · tryb hurtowy · warianty A/B</p>
+      <p>Scenariusze · hooki · shot list · storyboard · tryb hurtowy · własne kąty · tracker wyników</p>
     </div>
   </div>
   <div class="top-actions">
     <span class="badge" id="badgeEngine"><span class="dot"></span><span id="badgeEngineTxt">Silnik: lokalny (offline)</span></span>
     <span class="badge" id="badgeApi"><span class="dot"></span><span id="badgeApiTxt">API: brak klucza</span></span>
-    <span class="badge" title="Wersja narzędzia"><span class="dot"></span>v2.0</span>
+    <span class="badge" title="Wersja narzędzia"><span class="dot"></span>v2.2</span>
     <button class="btn sm ghost" id="btnSaveProject">💾 Zapisz projekt</button>
     <button class="btn sm" id="btnKey">🔑 Klucz API</button>
   </div>
@@ -892,6 +911,19 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
         </div>
 
         <div class="panel">
+          <div class="head">
+            <h2>🎯 Własne kąty reklamowe</h2>
+            <div class="btn-row">
+              <button class="btn mini" id="btnAngleNew">➕ Nowy kąt</button>
+              <button class="btn mini" id="btnAngleExport">⬇ JSON</button>
+              <button class="btn mini" id="btnAngleImport">⬆ Import</button>
+              <input type="file" id="fileAngleImport" accept=".json,application/json" style="display:none">
+            </div>
+          </div>
+          <div class="body" id="angleList"></div>
+        </div>
+
+        <div class="panel">
           <div class="head"><h2>💾 Pamięć lokalna</h2></div>
           <div class="body">
             <table class="kv" id="storageTable"></table>
@@ -989,6 +1021,64 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: edytor własnego kąta reklamowego -->
+<div class="modal" id="modalAngle">
+  <div class="box">
+    <header>
+      <h3 id="angleTitle">Własny kąt reklamowy</h3>
+      <button class="btn mini" id="btnCloseAngle">✕</button>
+    </header>
+    <div class="body">
+      <div class="field">
+        <label>Nazwa kąta</label>
+        <input type="text" id="a_label" placeholder="np. „Cena za efekt” dla mojej kategorii">
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Bank hooków <span class="sub">(jakim stylem mówimy)</span></label>
+          <select id="a_hook">
+            <option value="pain">Problem / ból odbiorcy</option>
+            <option value="pov">POV / „to o mnie”</option>
+            <option value="proof">Dowód społeczny / opinie</option>
+            <option value="myth">Myth busting / „przestań”</option>
+            <option value="list">Lista / „3 powody”</option>
+            <option value="demo">Demo / jak to działa</option>
+            <option value="challenge">Test / wyzwanie (7 dni)</option>
+            <option value="bts">Kulisy / behind the scenes</option>
+            <option value="price">Cena / wartość za efekt</option>
+            <option value="founder">Historia założyciela</option>
+            <option value="objection">Obiekcja wprost</option>
+            <option value="season">Moment / sezonowość</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Styl CTA w tym kącie</label>
+          <select id="a_cta">
+            <option value="">Auto (zgodnie ze strategią i briefem)</option>
+            <option value="soft">Soft sell – zapisz, sprawdź w swoim czasie</option>
+            <option value="hard">Hard sell – konkretna oferta i termin</option>
+            <option value="lead">Lead – kontakt, formularz, materiał</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>O czym jest ten kąt <span class="sub">(trafia do promptu API i do sekcji hooków)</span></label>
+        <textarea id="a_note" rows="2" placeholder="np. Wejście od kosztu alternatywy: ile klient płaci dziś za brak tego rozwiązania."></textarea>
+      </div>
+      <div class="field">
+        <label>Hipoteza testu <span class="sub">(co dokładnie porównujesz w A/B)</span></label>
+        <textarea id="a_hyp" rows="2" placeholder="np. Test: czy framing kosztu podnosi CTR przy tej samej cenie."></textarea>
+      </div>
+      <p class="hint">Własne kąty są dodawane na początek listy wariantów (twoje kreacje startują pierwsze), a silnik lokalny używa wybranego banku hooków i stylu CTA.</p>
+    </div>
+    <footer>
+      <button class="btn danger" id="btnAngleDelete">🗑 Usuń</button>
+      <button class="btn ghost" id="btnAngleCancel">Anuluj</button>
+      <button class="btn primary" id="btnAngleSave">Zapisz kąt</button>
+    </footer>
   </div>
 </div>
 
@@ -1917,10 +2007,11 @@ const LS = {
   settings:'tiktok_pro_settings_v1',
   draft:'tiktok_pro_draft_v1',
   history:'tiktok_pro_history_v1',
-  presets:'tiktok_pro_presets_v1'
+  presets:'tiktok_pro_presets_v1',
+  angles:'tiktok_pro_angles_v1'
 };
 const STORAGE_LIMIT = 4.4 * 1024 * 1024;    // bezpieczny limit (przeglądarki dają ~5 MB)
-const NUM_KEYS = { [LS.history]:true, [LS.presets]:true };
+const NUM_KEYS = { [LS.history]:true, [LS.presets]:true, [LS.angles]:true };
 
 /** Szacowany rozmiar danych w localStorage (bajty, przybliżenie UTF-16 → 2 B/znak). */
 function approxSize(keys){
@@ -1967,7 +2058,7 @@ const store = {
 
 /** Przycina tablice w localStorage, dopóki całość nie zmieści się w limicie. */
 function pruneStorage(preferredKey){
-  const order = [preferredKey, LS.history, LS.presets].filter((k, i, a) => k && a.indexOf(k) === i);
+  const order = [preferredKey, LS.history, LS.presets, LS.angles].filter((k, i, a) => k && a.indexOf(k) === i);
   order.forEach(k => {
     if(!NUM_KEYS[k]) return;
     let arr = store.get(k, []);
@@ -2225,6 +2316,154 @@ function bindPresets(){
   });
 }
 
+/* ------------------ WŁASNE KĄTY REKLAMOWE ------------------ */
+/** Etykiety banków hooków (spójne z ANGLES i bankami treści). */
+const HOOK_STYLES = [
+  { id:'pain', label:'Problem / ból odbiorcy' },
+  { id:'pov', label:'POV / „to o mnie”' },
+  { id:'proof', label:'Dowód społeczny / opinie' },
+  { id:'myth', label:'Myth busting / „przestań”' },
+  { id:'list', label:'Lista / „3 powody”' },
+  { id:'demo', label:'Demo / jak to działa' },
+  { id:'challenge', label:'Test / wyzwanie (7 dni)' },
+  { id:'bts', label:'Kulisy / behind the scenes' },
+  { id:'price', label:'Cena / wartość za efekt' },
+  { id:'founder', label:'Historia założyciela' },
+  { id:'objection', label:'Obiekcja wprost' },
+  { id:'season', label:'Moment / sezonowość' }
+];
+function hookStyleLabel(id){ const h = HOOK_STYLES.find(x => x.id === id); return h ? h.label : 'Problem / ból odbiorcy'; }
+
+function getAngles(){ const a = store.get(LS.angles, []); return Array.isArray(a) ? a : []; }
+function saveAngles(list){ return store.set(LS.angles, list); }
+let angleEditId = null;
+
+/** Otwiera edytor własnego kąta (nowy lub edycja). */
+function openAngleEditor(angle){
+  const A = angle || { id:'na_' + Date.now(), label:'', hookStyle:'pain', ctaStyle:'', angleNote:'', hypothesis:'' };
+  angleEditId = A.id;
+  const set = (id, v) => { document.getElementById(id).value = v == null ? '' : v; };
+  set('a_label', A.label);
+  set('a_hook', A.hookStyle || 'pain');
+  set('a_cta', A.ctaStyle || '');
+  set('a_note', A.angleNote || '');
+  set('a_hyp', A.hypothesis || '');
+  document.getElementById('angleTitle').textContent = getAngles().some(x => x.id === A.id) ? 'Edytuj kąt reklamowy' : 'Nowy własny kąt reklamowy';
+  document.getElementById('modalAngle').classList.add('open');
+}
+
+/** Zapisuje kąt z formularza (z uzupełnieniem sensownych domyślnych). */
+function saveAngleFromEditor(){
+  const g = id => (document.getElementById(id).value || '').trim();
+  const label = g('a_label');
+  if(!label){ toast('Nadaj nazwę kątowi – inaczej nie odróżnisz go w wynikach','warn'); return; }
+  const hookStyle = g('a_hook') || 'pain';
+  const A = {
+    id: angleEditId || ('na_' + Date.now()),
+    label,
+    hookStyle,
+    ctaStyle: g('a_cta'),
+    angleNote: g('a_note') || `Kąt własny: ${label}. Styl wejścia: ${hookStyleLabel(hookStyle)}.`,
+    hypothesis: g('a_hyp') || `Test: czy kąt „${label}” daje wyższy hook rate 3 s niż pozostałe warianty przy tej samej ofercie.`,
+    custom:true
+  };
+  const list = getAngles();
+  const idx = list.findIndex(x => x.id === A.id);
+  if(idx >= 0) list[idx] = A; else list.unshift(A);
+  if(!saveAngles(list)){ toast('Nie udało się zapisać kąta (pamięć pełna)','err'); return; }
+  document.getElementById('modalAngle').classList.remove('open');
+  renderAngles(); renderStorage();
+  toast('Kąt zapisany: ' + A.label + ' – zostanie użyty w najbliższej generacji','ok', 5000);
+}
+
+/** Lista własnych kątów w Ustawieniach. */
+function renderAngles(){
+  const box = document.getElementById('angleList');
+  const list = getAngles();
+  if(!list.length){
+    box.innerHTML = '<p class="hint">Brak własnych kątów. Kąt to sposób wejścia w temat wariantu (np. „koszt alternatywy”, „obiekcja wprost”). Własne kąty trafiają na początek listy wariantów, więc Twoje kreacje testują się jako pierwsze. Kliknij „➕ Nowy kąt”, żeby dodać własny.</p>';
+    return;
+  }
+  box.innerHTML = list.map(a => `
+    <div class="preset-row" data-id="${esc(a.id)}">
+      <div>
+        <div class="t">${esc(a.label)} ${a.ctaStyle ? `<span class="chip">CTA: ${esc(a.ctaStyle)}</span>` : ''}</div>
+        <div class="k">${esc(hookStyleLabel(a.hookStyle))} · ${esc(short(a.hypothesis || '', 84))}</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn mini" data-aact="edit">✎ Edytuj</button>
+        <button class="btn mini" data-aact="dup">⧉ Duplikuj</button>
+        <button class="btn mini" data-aact="export">⬇</button>
+        <button class="btn mini danger" data-aact="del">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+/** Obsługa akcji na liście własnych kątów. */
+function bindAngles(){
+  document.getElementById('angleList').addEventListener('click', e => {
+    const btn = e.target.closest('[data-aact]'); if(!btn) return;
+    const id = btn.closest('.preset-row').dataset.id;
+    const list = getAngles(); const A = list.find(x => x.id === id); if(!A) return;
+    const act = btn.dataset.aact;
+    if(act === 'edit') openAngleEditor(A);
+    if(act === 'dup'){
+      const copy = JSON.parse(JSON.stringify(A));
+      copy.id = 'na_' + Date.now();
+      copy.label = A.label + ' (kopia)';
+      list.unshift(copy); saveAngles(list); renderAngles();
+      toast('Kąt zduplikowany','ok');
+    }
+    if(act === 'export'){
+      download(safeName(A.label) + '-kat.json', JSON.stringify({ app:'Automat do Reklam TikTok – PRO', type:'custom-angle', angle:A }, null, 2), 'application/json');
+    }
+    if(act === 'del'){
+      if(!confirm('Usunąć kąt „' + A.label + '”?')) return;
+      saveAngles(list.filter(x => x.id !== id)); renderAngles(); renderStorage();
+      toast('Kąt usunięty','info');
+    }
+  });
+
+  document.getElementById('btnAngleNew').addEventListener('click', () => openAngleEditor(null));
+  document.getElementById('btnAngleSave').addEventListener('click', saveAngleFromEditor);
+  document.getElementById('btnAngleCancel').addEventListener('click', () => document.getElementById('modalAngle').classList.remove('open'));
+  document.getElementById('btnCloseAngle').addEventListener('click', () => document.getElementById('modalAngle').classList.remove('open'));
+  document.getElementById('btnAngleDelete').addEventListener('click', () => {
+    if(!angleEditId) return;
+    if(!confirm('Usunąć ten kąt?')) return;
+    saveAngles(getAngles().filter(x => x.id !== angleEditId));
+    document.getElementById('modalAngle').classList.remove('open');
+    renderAngles(); renderStorage(); toast('Kąt usunięty','info');
+  });
+  document.getElementById('btnAngleExport').addEventListener('click', () => {
+    const list = getAngles();
+    if(!list.length){ toast('Brak własnych kątów do eksportu','warn'); return; }
+    download('wlasne-katy.json', JSON.stringify({ app:'Automat do Reklam TikTok – PRO', type:'custom-angle-pack', angles:list }, null, 2), 'application/json');
+  });
+  document.getElementById('btnAngleImport').addEventListener('click', () => document.getElementById('fileAngleImport').click());
+  document.getElementById('fileAngleImport').addEventListener('change', e => {
+    const f = e.target.files[0]; if(!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{
+        const data = JSON.parse(rd.result);
+        const incoming = data.angles || (data.angle ? [data.angle] : (Array.isArray(data) ? data : []));
+        if(!incoming.length) throw new Error('Plik nie zawiera kątów.');
+        const list = getAngles();
+        let added = 0;
+        incoming.forEach(A => {
+          if(!A || !A.label) return;
+          A.id = 'na_' + Date.now() + '_' + Math.floor(Math.random() * 999);
+          A.custom = true; list.unshift(A); added++;
+        });
+        saveAngles(list); renderAngles(); renderStorage();
+        toast('Zaimportowano kąty: ' + added, 'ok');
+      }catch(err){ toast('Import nieudany: ' + err.message, 'err', 6000); }
+    };
+    rd.readAsText(f); e.target.value = '';
+  });
+}
+
 /** Uzupełnia pola „extra" z presetu (korzyści, dowody, hashtagi, KPI, disclaimery). */
 function syncExtraFieldsFromPreset(P){
   const set = (id, v) => { const el = document.getElementById(id); if(el && v) el.value = v; };
@@ -2263,9 +2502,10 @@ function buildVars(brief, niche){
 
 /** Dobór kątów A/B w zależności od strategii (kolejność = priorytet testów). */
 function pickAngles(strategyId, count, forceId){
+  const custom = getAngles();
   // Wymuszony kąt (regeneracja jednej sekcji / duplikat wariantu)
   if(forceId){
-    const forced = ANGLES.find(a => a.id === forceId);
+    const forced = custom.find(a => a.id === forceId) || ANGLES.find(a => a.id === forceId);
     if(forced) return [forced];
   }
   const prefer = {
@@ -2277,7 +2517,8 @@ function pickAngles(strategyId, count, forceId){
   }[strategyId] || ANGLES.map(a => a.id);
   const ordered = prefer.map(id => ANGLES.find(a => a.id === id)).filter(Boolean);
   ANGLES.forEach(a => { if(!prefer.includes(a.id)) ordered.push(a); });
-  return ordered.slice(0, count);
+  // Własne kąty użytkownika startują pierwsze – po to zostały utworzone
+  return custom.concat(ordered).slice(0, count);
 }
 
 /** Awaryjna lista, jeśli kąt bez banku hooków (np. 'story'). */
@@ -2318,7 +2559,9 @@ function generateLocalPackage(brief){
     VV.BENEFIT3 = ben[(i + 2) % ben.length];
 
     /* ---- HOOKI (3 propozycje + rekomendacja) ---- */
-    const hookPool = hooksFor(angle.id, bank).slice();
+    // kąt własny definiuje bank hooków przez hookStyle; wbudowany – przez własne id
+    const hookKey = angle.hookStyle || angle.id;
+    const hookPool = hooksFor(hookKey, bank).slice();
     // dokładamy lokalne wersje językowe, jeśli dostępne
     if(L && lang !== 'pl' && lang !== 'en') L.hook.forEach(h => hookPool.push(h + ' — ' + fill('{PRODUKT}', VV)));
     let hookLines = [];
@@ -2376,7 +2619,7 @@ function generateLocalPackage(brief){
       else if(purpose === 'cta'){
         // w 7 s mówimy wyłącznie krótkie CTA, w dłuższych formatach dokładamy zdanie z banku CTA
         const ctaLine = fitPick('cta');
-        const ctaTail = pick(bank.ctaBank[ctaBankKey(strategy, brief)], 'ctab' + i);
+        const ctaTail = pick(bank.ctaBank[ctaBankKey(strategy, brief, angle)], 'ctab' + i);
         body = length <= 30 ? ctaLine : (ctaLine + ' ' + ctaTail);
       }
       else if(purpose === 'close'){ body = fitPick('close'); }
@@ -2396,7 +2639,7 @@ function generateLocalPackage(brief){
     const totalWords = timeline.reduce((a, t) => a + String(t.text).split(/\s+/).filter(Boolean).length, 0);
     const wordBudget = Math.round(length * 2.6);
     const scriptTxt = scriptBlocks.join('\n\n') +
-      `\n\nDLACZEGO TAK: ${pick(bank.lens[angle.id] ? [bank.lens[angle.id]] : [bank.lens.pain], 'lens' + i)}` +
+      `\n\nDLACZEGO TAK: ${pick(bank.lens[hookKey] ? [bank.lens[hookKey]] : [bank.lens.pain], 'lens' + i)}` +
       `\nTempo: ${tempoHint(brief.style, length, brief.punch)}` +
       `\nBUDŻET SŁÓW: ${totalWords} słów w scenariuszu / ok. ${wordBudget} słów mieści się w ${length} s mowy (2,6 słowa/s). ` +
       (totalWords > wordBudget * 1.15
@@ -2457,8 +2700,8 @@ Tekst na ekranie: ${fill(pick(bank.overlay.proof, 'ovb' + ti + i), VV)}`);
     const subsTxt = subs.join('\n\n') + '\n\nFORMAT: gotowy do wklejenia jako SRT (zapisz jako .srt). Rozmiar napisów: duży, jedna linia, maks. 2 wiersze, bez emoji w napisach.';
 
     /* ---- CTA ---- */
-    const ctaMain = pick(bank.ctaBank[ctaBankKey(strategy, brief)], 'ctam' + i);
-    const ctaAlt = pick(bank.ctaBank[ctaBankKey(strategy, brief) === 'hard' ? 'soft' : 'hard'], 'ctaa' + i);
+    const ctaMain = pick(bank.ctaBank[ctaBankKey(strategy, brief, angle)], 'ctam' + i);
+    const ctaAlt = pick(bank.ctaBank[ctaBankKey(strategy, brief, angle) === 'hard' ? 'soft' : 'hard'], 'ctaa' + i);
     const ctaTxt = `CTA GŁÓWNE (na końcu wideo, na wizji):\n${fill(ctaMain, VV)}\n\nCTA ALTERNATYWNE (test B):\n${fill(ctaAlt, VV)}\n\nCTA W KOMENTARZU (przypięty komentarz):\n${(L && L.cta ? L.cta[0] : fill(bank.ctaBank.comment[0], VV))}\n\nMIKRO-CTA NA ŚRODKU WIDEO (dla watch time):\n„Trzymaj do końca – na końcu pokazuję warunki i cenę.”\n\nZASADA: maks. jedno CTA na ujęcie, maks. 3 sekundy na wypowiedzenie, CTA mówione i pokazane jednocześnie.`;
 
     /* ---- OPIS + HASHTAGI ---- */
@@ -2538,11 +2781,12 @@ Tekst na ekranie: ${fill(pick(bank.overlay.proof, 'ovb' + ti + i), VV)}`);
   return project;
 }
 
-/** Dobór banku CTA: sellMode użytkownika wygrywa, potem strategia. */
-function ctaBankKey(strategy, brief){
+/** Dobór banku CTA: sellMode z briefu > styl CTA kąta > strategia. */
+function ctaBankKey(strategy, brief, angle){
   const m = brief.sellMode;
   if(m === 'soft') return 'soft';
   if(m === 'hard') return 'hard';
+  if(angle && angle.ctaStyle) return angle.ctaStyle;
   if(strategy.ctaStyle === 'lead') return 'lead';
   if(strategy.ctaStyle === 'soft') return 'soft';
   return 'hard';
@@ -2923,6 +3167,216 @@ function parseSingleBlock(text, brief){
 }
 
 /* ============================================================================
+   G2. TRACKER WYNIKÓW – domknięcie pętli A/B (dane użytkownika → zwycięzca)
+   ========================================================================== */
+const TRACK_METRICS = [
+  { id:'hook', label:'Hook rate 3 s (%)',  higher:true,  field:'hook' },
+  { id:'ctr',  label:'CTR (%)',            higher:true,  field:'ctr' },
+  { id:'cvr',  label:'CVR (%)',            higher:true,  field:'cvr' },
+  { id:'cpa',  label:'CPA – niżej = lepiej', higher:false, field:'cpa' }
+];
+/** Liczba z pola tekstowego (obsługa przecinka dziesiętnego). */
+function numVal(v){
+  if(v == null || v === '') return null;
+  const n = parseFloat(String(v).replace(',', '.'));
+  return isFinite(n) ? n : null;
+}
+/** Struktura wyników w projekcie (tworzona w razie potrzeby). */
+function ensureResults(project){
+  if(!project.results) project.results = { metric:'ctr', rows:{}, winner:null, computedAt:null };
+  project.results.rows = project.results.rows || {};
+  return project.results;
+}
+
+/** Przelicza wyniki: kliknięcia, konwersje, CPA i wyłania zwycięzcę. */
+function computeResults(project){
+  const R = ensureResults(project);
+  const metricDef = TRACK_METRICS.find(m => m.id === R.metric) || TRACK_METRICS[1];
+  const rows = project.variants.map(v => {
+    const r = R.rows[v.label] || {};
+    const views = numVal(r.views), hook = numVal(r.hook), ctr = numVal(r.ctr), cvr = numVal(r.cvr), spend = numVal(r.spend);
+    const clicks = (views != null && ctr != null) ? views * ctr / 100 : null;
+    const conv = (clicks != null && cvr != null) ? clicks * cvr / 100 : null;
+    const cpaDirect = numVal(r.cpa);
+    const cpa = cpaDirect != null ? cpaDirect : ((conv != null && spend != null && conv > 0) ? spend / conv : null);
+    return { label:v.label, angle:v.angle, views, hook, ctr, cvr, spend, clicks, conv, cpa, enough:(views != null && views >= 2000) };
+  });
+  const scored = rows.filter(x => x.views != null && x[metricDef.id] != null);
+  // Próg decyzyjny 2 000 wyświetleń: na małej próbie wynik jest szumem, nie sygnałem
+  const eligible = scored.filter(x => x.enough);
+  const pool = eligible.length ? eligible : scored;
+  let winner = null;
+  if(pool.length){
+    winner = pool.reduce((a, b) => metricDef.higher ? (b[metricDef.id] > a[metricDef.id] ? b : a) : (b[metricDef.id] < a[metricDef.id] ? b : a));
+  }
+  return {
+    rows, winner, metric:metricDef,
+    anyData: rows.some(r => r.views != null),
+    poolFromEnough: eligible.length > 0,
+    belowThreshold: rows.filter(r => r.views != null && !r.enough).map(r => r.label)
+  };
+}
+
+/** Format liczby do UI (polski przecinek, zaokrąglenia). */
+function fnum(n, dec){
+  if(n == null) return '–';
+  const d = dec == null ? (Math.abs(n) >= 100 ? 0 : 2) : dec;
+  return n.toFixed(d).replace('.', ',');
+}
+
+/** HTML podsumowania wyników (zwycięzca + kolejny krok). */
+function trackerSummaryHtml(project){
+  const R = ensureResults(project);
+  const res = computeResults(project);
+  if(!res.anyData){
+    return '<p class="hint" style="margin-top:11px">Brak wpisanych danych. Uzupełnij przynajmniej kolumnę „Wyświetlenia” i jedną metrykę, którą oceniasz.</p>';
+  }
+  const below = res.belowThreshold || [];
+  const lines = [];
+  if(res.winner && !res.poolFromEnough){
+    lines.push('<div class="hd warn">⚠ Wynik wstępny – wszystkie warianty poniżej progu 2 000 wyświetleń</div>');
+  }
+  if(res.winner){
+    const w = res.winner;
+    lines.push(`<div class="hd">🏆 Zwycięzca: <span class="ok">Wariant ${esc(w.label)}</span> — ${esc(short(w.angle, 60))}</div>`);
+    lines.push(`Metryka decyzyjna: <b>${esc(res.metric.label)}</b> → ${esc(fnum(w[res.metric.id]))} przy ${esc(fnum(w.views, 0))} wyświetleniach.`);
+    if(w.clicks != null) lines.push(`Szacowane kliknięcia: <b>${esc(fnum(w.clicks, 0))}</b>${w.conv != null ? `, konwersje: <b>${esc(fnum(w.conv, 1))}</b>` : ''}${w.cpa != null ? `, CPA: <b>${esc(fnum(w.cpa))} zł</b>` : ''}.`);
+    lines.push('<b>Kolejny krok:</b><ul>' +
+      `<li>Przenieś hook zwycięzcy (wariant ${esc(w.label)}) do nowej kreacji i przetestuj na nim nowe CTA – jedna zmiana naraz.</li>` +
+      '<li>Zwiększ budżet zwycięzcy o 20–30% dziennie, nie skokowo – większe skoki resetują fazę uczenia.</li>' +
+      '<li>Odstaw najsłabszy wariant do 20% budżetu jako kontrolę – sezonowość potrafi odwrócić wyniki.</li>' +
+      '</ul>');
+  } else {
+    lines.push('<div class="hd warn">Za mało danych, by wyłonić zwycięzcę</div>');
+    lines.push('Uzupełnij wyświetlenia i metrykę decyzyjną dla co najmniej jednego wariantu.');
+  }
+  if(below.length){
+    lines.push(`<span class="warn">Warianty poniżej progu 2 000 wyświetleń: ${esc(below.join(', '))}</span> – nie wyłączaj ich jeszcze, wynik może się zmienić.`);
+  }
+  lines.push(`<span class="hint">Przeliczono: ${esc(new Date(R.computedAt || Date.now()).toLocaleString('pl-PL'))}. Dane zostają w tym projekcie (localStorage).</span>`);
+  return `<div class="track-sum">${lines.join('<br>')}</div>`;
+}
+
+/** Panel trackera w widoku wyników. */
+function renderTracker(project){
+  const R = ensureResults(project);
+  const body = project.variants.map(v => {
+    const r = R.rows[v.label] || {};
+    const inp = (field, ph) => `<input type="number" min="0" step="any" data-tfield="${field}" data-tvar="${esc(v.label)}" value="${r[field] != null ? esc(r[field]) : ''}" placeholder="${ph}">`;
+    return `<tr data-trow="${esc(v.label)}"${R.winner === v.label ? ' class="win"' : ''}>
+      <td><b>${esc(v.label)}</b><div class="hint">${esc(short(v.angle, 28))}</div></td>
+      <td>${inp('views','0')}</td>
+      <td>${inp('hook','0')}</td>
+      <td>${inp('ctr','0')}</td>
+      <td>${inp('cvr','0')}</td>
+      <td>${inp('spend','0')}</td>
+      <td class="calc" data-tcalc="${esc(v.label)}">–</td>
+    </tr>`;
+  }).join('');
+  return `<div class="panel" style="margin-bottom:18px" id="trackerPanel">
+    <div class="head">
+      <h2>📊 Wyniki testu – wpisz swoje dane z Menedżera reklam</h2>
+      <div class="btn-row">
+        <select id="trackMetric" title="Metryka decydująca o zwycięzcy">
+          ${TRACK_METRICS.map(m => `<option value="${m.id}"${R.metric === m.id ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}
+        </select>
+        <button class="btn sm primary" data-tact="compute">🏆 Wyłoń zwycięzcę</button>
+        <button class="btn sm" data-tact="csv">⬇ Raport CSV</button>
+        <button class="btn sm" data-tact="reset">Wyczyść dane</button>
+      </div>
+    </div>
+    <div class="body">
+      <p class="hint">Dane zostają w Twojej przeglądarce (localStorage, razem z projektem). Kolumny: wyświetlenia · hook rate 3 s % · CTR % · CVR % · budżet w zł. Kliknięcia, konwersje i CPA liczone są automatycznie z CTR i CVR.</p>
+      <div class="track-scroll"><table class="track-table">
+        <thead><tr><th>Wariant</th><th>Wyświetlenia</th><th>Hook 3 s %</th><th>CTR %</th><th>CVR %</th><th>Budżet zł</th><th>Wynik</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table></div>
+      <div id="trackSummary">${R.computedAt || Object.keys(R.rows).length ? trackerSummaryHtml(project) : '<p class="hint" style="margin-top:11px">Wpisz dane i kliknij „🏆 Wyłoń zwycięzcę”, żeby zobaczyć rekomendację i kolejny krok.</p>'}</div>
+    </div>
+  </div>`;
+}
+
+/** Żywa kalkulacja w wierszu (bez pełnego re-renderu). */
+function updateRowCalc(label){
+  if(!currentProject) return;
+  const res = computeResults(currentProject);
+  const row = res.rows.find(r => r.label === label);
+  const cell = document.querySelector(`[data-tcalc="${label}"]`);
+  if(!row || !cell) return;
+  const parts = [];
+  if(row.clicks != null) parts.push('klik ' + fnum(row.clicks, 0));
+  if(row.conv != null) parts.push('konw ' + fnum(row.conv, 1));
+  if(row.cpa != null) parts.push('CPA ' + fnum(row.cpa) + ' zł');
+  cell.textContent = parts.length ? parts.join(' · ') : '–';
+}
+
+/** Przeliczenie wyników i zapis zwycięzcy w projekcie. */
+function applyTrackerCompute(){
+  if(!currentProject) return;
+  const R = ensureResults(currentProject);
+  const res = computeResults(currentProject);
+  R.winner = res.winner ? res.winner.label : null;
+  R.computedAt = new Date().toISOString();
+  renderProject(currentProject);        // odświeża chip zwycięzcy, wiersz i podsumowanie
+  saveToHistory(currentProject); saveDraft(currentProject);
+  toast(res.winner ? 'Zwycięzca: wariant ' + res.winner.label + ' (' + res.metric.label + ')' : 'Za mało danych do wyłonienia zwycięzcy',
+        res.winner ? 'ok' : 'warn', 5000);
+  log('Wyniki przeliczone. ' + (res.winner ? `Zwycięzca: wariant ${res.winner.label} – ${res.metric.label}: ${fnum(res.winner[res.metric.id])}` : 'Brak wystarczających danych.'), 'ok');
+}
+
+/** Obsługa panelu trackera (delegacja, podpinana raz). */
+function bindTracker(){
+  if(bindTracker.bound) return;
+  bindTracker.bound = true;
+  const area = document.getElementById('resultsArea');
+  area.addEventListener('input', e => {
+    const inp = e.target.closest ? e.target.closest('[data-tfield]') : null;
+    if(!inp || !currentProject) return;
+    const R = ensureResults(currentProject);
+    const label = inp.dataset.tvar, field = inp.dataset.tfield;
+    R.rows[label] = R.rows[label] || {};
+    R.rows[label][field] = inp.value;
+    updateRowCalc(label);
+    scheduleAutosave();
+  });
+  area.addEventListener('change', e => {
+    if(e.target && e.target.id === 'trackMetric' && currentProject){
+      ensureResults(currentProject).metric = e.target.value;
+      saveDraft(currentProject);
+      if(ensureResults(currentProject).computedAt) applyTrackerCompute();
+    }
+  });
+  area.addEventListener('click', e => {
+    const btn = e.target.closest ? e.target.closest('[data-tact]') : null;
+    if(!btn || !currentProject) return;
+    const act = btn.dataset.tact;
+    if(act === 'compute') applyTrackerCompute();
+    if(act === 'csv') download(safeName(currentProject.name) + '-wyniki-testu.csv', resultsToCsv(currentProject), 'text/csv;charset=utf-8');
+    if(act === 'reset'){
+      if(!confirm('Wyczyścić wpisane wyniki testu?')) return;
+      currentProject.results = { metric:ensureResults(currentProject).metric, rows:{}, winner:null, computedAt:null };
+      renderProject(currentProject); saveDraft(currentProject); saveToHistory(currentProject);
+      toast('Wyniki wyczyszczone','info');
+    }
+  });
+}
+
+/** Raport CSV z wyników testu (jeden wiersz = jeden wariant). */
+function resultsToCsv(project){
+  const res = computeResults(project);
+  const head = ['Kampania','Wariant','Kąt','Wyświetlenia','Hook 3s %','CTR %','CVR %','Budżet zł','Kliknięcia','Konwersje','CPA zł','Zwycięzca'];
+  const rows = res.rows.map(r => [
+    project.name || '', r.label, r.angle || '',
+    r.views == null ? '' : r.views, r.hook == null ? '' : r.hook, r.ctr == null ? '' : r.ctr,
+    r.cvr == null ? '' : r.cvr, r.spend == null ? '' : r.spend,
+    r.clicks == null ? '' : r.clicks.toFixed(0), r.conv == null ? '' : r.conv.toFixed(1),
+    r.cpa == null ? '' : r.cpa.toFixed(2),
+    (ensureResults(project).winner === r.label ? 'TAK' : '')
+  ]);
+  return [head].concat(rows).map(r => r.map(csvEscape).join(';')).join('\r\n');
+}
+
+/* ============================================================================
    J. ZGODNOŚĆ Z POLITYKAMI – skaner ryzykownych fraz + auto-fix
    ========================================================================== */
 const RISKY_RULES = [
@@ -3044,6 +3498,7 @@ function renderProject(project){
           <span class="chip">${esc(String(b.length || ''))} s</span>
           <span class="chip">${esc(b.sellMode === 'soft' ? 'soft sell' : b.sellMode === 'hard' ? 'hard sell' : 'auto')}</span>
           <span class="chip pink">${esc(project.strategyLabel)}</span>
+          ${(project.results && project.results.winner === v.label) ? '<span class="chip win">🏆 Zwycięzca testu</span>' : ''}
           <button class="btn mini" data-act="open-story">🎬 Storyboard</button>
           <button class="btn mini" data-act="copy-var">⧉ Cały wariant</button>
           <button class="btn mini" data-act="regen-var">↻ Wszystkie sekcje</button>
@@ -3091,8 +3546,9 @@ function renderProject(project){
       </div>
     </div>`;
 
-  area.innerHTML = cards + cmpHtml + extras;
+  area.innerHTML = cards + cmpHtml + renderTracker(project) + extras;
   bindResultActions();   // funkcja sama pilnuje, by listener podpiąć tylko raz
+  bindTracker();         // jak wyżej – delegacja podpinana jednorazowo
 }
 
 /** Ikona sekcji. */
@@ -3312,6 +3768,16 @@ function projectToTxt(p){
   L.push('');
   L.push('--- CHECKLISTA PUBLIKACJI ---'); L.push(p.checklist || '');
   L.push('');
+  L.push('--- WYNIKI TESTU (dane użytkownika) ---');
+  if(p.results && Object.keys(p.results.rows || {}).length){
+    const res = computeResults(p);
+    res.rows.forEach(r => L.push(`Wariant ${r.label} (${r.angle || ''}): wyświetlenia ${r.views == null ? '–' : r.views}, hook 3s ${r.hook == null ? '–' : r.hook}%, CTR ${r.ctr == null ? '–' : r.ctr}%, CVR ${r.cvr == null ? '–' : r.cvr}%, budżet ${r.spend == null ? '–' : r.spend} zł, CPA ${r.cpa == null ? '–' : r.cpa.toFixed(2)} zł${p.results.winner === r.label ? '  << ZWYCIĘZCA' : ''}`));
+    if(res.winner) L.push(`ZWYCIĘZCA: Wariant ${res.winner.label} (${res.metric.label})`);
+    else L.push('ZWYCIĘZCA: brak wystarczających danych');
+  } else {
+    L.push('(brak wpisanych wyników)');
+  }
+  L.push('');
   L.push('--- DISCLAIMERY ---'); (p.disclaimers || []).forEach(d => L.push('• ' + d));
   L.push('');
   L.push('Wygenerowano w aplikacji „Automat do Reklam TikTok – PRO”. Treści przed publikacją sprawdź pod kątem zgodności z politykami TikToka.');
@@ -3359,6 +3825,19 @@ function projectToMd(p){
   L.push(p.checklist || '');
   L.push('```');
   L.push('');
+  L.push('## Wyniki testu');
+  L.push('');
+  if(p.results && Object.keys(p.results.rows || {}).length){
+    const res = computeResults(p);
+    L.push('| Wariant | Wyświetlenia | Hook 3s % | CTR % | CVR % | Budżet zł | CPA zł | Zwycięzca |');
+    L.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
+    res.rows.forEach(r => L.push(`| ${r.label} | ${r.views == null ? '–' : r.views} | ${r.hook == null ? '–' : r.hook} | ${r.ctr == null ? '–' : r.ctr} | ${r.cvr == null ? '–' : r.cvr} | ${r.spend == null ? '–' : r.spend} | ${r.cpa == null ? '–' : r.cpa.toFixed(2)} | ${p.results.winner === r.label ? '🏆 TAK' : ''} |`));
+    L.push('');
+    L.push(res.winner ? `**Zwycięzca:** wariant ${res.winner.label} — ${res.metric.label}: ${fnum(res.winner[res.metric.id])}` : '**Zwycięzca:** brak wystarczających danych.');
+  } else {
+    L.push('_Brak wpisanych wyników._');
+  }
+  L.push('');
   L.push('## Disclaimery');
   L.push('');
   (p.disclaimers || []).forEach(d => L.push('- ' + d));
@@ -3401,7 +3880,7 @@ function projectToJson(p, full){
     id:p.id, name:p.name, createdAt:p.createdAt, updatedAt:p.updatedAt,
     engine:p.engine, model:p.model, niche:p.niche, lang:p.lang,
     strategy:p.strategy, strategyLabel:p.strategyLabel, kpis:p.kpis,
-    brief:p.brief, variants:p.variants, abPlan:p.abPlan, checklist:p.checklist,
+    brief:p.brief, variants:p.variants, results:p.results, abPlan:p.abPlan, checklist:p.checklist,
     disclaimers:p.disclaimers, compliance:p.compliance,
     exportedAt:new Date().toISOString()
   }, null, 2);
@@ -3910,6 +4389,7 @@ function renderStorage(){
     ['Brief roboczy (draft)', [LS.draft]],
     ['Historia projektów', [LS.history]],
     ['Własne presety', [LS.presets]],
+    ['Własne kąty reklamowe', [LS.angles]],
     ['Ustawienia + klucz API', [LS.settings]],
     ['RAZEM', null]
   ];
@@ -3919,7 +4399,8 @@ function renderStorage(){
     const pct = keys ? Math.round(size / STORAGE_LIMIT * 100) : Math.round(total / STORAGE_LIMIT * 100);
     return `<tr><td>${esc(label)}</td><td><b>${fmtBytes(size)}</b> <span class="hint">(${pct}% limitu)</span></td></tr>`;
   }).join('') + `<tr><td>Liczba projektów w historii</td><td>${getHistory().length}</td></tr>` +
-  `<tr><td>Liczba własnych presetów</td><td>${getPresets().length}</td></tr>`;
+  `<tr><td>Liczba własnych presetów</td><td>${getPresets().length}</td></tr>` +
+  `<tr><td>Liczba własnych kątów</td><td>${getAngles().length}</td></tr>`;
 }
 
 /** Zawartość kopii zapasowej (klucz API domyślnie pomijany – bezpieczeństwo). */
@@ -3929,8 +4410,8 @@ function workspacePayload(includeKey){
   return {
     app:'Automat do Reklam TikTok – PRO', type:'workspace-backup', version:2,
     exportedAt:new Date().toISOString(),
-    counts:{ history:getHistory().length, presets:getPresets().length, hasDraft: !!store.get(LS.draft, null) },
-    settings:s, draft:store.get(LS.draft, null), history:getHistory(), presets:getPresets()
+    counts:{ history:getHistory().length, presets:getPresets().length, angles:getAngles().length, hasDraft: !!store.get(LS.draft, null) },
+    settings:s, draft:store.get(LS.draft, null), history:getHistory(), presets:getPresets(), angles:getAngles()
   };
 }
 /** Wczytuje kopię workspace. Klucz API zostaje lokalny – nie jest nadpisywany z pliku. */
@@ -3940,9 +4421,10 @@ function applyWorkspace(data){
   settings = Object.assign({}, DEFAULTS, data.settings || {}, { key: keepKey });
   store.set(LS.settings, settings);
   if(Array.isArray(data.presets)) store.set(LS.presets, data.presets);
+  if(Array.isArray(data.angles)) store.set(LS.angles, data.angles);
   if(Array.isArray(data.history)) store.set(LS.history, data.history);
   if(data.draft) store.set(LS.draft, data.draft);
-  return { history:(data.history || []).length, presets:(data.presets || []).length, draft: !!data.draft };
+  return { history:(data.history || []).length, presets:(data.presets || []).length, angles:(data.angles || []).length, draft: !!data.draft };
 }
 
 /* ============================================================================
@@ -4417,6 +4899,7 @@ function bindUI(){
   // partia + presety + pamięć + druk
   bindBatch();
   bindPresets();
+  bindAngles();
   bindStoryboard();
   document.getElementById('batchStrategy').innerHTML =
     '<option value="" selected>Z briefu / strategia z zakładki Kampania</option>' +
@@ -4441,9 +4924,9 @@ function bindUI(){
     rd.onload = () => {
       try{
         const res = applyWorkspace(JSON.parse(rd.result));
-        toast(`Kopia wczytana: ${res.history} projektów, ${res.presets} presetów`, 'ok', 6000);
+        toast(`Kopia wczytana: ${res.history} projektów, ${res.presets} presetów, ${res.angles || 0} kątów`, 'ok', 6000);
         // odświeżenie widoku (w przeglądarce i tak nastąpi przeładowanie strony)
-        syncSettingsUI(); renderPresets(); renderHistory(); renderStorage(); updateBadges();
+        syncSettingsUI(); renderPresets(); renderAngles(); renderHistory(); renderStorage(); updateBadges();
         if(res.draft) restoreDraft();
         try{ location.reload(); }catch(err){}
       }catch(err){ toast('Import nieudany: ' + err.message, 'err', 6000); }
@@ -4487,6 +4970,7 @@ function bindUI(){
     if(e.key === 'Escape'){
       document.getElementById('modalKey').classList.remove('open');
       document.getElementById('modalPreset').classList.remove('open');
+      document.getElementById('modalAngle').classList.remove('open');
       document.getElementById('modalStory').classList.remove('open');
       if(story) story.playing = false;
     }
@@ -4503,6 +4987,7 @@ function bindUI(){
   bindUI();
   renderHistory();
   renderPresets();
+  renderAngles();
   renderStorage();
   restoreDraft();
   log('Aplikacja gotowa. Skróty: Ctrl+Enter (generuj), Ctrl+Shift+L (pakiet lokalny), Ctrl+S (zapisz projekt), Ctrl+K (klucz API).');

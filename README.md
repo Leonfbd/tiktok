@@ -3,6 +3,9 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.2:** kreator własnych kątów reklamowych (bank hooków + styl CTA + hipoteza) oraz tracker wyników testu
+(dane z Menedżera reklam → automatyczny zwycięzca A/B i raport CSV).
+
 **v2.1:** import listy kampanii z CSV/JSON, kopia zapasowa całego workspace, 21 profili branżowych,
 partie generowane asynchronicznie (UI nie zamarza).
 
@@ -97,6 +100,31 @@ Preset dostarcza silnikowi lokalnemu grupę docelową, problem, obietnicę, dowo
 i ma **priorytet nad profilami wbudowanymi** przy takim samym trafieniu słów kluczowych. Presety można edytować,
 usuwać oraz eksportować/importować jako JSON (przenoszenie między komputerami).
 
+## Własne kąty reklamowe
+
+Ustawienia → **🎯 Własne kąty reklamowe**. Kąt to sposób wejścia w temat (np. „koszt alternatywy”, „obiekcja wprost”,
+„sezonowość u mnie”). Dla każdego kąta ustawiasz:
+
+- **bank hooków** – 12 dostępnych stylów (problem, POV, dowód, myth busting, lista, demo, wyzwanie, kulisy, cena, historia, obiekcja, sezon),
+- **styl CTA** – soft sell, hard sell lub lead (albo „auto” = zgodnie ze strategią),
+- **opis kąta** i **hipotezę testu** – trafiają do promptu API i do sekcji A/B.
+
+Własne kąty startują jako **pierwsze warianty** w pakiecie (przed kątami wbudowanymi), więc Twoje pomysły testują się
+najpierw. Kąty można edytować, duplikować, usuwać oraz eksportować/importować jako JSON.
+Jawny wybór „soft/hard sell” w briefie ma pierwszeństwo nad stylem CTA kąta.
+
+## Tracker wyników testu A/B
+
+W zakładce **Wyniki** znajduje się panel **📊 Wyniki testu**: wpisujesz dane z Menedżera reklam
+(wyświetlenia, hook rate 3 s %, CTR %, CVR %, budżet) dla każdego wariantu. Aplikacja:
+
+- liczy kliknięcia, konwersje i CPA (na żywo, w trakcie wpisywania),
+- wyłania zwycięzcę według wybranej metryki (hook rate / CTR / CVR / CPA – dla CPA niżej = lepiej),
+- **pomija warianty poniżej progu 2 000 wyświetleń** przy wyborze zwycięzcy i ostrzega, gdy cała próba jest za mała,
+- pokazuje rekomendację kolejnego kroku (skalowanie budżetu, przeniesienie hooka, wariant kontrolny),
+- oznacza zwycięzcę chipem 🏆 na karcie wariantu i zapisuje wyniki w projekcie (historia, kopia zapasowa),
+- eksportuje **raport CSV** wyników oraz dołącza wyniki do eksportów TXT / MD / JSON.
+
 ## Storyboard 9:16
 
 Przycisk **🎬 Storyboard** przy wariancie otwiera odtwarzacz: ramka 9:16 z overlayem, opisem kadru z shot listy
@@ -137,7 +165,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 181 asercji: jednostkowe (90) + E2E (64) + API (27)
+bash tests/run-all.sh        # 246 asercji: jednostkowe (121) + E2E (98) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.

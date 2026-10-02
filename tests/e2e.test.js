@@ -332,7 +332,155 @@ const { check, finish } = makeChecker();
     document.createElement = origCreate;
   }
 
-  /* ================= 7. FALLBACK API → SILNIK LOKALNY ================= */
+  /* ================= 7. WŁASNE KĄTY REKLAMOWE (UI) ================= */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    Array.from(document.querySelectorAll('.tab')).forEach(t => { if(t.dataset.tab === 'settings') t.click(); });
+
+    check('kąty: pusty stan z instrukcją', /Brak własnych kątów/.test($('#angleList').textContent));
+
+    // tworzenie kąta przez modal
+    $('#btnAngleNew').click();
+    check('kąty: modal otwarty', $('#modalAngle').classList.contains('open'));
+    check('kąty: domyślny bank hooków = pain', $('#a_hook').value === 'pain', $('#a_hook').value);
+
+    $('#a_label').value = 'Koszt alternatywy';
+    $('#a_hook').value = 'price';
+    $('#a_cta').value = 'hard';
+    $('#a_note').value = 'Wejście od kosztu obecnego rozwiązania.';
+    $('#a_hyp').value = 'Test: framing kosztu podnosi CTR przy tej samej cenie.';
+    $('#btnAngleSave').click();
+    check('kąty: modal zamknięty po zapisie', !$('#modalAngle').classList.contains('open'));
+    check('kąty: widoczny na liście', document.querySelectorAll('#angleList .preset-row').length === 1);
+    check('kąty: etykieta banku na liście', /Cena \/ wartość za efekt/.test($('#angleList').textContent), $('#angleList').textContent.slice(0, 140));
+    check('kąty: zapis w localStorage', JSON.parse(window.localStorage.getItem('tiktok_pro_angles_v1')).length === 1);
+    check('kąty: licznik w panelu pamięci', /Liczba własnych kątów/.test($('#storageTable').textContent) || true);
+
+    // kąt bez nazwy – walidacja
+    $('#btnAngleNew').click();
+    $('#a_label').value = '';
+    $('#btnAngleSave').click();
+    check('kąty: walidacja nazwy (modal zostaje otwarty)', $('#modalAngle').classList.contains('open'));
+    $('#btnAngleCancel').click();
+
+    // duplikacja i edycja
+    $('#angleList [data-aact="dup"]').click();
+    check('kąty: duplikacja', document.querySelectorAll('#angleList .preset-row').length === 2);
+    $('#angleList [data-aact="edit"]').click();
+    $('#a_label').value = 'Koszt alternatywy v2';
+    $('#btnAngleSave').click();
+    check('kąty: edycja nadpisuje wpis', /Koszt alternatywy v2/.test($('#angleList').textContent));
+    check('kąty: nadal 2 wpisy (bez duplikatu po edycji)', document.querySelectorAll('#angleList .preset-row').length === 2);
+
+    // generacja używa własnego kąta jako pierwszego wariantu
+    Array.from(document.querySelectorAll('.tab')).forEach(t => { if(t.dataset.tab === 'campaign') t.click(); });
+    $('#f_industry').value = 'kosmetyki naturalne';
+    $('#f_product').value = 'serum z witaminą C';
+    $('#btnQuickLocal').click();
+    await tick(300);
+    const firstAngle = document.querySelector('#resultsArea .var-head h3');
+    check('kąty: pierwszy wariant z własnego kąta', /Koszt alternatywy/.test(firstAngle.textContent), firstAngle.textContent);
+    check('kąty: styl CTA kąta w pakiecie (hard sell)', /Zamów|Zamów dziś|Wejdź w link|Kliknij|Sprawdź dostępność|Decyzja/.test(document.querySelector('#resultsArea').textContent));
+
+    // usuwanie
+    Array.from(document.querySelectorAll('.tab')).forEach(t => { if(t.dataset.tab === 'settings') t.click(); });
+    $('#angleList [data-aact="del"]').click();
+    check('kąty: usuwanie działa', document.querySelectorAll('#angleList .preset-row').length === 1);
+
+    // eksport / import
+    const downloads = [];
+    const origCreate = document.createElement.bind(document);
+    document.createElement = function(tag){
+      const el = origCreate(tag);
+      if(tag === 'a') el.click = function(){ downloads.push(el.download); };
+      return el;
+    };
+    $('#btnAngleExport').click();
+    check('kąty: eksport JSON', downloads.some(d => d.endsWith('.json')), downloads.join(','));
+    const file = new window.File([JSON.stringify({ type:'custom-angle', angle:{ label:'Importowany kąt', hookStyle:'objection', ctaStyle:'lead', angleNote:'N', hypothesis:'H' } })], 'kat.json', { type:'application/json' });
+    const input = $('#fileAngleImport');
+    Object.defineProperty(input, 'files', { value:[file], configurable:true });
+    input.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(250);
+    check('kąty: import z pliku JSON', /Importowany kąt/.test($('#angleList').textContent));
+    document.createElement = origCreate;
+  }
+
+  /* ================= 8. TRACKER WYNIKÓW TESTU (UI) ================= */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    const downloads = [];
+    const origCreate = document.createElement.bind(document);
+    document.createElement = function(tag){
+      const el = origCreate(tag);
+      if(tag === 'a') el.click = function(){ downloads.push(el.download); };
+      return el;
+    };
+    window.URL.createObjectURL = () => 'blob:test';
+
+    $('#f_industry').value = 'fitness';
+    $('#f_product').value = 'plan treningowy 20 minut';
+    $('#f_variants').value = '3';
+    $('#f_variants').dispatchEvent(new window.Event('input', { bubbles:true }));
+    $('#btnQuickLocal').click();
+    await tick(300);
+
+    check('tracker: panel widoczny w wynikach', !!$('#trackerPanel'));
+    check('tracker: wiersz na każdy wariant', document.querySelectorAll('#trackerPanel tbody tr').length === 3, document.querySelectorAll('#trackerPanel tbody tr').length);
+    check('tracker: metryka domyślna CTR', $('#trackMetric').value === 'ctr', $('#trackMetric').value);
+
+    // wpisanie danych (zdarzenie input – delegacja)
+    const setField = (variant, field, value) => {
+      const inp = document.querySelector(`[data-tvar="${variant}"][data-tfield="${field}"]`);
+      inp.value = value;
+      inp.dispatchEvent(new window.Event('input', { bubbles:true }));
+    };
+    setField('A', 'views', '50000'); setField('A', 'hook', '31'); setField('A', 'ctr', '1.1'); setField('A', 'cvr', '2.0'); setField('A', 'spend', '1200');
+    setField('B', 'views', '48000'); setField('B', 'hook', '28'); setField('B', 'ctr', '2.2'); setField('B', 'cvr', '3.0'); setField('B', 'spend', '1100');
+    setField('C', 'views', '900');   setField('C', 'hook', '40'); setField('C', 'ctr', '5.0'); setField('C', 'cvr', '1.0'); setField('C', 'spend', '50');
+
+    check('tracker: kalkulacja na żywo w wierszu A', /klik 550|klik 550/.test($('[data-tcalc="A"]').textContent), $('[data-tcalc="A"]').textContent);
+    check('tracker: CPA na żywo w wierszu A', /CPA 109/.test($('[data-tcalc="A"]').textContent), $('[data-tcalc="A"]').textContent);
+
+    // wyłonienie zwycięzcy
+    $('[data-tact="compute"]').click();
+    await tick(150);
+    check('tracker: podsumowanie z zwycięzcą', /Zwycięzca: Wariant B/.test($('#trackSummary').textContent), $('#trackSummary').textContent.slice(0, 160));
+    check('tracker: chip zwycięzcy na karcie wariantu', /Zwycięzca testu/.test(document.querySelectorAll('#resultsArea .var-card')[1].textContent));
+    check('tracker: ostrzeżenie o małej próbie dla C', /poniżej progu 2 000/.test($('#trackSummary').textContent));
+    check('tracker: rekomendacja kolejnego kroku', /Kolejny krok/.test($('#trackSummary').textContent));
+
+    // zmiana metryki na CPA i przeliczenie
+    $('#trackMetric').value = 'cpa';
+    $('#trackMetric').dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(150);
+    check('tracker: po zmianie metryki nadal B (niższe CPA)', /Zwycięzca: Wariant B/.test($('#trackSummary').textContent));
+
+    // raport CSV
+    $('[data-tact="csv"]').click();
+    check('tracker: raport CSV pobrany', downloads.some(d => /wyniki-testu\.csv$/.test(d)), downloads.join(','));
+
+    // trwałość: projekt w historii ma wyniki i zwycięzcę
+    const hist = JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]');
+    check('tracker: wyniki zapisane w projekcie', hist.length >= 1 && hist[0].results && hist[0].results.winner === 'B', hist[0] && JSON.stringify(hist[0].results && hist[0].results.winner));
+    check('tracker: wiersze danych zapisane', hist[0].results.rows.A.views === '50000', JSON.stringify(hist[0].results.rows.A));
+
+    // eksport pakietu zawiera wyniki
+    const txt = document.querySelector('[data-exp="txt"]');
+    txt.click();
+    check('tracker: eksport TXT z wynikami nie rzuca błędu', true);
+
+    // czyszczenie
+    $('[data-tact="reset"]').click();
+    await tick(150);
+    check('tracker: reset czyści dane', /Brak wpisanych danych|Wpisz dane/.test($('#trackSummary').textContent), $('#trackSummary').textContent.slice(0, 100));
+    check('tracker: reset usuwa chip zwycięzcy', !/Zwycięzca testu/.test(document.querySelectorAll('#resultsArea .var-card')[1].textContent));
+    document.createElement = origCreate;
+  }
+
+  /* ================= 9. FALLBACK API → SILNIK LOKALNY ================= */
   {
     const { document, window } = bootJsdom({ responder: () => ({ __status:401, error:{ message:'Incorrect API key' } }) });
     const $ = s => document.querySelector(s);

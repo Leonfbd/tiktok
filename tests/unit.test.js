@@ -202,7 +202,76 @@ let threw = false;
 try{ A.applyWorkspace({ type:'cos-innego' }); }catch(e){ threw = true; }
 check('przywracanie: odrzuca obcy plik', threw);
 
-/* ---------- 16. Modele rozumujące ---------- */
+/* ---------- 16. Własne kąty reklamowe ---------- */
+A.saveAngles([
+  { id:'na_1', label:'Koszt alternatywy', hookStyle:'price', ctaStyle:'hard',
+    angleNote:'Wejście od kosztu obecnego rozwiązania.', hypothesis:'Test: framing kosztu podnosi CTR.', custom:true },
+  { id:'na_2', label:'Moja obiekcja', hookStyle:'objection', ctaStyle:'soft',
+    angleNote:'Mówimy wprost obiekcję klienta.', hypothesis:'Test: czy obiekcja na wejściu obniża wątpliwości.', custom:true }
+]);
+check('kąty: zapis i odczyt', A.getAngles().length === 2, A.getAngles().length);
+check('kąty: etykiety banków hooków', A.hookStyleLabel('price') === 'Cena / wartość za efekt', A.hookStyleLabel('price'));
+check('kąty: 12 banków hooków w słowniku', A.HOOK_STYLES.length === 12, A.HOOK_STYLES.length);
+
+const anglesPicked = A.pickAngles('performance', 4);
+check('kąty: własne startują pierwsze', anglesPicked[0].label === 'Koszt alternatywy' && anglesPicked[1].label === 'Moja obiekcja', anglesPicked.map(a => a.label).join(' | '));
+check('kąty: dopełnienie wbudowanymi', anglesPicked.length === 4 && anglesPicked[2].id === 'pain', anglesPicked.map(a => a.id).join(','));
+check('kąty: forceId działa dla własnego kąta', A.pickAngles('performance', 3, 'na_2')[0].label === 'Moja obiekcja');
+
+const pAngles = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:2 }));
+check('kąty: wariant A używa własnego kąta', pAngles.variants[0].angleId === 'na_1' && pAngles.variants[0].angle === 'Koszt alternatywy', pAngles.variants[0].angleId);
+check('kąty: hipoteza z definicji kąta', /framing kosztu podnosi CTR/.test(pAngles.variants[0].hypothesis), pAngles.variants[0].hypothesis);
+check('kąty: styl CTA kąta użyty w wariancie A (hard sell)', /Zamów|Zamów dziś|Wejdź w link|Kliknij|Sprawdź dostępność|Decyzja w 30 sekund/.test(pAngles.variants[0].sections.cta.body), pAngles.variants[0].sections.cta.body.slice(0, 220));
+check('kąty: styl CTA kąta B (soft sell)', /Zapisz|Zobacz szczegóły|Obserwuj|Napisz/.test(pAngles.variants[1].sections.cta.body), pAngles.variants[1].sections.cta.body.slice(0, 160));
+check('kąty: bank hooków price → konkret o koszcie', /koszt|płacisz|licz|Cena|zapłacisz|Policz/i.test(pAngles.variants[0].sections.hook.body), pAngles.variants[0].sections.hook.body.slice(0, 160));
+check('kąty: „dlaczego tak” z banku price', /kosztu alternatywy|Framing kosztu/i.test(pAngles.variants[0].sections.script.body), pAngles.variants[0].sections.script.body.slice(-260));
+check('kąty: brief auto (sellMode=auto) respektuje styl kąta', A.generateLocalPackage(Object.assign({}, baseBrief, { variants:1, sellMode:'auto' })).variants[0].angleId === 'na_1');
+const pExplicitSoft = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:1, sellMode:'soft' }));
+check('kąty: jawny sellMode w briefie wygrywa nad stylem kąta', /Zapisz|Zobacz szczegóły|Obserwuj|Napisz/.test(pExplicitSoft.variants[0].sections.cta.body), pExplicitSoft.variants[0].sections.cta.body.slice(0, 160));
+
+/* ---------- 17. Tracker wyników testu ---------- */
+const pTrack = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:3, modules:['hook','ab'] }));
+pTrack.results = { metric:'ctr', rows:{
+  A:{ views:'50000', hook:'31', ctr:'1.1', cvr:'2.0', spend:'1200' },
+  B:{ views:'48000', hook:'28', ctr:'2.2', cvr:'3.0', spend:'1100' },
+  C:{ views:'900',  hook:'40', ctr:'5.0', cvr:'1.0', spend:'50' }
+}, winner:null, computedAt:null };
+const resTrack = A.computeResults(pTrack);
+const rA = resTrack.rows.find(r => r.label === 'A');
+check('tracker: kliknięcia liczone z CTR', Math.round(rA.clicks) === 550, rA.clicks);
+check('tracker: konwersje liczone z CVR', Math.round(rA.conv) === 11, rA.conv);
+check('tracker: CPA z budżetu i konwersji', Math.abs(rA.cpa - 109.09) < 0.5, rA.cpa);
+check('tracker: zwycięzca wg CTR (wyżej = lepiej)', resTrack.winner.label === 'B', resTrack.winner && resTrack.winner.label);
+check('tracker: metryka domyślna to CTR', resTrack.metric.id === 'ctr', resTrack.metric.id);
+pTrack.results.metric = 'cpa';
+const resCpa = A.computeResults(pTrack);
+check('tracker: zwycięzca wg CPA (niżej = lepiej)', resCpa.winner.label === 'B', resCpa.winner && resCpa.winner.label);
+pTrack.results.metric = 'hook';
+const resHook = A.computeResults(pTrack);
+check('tracker: zwycięzca wg hook rate (wśród prób ≥2000 wyśw.),', resHook.winner.label === 'A', resHook.winner && resHook.winner.label);
+check('tracker: wariant C pominięty przy wyborze zwycięzcy (900 wyśw.)', resHook.poolFromEnough === true && resHook.belowThreshold.join(',') === 'C', JSON.stringify(resHook.belowThreshold));
+check('tracker: oznaczenie za małej próby (<2000 wyświetleń)', resHook.rows.find(r => r.label === 'C').enough === false);
+// gdy WSZYSTKIE warianty są poniżej progu – zwycięzca wybierany, ale z ostrzeżeniem
+const pSmall = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:2, modules:['hook'] }));
+pSmall.results = { metric:'ctr', rows:{ A:{ views:'800', ctr:'3.0' }, B:{ views:'600', ctr:'1.5' } }, winner:null, computedAt:null };
+const resSmall = A.computeResults(pSmall);
+check('tracker: brak prób ≥2000 → wynik wstępny z ostrzeżeniem', resSmall.poolFromEnough === false && resSmall.winner.label === 'A', JSON.stringify({ pool:resSmall.poolFromEnough, w:resSmall.winner && resSmall.winner.label }));
+pTrack.results.metric = 'cvr'; pTrack.results.winner = 'B'; pTrack.results.computedAt = new Date().toISOString();
+const csvRes = A.resultsToCsv(pTrack);
+check('tracker: CSV ma nagłówek i 4 wiersze', csvRes.split('\r\n').length === 4 && /Zwycięzca/.test(csvRes.split('\r\n')[0]), csvRes.split('\r\n').length);
+check('tracker: CSV oznacza zwycięzcę', /;TAK/.test(csvRes), csvRes.split('\r\n')[2]);
+check('tracker: TXT zawiera sekcję wyników i zwycięzcę', /WYNIKI TESTU/.test(A.projectToTxt(pTrack)) && /ZWYCIĘZCA: Wariant B/.test(A.projectToTxt(pTrack)));
+check('tracker: MD ma tabelę wyników', /## Wyniki testu/.test(A.projectToMd(pTrack)) && /🏆 TAK/.test(A.projectToMd(pTrack)));
+check('tracker: JSON zawiera wyniki', (() => { try { return !!JSON.parse(A.projectToJson(pTrack, true)).results; } catch(e){ return false; } })());
+
+/* ---------- 18. Kopia zapasowa zawiera własne kąty ---------- */
+const wsAngles = A.workspacePayload(false);
+check('workspace: kąty w kopii', Array.isArray(wsAngles.angles) && wsAngles.angles.length === 2, JSON.stringify(wsAngles.counts));
+A.saveAngles([]);
+const restored = A.applyWorkspace(wsAngles);
+check('workspace: kąty przywrócone', restored.angles === 2 && A.getAngles().length === 2, JSON.stringify(restored));
+
+/* ---------- 19. Modele rozumujące ---------- */
 check('o4-mini rozpoznany jako reasoning', A.isReasoningModel('o4-mini') === true);
 check('gpt-5-mini rozpoznany jako reasoning', A.isReasoningModel('gpt-5-mini') === true);
 check('gpt-4o-mini NIE jest reasoning', A.isReasoningModel('gpt-4o-mini') === false);
