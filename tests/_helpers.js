@@ -68,15 +68,18 @@ function stubEnv(code){
     toList, projectsToCsv, parseBatchLine, approxSize, fmtBytes, storeSet, isReasoningModel, pickAngles,
     getPresets, savePresets, allNiches, GENERIC_NICHE,
     batchListFromCsv, batchListFromJson, csvTemplate, workspacePayload, applyWorkspace,
-    getAngles, saveAngles, computeResults, resultsToCsv, ensureResults, TRACK_METRICS, HOOK_STYLES, hookStyleLabel };`;
+    getAngles, saveAngles, computeResults, resultsToCsv, ensureResults, TRACK_METRICS, HOOK_STYLES, hookStyleLabel,
+    normalizeProject, projectShapeError, scoreVariant, averageScore, scoreClass, APP_VERSION };`;
   eval(code + exports);
   return globalThis.__API;
 }
 
 /** Start aplikacji w jsdom (z zamockowanym fetch, jeśli podano responder). */
 function bootJsdom(opts = {}){
-  const { JSDOM } = require('jsdom');
-  const dom = new JSDOM(HTML(), { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://local.test/' });
+  const { JSDOM, VirtualConsole } = require('jsdom');
+  // Aplikacja loguje diagnostykę przez console.warn – w testach nie chcemy tego szumu
+  const virtualConsole = new VirtualConsole();
+  const dom = new JSDOM(HTML(), { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://local.test/', virtualConsole });
   const { window } = dom;
   const calls = [];
   if(opts.responder){

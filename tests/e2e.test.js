@@ -495,5 +495,128 @@ const { check, finish } = makeChecker();
     check('fallback: silnik lokalny w metadanych', /lokalny/.test($('#projEngine').textContent));
   }
 
+  /* ========== 10. AUDYT v2.3: walidacja importu, cofanie, filtry, ARIA, ocena ========== */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const importJson = async (obj, name) => {
+      const file = new window.File([JSON.stringify(obj)], name || 'projekt.json', { type:'application/json' });
+      const input = $('#fileImport');
+      Object.defineProperty(input, 'files', { value:[file], configurable:true });
+      input.dispatchEvent(new window.Event('change', { bubbles:true }));
+      await tick(220);
+    };
+    const variantA = {
+      label:'A', angle:'Problem → rozwiązanie', hypothesis:'Test hooka',
+      sections:{
+        hook:{ title:'Hooki', body:'HOOK A (0–3 s)\n89 zł za kurs, który robisz w 7 dni\nHOOK B: zanim kupisz kurs, zobacz to' },
+        script:{ title:'Scenariusz', body:'[0–3 s] Hook\n[3–8 s] Problem\nBUDŻET SŁÓW: 40' },
+        cta:{ title:'CTA', body:'Kliknij link w opisie i sprawdź plan' },
+        description:{ title:'Opis', body:'Kurs krok po kroku #kurs #nauka #online #marketing #sprzedaz #pl #kursonline #viral #fyp' }
+      }
+    };
+    const projA = { name:'Kurs gotowania', brief:{ product:'kurs online', industry:'kursy online', length:15 }, variants:[variantA] };
+    const projB = { name:'Krem zimowy', brief:{ product:'krem nawilżający', industry:'kosmetyki', length:15 }, variants:[Object.assign({}, variantA, { label:'B' })] };
+
+    // --- import poprawny + ocena kreacji ---
+    const hist0 = JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]').length;
+    await importJson(projA);
+    check('v2.3 import: projekt wczytany do wyników', /Kurs gotowania/.test($('#projSummary').textContent), $('#projSummary').textContent.slice(0, 80));
+    check('v2.3 import: karty wariantów', $$('#resultsArea .var-card').length === 1);
+    check('v2.3 import: zapis do historii', JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]').length === hist0 + 1);
+    check('v2.3 ocena: box oceny w karcie', !!$('#resultsArea .score-box'));
+    check('v2.3 ocena: wynik 0–100 widoczny', /🎯 \d{1,3}\/100/.test($('.score-box .score-val').textContent), $('.score-box .score-val').textContent);
+    check('v2.3 ocena: chip na karcie', /🎯 Ocena \d{1,3}\/100/.test($('#resultsArea .var-card').textContent));
+    check('v2.3 ocena: średnia w podsumowaniu', /Średnia ocena kreacji/.test($('#projSummary').textContent));
+    check('v2.3 ocena: najsłabszy wariant wskazany', /Najsłabszy wariant/.test($('#projSummary').textContent));
+    const scoreShown = Number(($('.score-box .score-val').textContent.match(/(\d+)\/100/) || [0, 0])[1]);
+    check('v2.3 ocena: sensowna dla dobrego wariantu (>=60)', scoreShown >= 60, String(scoreShown));
+
+    // --- uszkodzone importy nie niszczą widoku ani historii ---
+    const cardsBefore = $$('#resultsArea .var-card').length;
+    const histBefore = JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]').length;
+    await importJson({ name:'Bez wariantów', brief:{} });
+    await importJson({ name:'Zły typ', variants:'nie-tablica' });
+    await importJson({ name:'Puste warianty', variants:[] });
+    await importJson({ name:'Śmieci', variants:[{ label:'X' }, null] });
+    check('v2.3 walidacja: 4 złe pliki nie dodały wpisów do historii', JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]').length === histBefore);
+    check('v2.3 walidacja: widok wyników nietknięty', $$('#resultsArea .var-card').length === cardsBefore && /Kurs gotowania/.test($('#projSummary').textContent));
+    check('v2.3 walidacja: toast z powodem odrzucenia', /Import nieudany/.test($('#toasts').textContent), $('#toasts').textContent.slice(-120));
+
+    // --- cofanie (undo) ---
+    const undoBtn = $('#btnUndo');
+    check('v2.3 undo: brak historii na starcie → przycisk nieaktywny', undoBtn.disabled === true);
+    await importJson(projB);
+    check('v2.3 undo: przycisk aktywny po zmianie projektu', undoBtn.disabled === false, undoBtn.title);
+    check('v2.3 undo: nowy projekt na ekranie', /Krem zimowy/.test($('#projSummary').textContent));
+    undoBtn.click();
+    await tick(120);
+    check('v2.3 undo: przywrócony poprzedni projekt', /Kurs gotowania/.test($('#projSummary').textContent) && !/Krem zimowy/.test($('#projSummary').textContent), $('#projSummary').textContent.slice(0,80));
+    check('v2.3 undo: stos się wyczerpał → przycisk nieaktywny', undoBtn.disabled === true);
+
+    // --- wyszukiwarka i filtr historii ---
+    $$('.tab').forEach(t => { if(t.dataset.tab === 'history') t.click(); });
+    check('v2.3 historia: pole szukania istnieje', !!$('#histSearch') && !!$('#histFilter'));
+    await importJson(projB);
+    $$('.tab').forEach(t => { if(t.dataset.tab === 'history') t.click(); });
+    await tick(60);
+    const histAll = JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]');
+    const histKrem = histAll.filter(p => /krem/i.test([p.name, (p.brief || {}).product, (p.brief || {}).industry].join(' '))).length;
+    check('v2.3 historia: pokazuje wszystkie zapisane projekty', new RegExp('Pokazano ' + histAll.length + ' z ' + histAll.length).test($('#historyList').textContent), $('#historyList').textContent.slice(0, 120));
+    check('v2.3 historia: licznik w nagłówku zgodny', $('#histCount').textContent === String(histAll.length));
+    $('#histSearch').value = 'krem';
+    $('#histSearch').dispatchEvent(new window.Event('input', { bubbles:true }));
+    await tick(60);
+    check('v2.3 historia: szukanie po nazwie/produkcie', new RegExp('Pokazano ' + histKrem + ' z ' + histAll.length).test($('#historyList').textContent), $('#historyList').textContent.slice(0, 120) + ' (oczekiwano ' + histKrem + ' z ' + histAll.length + ')');
+    check('v2.3 historia: filtr zostawia właściwy projekt', /Krem zimowy/.test($('#historyList').textContent) && !/Kurs gotowania/.test($('#historyList').textContent));
+    $('#histSearch').value = 'nie-ma-takiego-projektu';
+    $('#histSearch').dispatchEvent(new window.Event('input', { bubbles:true }));
+    await tick(60);
+    check('v2.3 historia: komunikat o braku wyników + reset', /Brak wyników/.test($('#historyList').textContent) && !!$('#btnHistReset'));
+    $('#btnHistReset').click();
+    await tick(60);
+    check('v2.3 historia: reset filtra przywraca listę', new RegExp('Pokazano ' + histAll.length + ' z ' + histAll.length).test($('#historyList').textContent));
+    check('v2.3 historia: filtr strategii zawęża listę', (() => {
+      $('#histFilter').value = 'tiktok-shop';
+      $('#histFilter').dispatchEvent(new window.Event('change', { bubbles:true }));
+      const narrowed = $('#historyList').textContent;
+      $('#histSearch').value = ''; $('#histFilter').value = '';
+      $('#histFilter').dispatchEvent(new window.Event('change', { bubbles:true }));
+      return /Brak wyników|Pokazano \d+ z \d+/.test(narrowed);
+    })());
+
+    // --- ARIA i fokus w modalach ---
+    check('v2.3 ARIA: zakładki mają role=tab', $$('.tab[role="tab"]').length >= 5);
+    check('v2.3 ARIA: widok wyników ma role=tabpanel', $('#view-results').getAttribute('role') === 'tabpanel' && $('#view-results').getAttribute('aria-labelledby') === 'tab-results');
+    check('v2.3 ARIA: log ma aria-live', $('#genLog').getAttribute('aria-live') === 'polite');
+    check('v2.3 ARIA: pasek postępu ma role=progressbar', $('#genBarWrap').getAttribute('role') === 'progressbar');
+    check('v2.3 ARIA: modale są ukryte na starcie', $('#modalKey').getAttribute('aria-hidden') === 'true' && $('#modalAngle').getAttribute('aria-hidden') === 'true');
+    check('v2.3 ARIA: ✕ ma etykietę', ($('#btnCloseKey').getAttribute('aria-label') || '').length > 3, $('#btnCloseKey').getAttribute('aria-label'));
+    $('#btnKey').focus();
+    $('#btnKey').click();
+    await tick(80);
+    check('v2.3 modal: otwarcie ustawia aria-hidden=false', $('#modalKey').classList.contains('open') && $('#modalKey').getAttribute('aria-hidden') === 'false');
+    check('v2.3 modal: fokus przeniesiony do środka', document.activeElement && document.activeElement.id === 'm_key', document.activeElement && document.activeElement.id);
+    $('#btnCloseKey').click();
+    await tick(60);
+    check('v2.3 modal: zamknięcie przywraca fokus na przycisk', document.activeElement && document.activeElement.id === 'btnKey', document.activeElement && document.activeElement.id);
+    check('v2.3 modal: aria-hidden=true po zamknięciu', $('#modalKey').getAttribute('aria-hidden') === 'true');
+    // Escape zamyka modal
+    $('#btnKey').click();
+    await tick(60);
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'Escape', bubbles:true }));
+    await tick(60);
+    check('v2.3 modal: Escape zamyka okno', !$('#modalKey').classList.contains('open'));
+
+    // --- Ctrl+Z jako skrót cofania ---
+    check('v2.3 undo: przed skrótem jest co cofać', $('#btnUndo').disabled === false);
+    const beforeUndo = $('#projSummary').textContent;
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
+    await tick(120);
+    check('v2.3 undo: Ctrl+Z cofa operację', /Kurs gotowania/.test($('#projSummary').textContent) && beforeUndo !== $('#projSummary').textContent, $('#projSummary').textContent.slice(0,80));
+    check('v2.3 wersja: badge pokazuje APP_VERSION', /v2\.3/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+  }
+
   finish('TESTY E2E');
 })();

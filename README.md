@@ -3,6 +3,9 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.3:** ocena kreacji 0–100 z konkretnymi wskazówkami, cofanie operacji (Ctrl+Z), walidacja importów JSON,
+wyszukiwarka i filtr historii, dostępność (ARIA, klawiatura) oraz pełna responsywność na telefonie.
+
 **v2.2:** kreator własnych kątów reklamowych (bank hooków + styl CTA + hipoteza) oraz tracker wyników testu
 (dane z Menedżera reklam → automatyczny zwycięzca A/B i raport CSV).
 
@@ -125,6 +128,35 @@ W zakładce **Wyniki** znajduje się panel **📊 Wyniki testu**: wpisujesz dane
 - oznacza zwycięzcę chipem 🏆 na karcie wariantu i zapisuje wyniki w projekcie (historia, kopia zapasowa),
 - eksportuje **raport CSV** wyników oraz dołącza wyniki do eksportów TXT / MD / JSON.
 
+## Ocena kreacji (0–100)
+
+Każdy wariant dostaje automatyczną ocenę z pięciu obszarów — bez API, w całości offline:
+
+| Obszar | Waga | Co sprawdza |
+| --- | --- | --- |
+| Hook 0–3 s | 30 pkt | długość względem czasu spotu, konkret liczbowy, „zatrzymywacz” przewijania, brak hype’u |
+| Scenariusz | 25 pkt | kompletność beatów, budżet słów dla 7–45 s, beat z CTA, obecność liczb/dowodów |
+| CTA | 20 pkt | czasownik akcji, jedno główne wezwanie, wskazanie miejsca kliknięcia |
+| Zgodność | 15 pkt | frazy ryzykowne dla polityk TikToka, obecność disclaimerów |
+| Opis i hashtagi | 10 pkt | długość opisu przed „więcej”, 8–12 hashtagów, tag marki |
+
+Ocena pokazuje się jako chip i pasek na karcie wariantu, a lista **konkretnych wskazówek** (do 5 na karcie,
+pełna lista w eksporcie) mówi, co poprawić. Podsumowanie pakietu zawiera średnią ocenę i najsłabszy wariant,
+a kolumna **Ocena** trafia do tabeli partii i do eksportu CSV / TXT / MD / JSON.
+
+## Cofanie operacji (undo)
+
+Przycisk **↶ Cofnij** w nagłówku Wyników (albo `Ctrl + Z`) przywraca stan sprzed ostatniej operacji
+destrukcyjnej: regeneracji sekcji lub całego wariantu, czyszczenia wyników testu, importu i wczytania projektu
+z historii lub partii. Stos pamięta 12 ostatnich operacji, przycisk pokazuje, co zostanie cofnięte,
+a fokus i wiadomość w dzienniku potwierdzają wykonanie.
+
+## Historia projektów: szukanie i filtr
+
+Nad listą historii są pole **Szukaj** (nazwa, produkt, branża, strategia) i lista **Wszystkie strategie**.
+Licznik pokazuje, ile pozycji spełnia kryteria („Pokazano 2 z 7”), a gdy nic nie pasuje — przycisk
+**Wyczyść filtr**. Filtry działają natychmiast, bez przeładowania listy.
+
 ## Storyboard 9:16
 
 Przycisk **🎬 Storyboard** przy wariancie otwiera odtwarzacz: ramka 9:16 z overlayem, opisem kadru z shot listy
@@ -138,7 +170,9 @@ Cały pakiet eksportujesz do **TXT**, **MD**, **JSON**, **CSV** (arkusz dla hurt
 **pełny pakiet kampanii** (JSON do reimportu + MD do pracy). Przycisk **🖨 Drukuj / PDF** daje wersję do druku bez interfejsu.
 
 Historia projektów: automatyczny zapis po każdej generacji, otwieranie, edycja briefu, duplikacja, usuwanie,
-import/eksport JSON. Panel **💾 Pamięć lokalna** pokazuje zużycie miejsca (brief, historia, presety, ustawienia),
+import/eksport JSON. Import JSON jest **walidowany**: plik bez listy wariantów, z wariantami bez sekcji albo
+uszkodzonym JSON-em jest odrzucany z czytelnym powodem, a historia i widok wyników zostają nietknięte
+(uzupełnialne braki, np. brakujące KPI, są naprawiane i zgłaszane w komunikacie). Panel **💾 Pamięć lokalna** pokazuje zużycie miejsca (brief, historia, presety, ustawienia),
 pozwala przyciąć historię do 10 najnowszych projektów i automatycznie chroni przed przepełnieniem (limitu ~5 MB).
 
 **Kopia zapasowa workspace** (ten sam panel): „⬇ Kopia zapasowa” zapisuje brief, historię i własne presety do jednego
@@ -159,13 +193,15 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 | `Ctrl + Shift + L` | Szybki pakiet lokalny |
 | `Ctrl + S` | Zapisz projekt w historii |
 | `Ctrl + K` | Okno klucza API |
+| `Ctrl + Z` | Cofnij ostatnią operację (poza polami tekstowymi) |
+| `Esc` | Zamknij okno modalne |
 
 ## Testy
 
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 246 asercji: jednostkowe (121) + E2E (98) + API (27)
+bash tests/run-all.sh        # 311 asercji: jednostkowe (147) + E2E (137) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.
@@ -175,6 +211,13 @@ Szczegóły w `tests/README.md`.
 `index.html` zawiera wszystko: styl (ciemny motyw PRO), sekcje interfejsu oraz skrypt podzielony na bloki:
 konfiguracja (języki, strategie, kąty A/B), baza branż, magazyn `localStorage`, silnik lokalny, prompty + klient API,
 parser odpowiedzi, render wyników, eksport, historia, filtr zgodności, UI/init.
+
+## Dostępność i telefon
+
+Zakładki mają role ARIA (`tablist` / `tab` / `tabpanel`), okna modalne działają jak `dialog` (fokus wchodzi do środka,
+`Tab` nie ucieka na tło, `Esc` zamyka, fokus wraca na przycisk), paski postępu są `progressbar`-ami,
+a dziennik i powiadomienia są czytane przez czytniki ekranu (`aria-live`). Interfejs ma widoczny pierścień fokusu,
+a poniżej 760 px (i 420 px) układ przechodzi w jedną kolumnę bez poziomego przewijania.
 
 ## Uwagi
 

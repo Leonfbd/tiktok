@@ -408,6 +408,51 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 .track-sum .warn{color:var(--warn)}
 .track-scroll{overflow-x:auto}
 
+/* --- 26. Ocena kreacji (scoring) --- */
+.score-box{display:flex;gap:10px;align-items:center;margin-top:9px;flex-wrap:wrap}
+.score-val{font-family:var(--mono);font-size:13px;font-weight:700}
+.score-val.ok{color:var(--ok)} .score-val.warn{color:var(--warn)} .score-val.err{color:var(--err)}
+.score-bar{flex:1 1 120px;height:6px;min-width:110px;border-radius:99px;background:var(--bg-2);
+  border:1px solid var(--line);overflow:hidden}
+.score-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--err),var(--warn) 55%,var(--ok));width:0}
+.score-tips{display:flex;flex-direction:column;gap:4px;margin-top:7px;width:100%}
+.score-tips span{font-size:11.5px;color:var(--warn)}
+.score-tips span.ok{color:var(--ok)}
+#histSearch{min-width:200px}
+
+/* --- 27. Dostępność: wyraźny fokus klawiatury --- */
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
+.btn:focus-visible,button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.modal.open{animation:modalIn .16s ease}
+@keyframes modalIn{from{opacity:0}to{opacity:1}}
+
+@media (max-width:760px){
+  .wrap{padding:12px}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:minmax(0,1fr)}
+  .sections{grid-template-columns:minmax(0,1fr);padding:11px}
+  .topbar{padding:10px 12px;gap:10px}
+  .brand{min-width:0}
+  .brand p{display:none}
+  .brand h1{font-size:15px}
+  .tabs{padding:8px 12px 0}
+  .tab{padding:9px 11px;font-size:12.3px}
+  .var-head{padding:12px}
+  .var-tag{width:36px;height:36px;flex:0 0 36px;font-size:15px}
+  .sec pre{font-size:11.6px;max-height:340px}
+  .track-table input{width:78px}
+  .story{grid-template-columns:minmax(0,1fr)}
+  .batch-table th,.batch-table td{padding:7px 8px;font-size:11.8px}
+  .modal{padding:10px}
+  .modal .box{max-height:92vh}
+}
+@media (max-width:420px){
+  .grid-4,.checks{grid-template-columns:minmax(0,1fr)}
+  .btn{width:100%;justify-content:center}
+  .btn.mini,.btn.sm,.seg button{width:auto}
+  .btn-row{flex-direction:column;align-items:stretch}
+  .top-actions{width:100%}
+}
+
 @media print{
   body{background:#fff;color:#000}
   .topbar,.tabs,.btn,.toasts,.modal{display:none !important}
@@ -432,7 +477,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   <div class="top-actions">
     <span class="badge" id="badgeEngine"><span class="dot"></span><span id="badgeEngineTxt">Silnik: lokalny (offline)</span></span>
     <span class="badge" id="badgeApi"><span class="dot"></span><span id="badgeApiTxt">API: brak klucza</span></span>
-    <span class="badge" title="Wersja narzędzia"><span class="dot"></span>v2.2</span>
+    <span class="badge" title="Wersja narzędzia" id="badgeVersion"><span class="dot"></span>v<span id="appVersion">2.3</span></span>
     <button class="btn sm ghost" id="btnSaveProject">💾 Zapisz projekt</button>
     <button class="btn sm" id="btnKey">🔑 Klucz API</button>
   </div>
@@ -441,12 +486,12 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 <!-- ============================================================
      NAWIGACJA
      ============================================================ -->
-<nav class="tabs">
-  <button class="tab active" data-tab="campaign">1 · Kampania</button>
-  <button class="tab" data-tab="results">2 · Wyniki <span class="pill" id="pillVariants">0</span></button>
-  <button class="tab" data-tab="batch">3 · Hurt <span class="pill" id="pillBatch">0</span></button>
-  <button class="tab" data-tab="history">Historia <span class="pill" id="pillHistory">0</span></button>
-  <button class="tab" data-tab="settings">Ustawienia</button>
+<nav class="tabs" role="tablist" aria-label="Sekcje aplikacji">
+  <button class="tab active" data-tab="campaign" id="tab-campaign" role="tab" aria-selected="true" aria-controls="view-campaign">1 · Kampania</button>
+  <button class="tab" data-tab="results" id="tab-results" role="tab" aria-selected="false" aria-controls="view-results">2 · Wyniki <span class="pill" id="pillVariants">0</span></button>
+  <button class="tab" data-tab="batch" id="tab-batch" role="tab" aria-selected="false" aria-controls="view-batch">3 · Hurt <span class="pill" id="pillBatch">0</span></button>
+  <button class="tab" data-tab="history" id="tab-history" role="tab" aria-selected="false" aria-controls="view-history">Historia <span class="pill" id="pillHistory">0</span></button>
+  <button class="tab" data-tab="settings" id="tab-settings" role="tab" aria-selected="false" aria-controls="view-settings">Ustawienia</button>
 </nav>
 
 <div class="wrap">
@@ -454,7 +499,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   <!-- ==========================================================
        ZAKŁADKA 1: KAMPANIA
        ========================================================== -->
-  <section class="view active" id="view-campaign">
+  <section class="view active" id="view-campaign" role="tabpanel" aria-labelledby="tab-campaign" tabindex="-1">
     <div class="grid-2">
 
       <!-- KOLUMNA LEWA: brief -->
@@ -691,8 +736,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
               <button class="btn primary" id="btnGenerate" style="flex:1">🚀 GENERUJ PAKIET REKLAM</button>
               <button class="btn cyan" id="btnQuickLocal" title="Natychmiastowy pakiet z silnika lokalnego – bez internetu i bez klucza">⚡ Szybki pakiet lokalny</button>
             </div>
-            <div class="bar"><i id="genBar"></i></div>
-            <div class="log" id="genLog">Gotowy. Wypełnij brief i kliknij GENERUJ. Skrót: Ctrl + Enter.</div>
+            <div class="bar" id="genBarWrap" role="progressbar" aria-label="Postęp generowania" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="genBar"></i></div>
+            <div class="log" id="genLog" role="log" aria-live="polite" aria-label="Dziennik generowania">Gotowy. Wypełnij brief i kliknij GENERUJ. Skrót: Ctrl + Enter.</div>
             <p class="hint" style="margin-top:9px">Bez klucza API aplikacja używa wbudowanego silnika lokalnego (offline) – generuje realne treści na bazie Twojego briefu. Klucz API daje pełną lokalizację językową i swobodniejsze copy.</p>
           </div>
         </div>
@@ -703,7 +748,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   <!-- ==========================================================
        ZAKŁADKA 2: WYNIKI
        ========================================================== -->
-  <section class="view" id="view-results">
+  <section class="view" id="view-results" role="tabpanel" aria-labelledby="tab-results" tabindex="-1">
     <div class="panel" style="margin-bottom:18px">
       <div class="head">
         <h2>📦 Pakiet kampanii <span class="pill" id="projEngine">–</span></h2>
@@ -713,6 +758,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
           <button class="btn sm" data-exp="md">⬇ MD</button>
           <button class="btn sm" data-exp="json">⬇ JSON</button>
           <button class="btn sm" data-exp="csv">⬇ CSV (hurt)</button>
+          <button class="btn sm" id="btnUndo" title="Cofnij ostatnią operację (Ctrl+Z)" aria-label="Cofnij ostatnią operację" disabled>↶ Cofnij</button>
           <button class="btn sm" id="btnPrint">🖨 Drukuj / PDF</button>
           <button class="btn sm primary" data-exp="package">📦 Eksport pełnego pakietu</button>
         </div>
@@ -728,7 +774,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   <!-- ==========================================================
        ZAKŁADKA 3: HURTOWNIA (masowa produkcja pakietów)
        ========================================================== -->
-  <section class="view" id="view-batch">
+  <section class="view" id="view-batch" role="tabpanel" aria-labelledby="tab-batch" tabindex="-1">
     <div class="panel" style="margin-bottom:18px">
       <div class="head">
         <h2>🏭 Masowa produkcja – lista kampanii</h2>
@@ -771,7 +817,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
           <button class="btn" id="btnBatchJson">⬇ Eksport JSON</button>
           <button class="btn" id="btnBatchSaveHistory">💾 Zapisz wszystkie do historii</button>
         </div>
-        <div class="bar" style="margin-top:12px"><i id="batchProgress"></i></div>
+        <div class="bar" style="margin-top:12px" id="batchProgressWrap" role="progressbar" aria-label="Postęp generowania partii" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="batchProgress"></i></div>
         <p class="hint">Partia pracuje na silniku lokalnym – to celowe: 20 kampanii w kilka sekund, zero kosztów API i zero limitów. Dla pojedynczych, kluczowych kreacji użyj zakładki „Kampania” z API.</p>
       </div>
     </div>
@@ -790,11 +836,13 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   <!-- ==========================================================
        ZAKŁADKA 4: HISTORIA
        ========================================================== -->
-  <section class="view" id="view-history">
+  <section class="view" id="view-history" role="tabpanel" aria-labelledby="tab-history" tabindex="-1">
     <div class="panel">
       <div class="head">
         <h2>🗂 Historia projektów <span class="pill" id="histCount">0</span></h2>
         <div class="btn-row">
+          <input type="text" id="histSearch" placeholder="Szukaj: nazwa, produkt, branża…" aria-label="Szukaj w historii projektów" style="min-width:220px">
+          <select id="histFilter" aria-label="Filtruj historię po strategii"><option value="">Wszystkie strategie</option></select>
           <button class="btn sm" id="btnImportProject">⬆ Import JSON</button>
           <button class="btn sm danger" id="btnClearHistory">🗑 Wyczyść historię</button>
           <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
@@ -807,7 +855,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   <!-- ==========================================================
        ZAKŁADKA 4: USTAWIENIA
        ========================================================== -->
-  <section class="view" id="view-settings">
+  <section class="view" id="view-settings" role="tabpanel" aria-labelledby="tab-settings" tabindex="-1">
     <div class="grid-2">
       <div class="panel">
         <div class="head"><h2>🔑 Klucz API i model</h2></div>
@@ -834,7 +882,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
             <label>Klucz API <span class="sub">(zapisywany wyłącznie w Twoim localStorage)</span></label>
             <div style="display:flex;gap:8px">
               <input type="password" id="s_key" placeholder="sk-... / AIza..." autocomplete="off" spellcheck="false">
-              <button class="btn" id="btnShowKey" type="button">👁</button>
+              <button class="btn" id="btnShowKey" type="button" aria-label="Pokaż lub ukryj klucz API" title="Pokaż / ukryj klucz">👁</button>
               <button class="btn" id="btnSaveKey" type="button">Zapisz</button>
             </div>
           </div>
@@ -958,11 +1006,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 </div>
 
 <!-- MODAL: klucz API -->
-<div class="modal" id="modalKey">
+<div class="modal" id="modalKey" role="dialog" aria-modal="true" aria-labelledby="keyTitle" aria-hidden="true">
   <div class="box">
     <header>
-      <h3>Klucz API</h3>
-      <button class="btn mini" id="btnCloseKey">✕</button>
+      <h3 id="keyTitle">Klucz API</h3>
+      <button class="btn mini" id="btnCloseKey" aria-label="Zamknij okno klucza API">✕</button>
     </header>
     <div class="body">
       <div class="field">
@@ -992,11 +1040,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 </div>
 
 <!-- MODAL: podgląd storyboardu 9:16 -->
-<div class="modal" id="modalStory">
+<div class="modal" id="modalStory" role="dialog" aria-modal="true" aria-labelledby="storyTitle" aria-hidden="true">
   <div class="box" style="width:min(1000px,100%)">
     <header>
       <h3 id="storyTitle">Podgląd storyboardu</h3>
-      <button class="btn mini" id="btnCloseStory">✕</button>
+      <button class="btn mini" id="btnCloseStory" aria-label="Zamknij podgląd storyboardu">✕</button>
     </header>
     <div class="body">
       <div class="story">
@@ -1025,11 +1073,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 </div>
 
 <!-- MODAL: edytor własnego kąta reklamowego -->
-<div class="modal" id="modalAngle">
+<div class="modal" id="modalAngle" role="dialog" aria-modal="true" aria-labelledby="angleTitle" aria-hidden="true">
   <div class="box">
     <header>
       <h3 id="angleTitle">Własny kąt reklamowy</h3>
-      <button class="btn mini" id="btnCloseAngle">✕</button>
+      <button class="btn mini" id="btnCloseAngle" aria-label="Zamknij edytor kąta">✕</button>
     </header>
     <div class="body">
       <div class="field">
@@ -1083,11 +1131,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 </div>
 
 <!-- MODAL: edytor presetu branżowego -->
-<div class="modal" id="modalPreset">
+<div class="modal" id="modalPreset" role="dialog" aria-modal="true" aria-labelledby="presetTitle" aria-hidden="true">
   <div class="box" style="width:min(780px,100%)">
     <header>
       <h3 id="presetTitle">Preset branżowy</h3>
-      <button class="btn mini" id="btnClosePreset">✕</button>
+      <button class="btn mini" id="btnClosePreset" aria-label="Zamknij edytor presetu">✕</button>
     </header>
     <div class="body">
       <div class="grid-2">
@@ -1124,7 +1172,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   </div>
 </div>
 
-<div class="toasts" id="toasts"></div>
+<div class="toasts" id="toasts" role="status" aria-live="polite" aria-label="Powiadomienia"></div>
 
 <script>
 /* ============================================================================
@@ -1149,6 +1197,12 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 /* ============================================================================
    A. KONFIGURACJA
    ========================================================================== */
+
+/** Wersja aplikacji – jedno źródło prawdy (badge w UI i eksporty). */
+const APP_VERSION = '2.3';
+
+/** Log diagnostyczny – zamiast cichych `catch(e){}`. */
+function warn(...args){ try{ if(typeof console !== 'undefined' && console.warn) console.warn('[Automat TikTok]', ...args); }catch(e){ /* brak konsoli */ } }
 
 /** Języki interfejsu generacji (min. 10 – wymóg specyfikacji). */
 const LANGS = [
@@ -2017,7 +2071,7 @@ const NUM_KEYS = { [LS.history]:true, [LS.presets]:true, [LS.angles]:true };
 function approxSize(keys){
   let total = 0;
   const list = keys || Object.values(LS);
-  list.forEach(k => { try{ const v = localStorage.getItem(k); if(v) total += (v.length + k.length) * 2; }catch(e){} });
+  list.forEach(k => { try{ const v = localStorage.getItem(k); if(v) total += (v.length + k.length) * 2; }catch(e){ warn('approxSize', k, e); } });
   return total;
 }
 /** Formatowanie rozmiaru do UI. */
@@ -2051,9 +2105,9 @@ function storeSet(key, value){
   }
 }
 const store = {
-  get(k, fb){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } },
+  get(k, fb){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ warn('localStorage odczyt', k, e); return fb; } },
   set(k, v){ return storeSet(k, v); },
-  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+  del(k){ try{ localStorage.removeItem(k); }catch(e){ warn('localStorage usuwanie', k, e); } }
 };
 
 /** Przycina tablice w localStorage, dopóki całość nie zmieści się w limicie. */
@@ -2138,14 +2192,14 @@ function short(t, max){ t = String(t||'').trim(); return t.length <= max ? t : t
 function upFirst(s){ return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
 /** Wszystkie profile branż: wbudowane + własne presety użytkownika. */
-function allNiches(){ return NICHES.concat(getPresets()); }
+function allNiches(){ return getPresets().concat(NICHES); }
 
 /** Rozpoznanie branży po słowach kluczowych (case-insensitive). Presety własne mają priorytet. */
 function detectNiche(industry, product){
   const hay = ((industry||'') + ' ' + (product||'')).toLowerCase();
   let best = null, bestScore = 0;
   // własne presety użytkownika mają priorytet przy takim samym trafieniu słów kluczowych
-  getPresets().concat(NICHES).forEach(n => {
+  allNiches().forEach(n => {
     let score = 0;
     (n.kw || []).forEach(k => { if(hay.includes(String(k).toLowerCase())) score += String(k).length >= 5 ? 2 : 1; });
     if(score > bestScore){ bestScore = score; best = n; }
@@ -2188,7 +2242,7 @@ function openPresetEditor(preset){
   set('p_hashtags', (P.hashtags || []).join(' ')); set('p_kpis', (P.kpis || []).join(', '));
   set('p_disclaimers', (P.disclaimers || []).join('\n'));
   document.getElementById('presetTitle').textContent = getPresets().some(x => x.id === P.id) ? 'Edytuj preset branżowy' : 'Nowy preset branżowy';
-  document.getElementById('modalPreset').classList.add('open');
+  openModal('modalPreset', 'p_label');
 }
 let presetEditId = null;
 
@@ -2222,7 +2276,7 @@ function savePresetFromEditor(){
   P.kpis = P.kpis.length ? P.kpis : (base.kpis || []);
   P.disclaimers = P.disclaimers.length ? P.disclaimers : (base.disclaimers || []);
   if(!savePresets(list)){ toast('Nie udało się zapisać presetu (pamięć pełna)','err'); return; }
-  document.getElementById('modalPreset').classList.remove('open');
+  closeModal('modalPreset');
   renderPresets();
   toast('Preset zapisany: ' + P.label, 'ok');
 }
@@ -2305,13 +2359,13 @@ function bindPresets(){
     rd.readAsText(f); e.target.value = '';
   });
   document.getElementById('btnPresetSave').addEventListener('click', savePresetFromEditor);
-  document.getElementById('btnPresetCancel').addEventListener('click', () => document.getElementById('modalPreset').classList.remove('open'));
-  document.getElementById('btnClosePreset').addEventListener('click', () => document.getElementById('modalPreset').classList.remove('open'));
+  document.getElementById('btnPresetCancel').addEventListener('click', () => closeModal('modalPreset'));
+  document.getElementById('btnClosePreset').addEventListener('click', () => closeModal('modalPreset'));
   document.getElementById('btnPresetDelete').addEventListener('click', () => {
     if(!presetEditId) return;
     if(!confirm('Usunąć ten preset?')) return;
     savePresets(getPresets().filter(x => x.id !== presetEditId));
-    document.getElementById('modalPreset').classList.remove('open');
+    closeModal('modalPreset');
     renderPresets(); toast('Preset usunięty','info');
   });
 }
@@ -2349,7 +2403,7 @@ function openAngleEditor(angle){
   set('a_note', A.angleNote || '');
   set('a_hyp', A.hypothesis || '');
   document.getElementById('angleTitle').textContent = getAngles().some(x => x.id === A.id) ? 'Edytuj kąt reklamowy' : 'Nowy własny kąt reklamowy';
-  document.getElementById('modalAngle').classList.add('open');
+  openModal('modalAngle', 'a_label');
 }
 
 /** Zapisuje kąt z formularza (z uzupełnieniem sensownych domyślnych). */
@@ -2371,7 +2425,7 @@ function saveAngleFromEditor(){
   const idx = list.findIndex(x => x.id === A.id);
   if(idx >= 0) list[idx] = A; else list.unshift(A);
   if(!saveAngles(list)){ toast('Nie udało się zapisać kąta (pamięć pełna)','err'); return; }
-  document.getElementById('modalAngle').classList.remove('open');
+  closeModal('modalAngle');
   renderAngles(); renderStorage();
   toast('Kąt zapisany: ' + A.label + ' – zostanie użyty w najbliższej generacji','ok', 5000);
 }
@@ -2426,13 +2480,13 @@ function bindAngles(){
 
   document.getElementById('btnAngleNew').addEventListener('click', () => openAngleEditor(null));
   document.getElementById('btnAngleSave').addEventListener('click', saveAngleFromEditor);
-  document.getElementById('btnAngleCancel').addEventListener('click', () => document.getElementById('modalAngle').classList.remove('open'));
-  document.getElementById('btnCloseAngle').addEventListener('click', () => document.getElementById('modalAngle').classList.remove('open'));
+  document.getElementById('btnAngleCancel').addEventListener('click', () => closeModal('modalAngle'));
+  document.getElementById('btnCloseAngle').addEventListener('click', () => closeModal('modalAngle'));
   document.getElementById('btnAngleDelete').addEventListener('click', () => {
     if(!angleEditId) return;
     if(!confirm('Usunąć ten kąt?')) return;
     saveAngles(getAngles().filter(x => x.id !== angleEditId));
-    document.getElementById('modalAngle').classList.remove('open');
+    closeModal('modalAngle');
     renderAngles(); renderStorage(); toast('Kąt usunięty','info');
   });
   document.getElementById('btnAngleExport').addEventListener('click', () => {
@@ -3167,6 +3221,109 @@ function parseSingleBlock(text, brief){
 }
 
 /* ============================================================================
+   G0. OCENA KREACJI – offline scoring wariantu (0–100) + konkretne wskazówki
+   ========================================================================== */
+/** Frazy, które obniżają ocenę (hype, obietnice, słowa ryzykowne). */
+const HYPE_RE = /(gwarant\w*|100\s?%|na pewno|natychmiastow\w*|cudown\w*|rewolucyj\w*|najlepsz\w+ na rynku|nr\s?1|bezkonkurencyjn\w*|zarobisz|wylecz\w*|leczy|bez skutków ubocznych)/i;
+/** Czasowniki akcji w CTA. */
+const ACTION_RE = /(kliknij|wejd\w+|sprawd\w+|zamów|kup|napisz|zapisz|obserwuj|pobierz|zarezerwuj|poznaj|zobacz|dodaj|zadzwo\w+|wybierz|skorzystaj|tap|check|save|order|comment|follow|buy|get|book)/i;
+/** Markery „zatrzymania przewijania”. */
+const STOP_RE = /(\?|stop|przestań|nie kupuj|zanim|pov|ile razy|patrz|zobacz|uwaga|błąd|mit|prawda|sprawdź|test|dni|dzie\w+)/i;
+
+/**
+ * Ocenia pojedynczy wariant reklamy (bez API – heurystyki copywriterskie).
+ * @returns {{score:number, parts:Array<{key:string,label:string,score:number,max:number}>,
+ *            tips:string[], grade:string}}
+ */
+function scoreVariant(project, v){
+  const brief = project.brief || {};
+  const length = Number(brief.length) || 15;
+  const S = k => (v.sections && v.sections[k] ? String(v.sections[k].body || '') : '');
+  const hookBody = S('hook'), scriptBody = S('script'), ctaBody = S('cta');
+  const descBody = S('description'), hashBody = S('hashtags');
+  const hookMain = ((hookBody.match(/^HOOK\s*A[^\n]*\n(.+)$/m) || [,''])[1] || v.hookLine || '').trim();
+  const hookWords = hookMain.split(/\s+/).filter(Boolean).length;
+  const hookLimit = length <= 15 ? 14 : length <= 30 ? 20 : 26;
+  const parts = [];
+  const tips = [];
+
+  /* --- 1. HOOK (30 pkt) --- */
+  let hookScore = 0;
+  if(hookBody.trim()) hookScore += 6; else tips.push('Brak sekcji hooków – dodaj moduł „Hook (0–3 s)”.');
+  if(hookWords && hookWords <= hookLimit) hookScore += 8;
+  else tips.push(`Hook główny ma ${hookWords} słów (limit dla ${length} s: ${hookLimit}) – skróć do jednego zdania.`);
+  if(/\d/.test(hookMain)) hookScore += 6;
+  else tips.push('Hook bez konkretu liczbowego – dodaj liczbę, cenę albo czas (np. „89 zł”, „7 dni”, „3 kroki”).');
+  if(STOP_RE.test(hookMain)) hookScore += 5;
+  else tips.push('Hook nie zatrzymuje przewijania – użyj pytania, kontrastu albo sformułowania „zanim kupisz…”.');
+  if(!HYPE_RE.test(hookBody)) hookScore += 5;
+  else tips.push('Hook zawiera frazę obniżającą wiarygodność (gwarancja/100%/natychmiastowy) – zamień na konkret.');
+  parts.push({ key:'hook', label:'Hook 0–3 s', score:hookScore, max:30 });
+
+  /* --- 2. SCENARIUSZ (25 pkt) --- */
+  let scriptScore = 0;
+  const beatsNeeded = (BEAT_PURPOSE[length] || BEAT_PURPOSE[15]).length;
+  const beatsFound = (scriptBody.match(/\[\d+([.,]\d+)?\s*[–-]\s*\d+([.,]\d+)?\s*s?\]/g) || []).length;
+  if(beatsFound >= beatsNeeded) scriptScore += 8;
+  else if(beatsFound > 0){ scriptScore += Math.round(8 * beatsFound / beatsNeeded); tips.push(`Scenariusz ma ${beatsFound} z ${beatsNeeded} beatów dla ${length} s – uzupełnij brakujące przedziały.`); }
+  else tips.push('Brak przedziałów czasowych w scenariuszu – bez tego ekipa nie wie, co kręcić kiedy.');
+  const words = (scriptBody.match(/BUDŻET SŁÓW: (\d+)/) || [])[1]
+    ? Number((scriptBody.match(/BUDŻET SŁÓW: (\d+)/) || [])[1])
+    : scriptBody.split(/\s+/).filter(Boolean).length;
+  const budget = Math.round(length * 2.6);
+  if(words && words <= budget * 1.15) scriptScore += 9;
+  else if(words) { scriptScore += Math.round(9 * Math.min(1, budget / words)); tips.push(`Scenariusz ma ${words} słów przy budżecie ~${budget} – skróć kwestie lub dodaj plansze bez lektora.`); }
+  else tips.push('Nie udało się zmierzyć długości scenariusza – uzupełnij treść.');
+  if(/CTA|lINK|link|kliknij|napisz/i.test(scriptBody)) scriptScore += 4; else tips.push('W scenariuszu brakuje beatu z CTA – widz nie wie, co zrobić.');
+  if(/\d/.test(scriptBody)) scriptScore += 4; else tips.push('Scenariusz bez liczb/dowodów – dodaj konkret (opinie, sztuki, skład).');
+  parts.push({ key:'script', label:'Scenariusz', score:scriptScore, max:25 });
+
+  /* --- 3. CTA (20 pkt) --- */
+  let ctaScore = 0;
+  if(ctaBody.trim()) ctaScore += 6; else tips.push('Brak sekcji CTA – dodaj moduł „CTA”.');
+  if(ACTION_RE.test(ctaBody)) ctaScore += 6; else tips.push('CTA bez czasownika akcji – zacznij od „Kliknij”, „Sprawdź”, „Napisz”.');
+  const ctaLines = ctaBody.split('\n').filter(l => ACTION_RE.test(l)).length;
+  if(ctaLines && ctaLines <= 4) ctaScore += 4; else if(ctaLines > 4) tips.push('Za dużo CTA naraz – zostaw jedno główne i jedno testowe.');
+  if(/link|opis|komentarz|bio/i.test(ctaBody)) ctaScore += 4; else tips.push('CTA nie mówi, gdzie kliknąć – dodaj „link w opisie” albo „napisz w komentarzu”.');
+  parts.push({ key:'cta', label:'CTA', score:ctaScore, max:20 });
+
+  /* --- 4. ZGODNOŚĆ (15 pkt) --- */
+  let compScore = 0;
+  const variantText = Object.values(v.sections || {}).map(x => x.body).join('\n') + ' ' + (v.hookLine || '');
+  if(!HYPE_RE.test(variantText)) compScore += 9; else tips.push('W wariancie są frazy ryzykowne dla polityk TikToka – uruchom kontrolę zgodności i auto-filtr.');
+  if((project.disclaimers || []).length) compScore += 3; else tips.push('Brak disclaimerów – dodaj je dla kampanii o zdrowiu, finansach lub efektach zależnych od osoby.');
+  if(!/gwarant|100\s?%|na pewno dział/i.test(descBody)) compScore += 3; else tips.push('Opis zawiera obietnicę – przepisz na korzyść bez gwarancji.');
+  parts.push({ key:'compliance', label:'Zgodność z politykami', score:compScore, max:15 });
+
+  /* --- 5. OPIS + HASHTAGI (10 pkt) --- */
+  let metaScore = 0;
+  if(descBody.trim() && descBody.length <= 320) metaScore += 4;
+  else if(descBody.trim()){ metaScore += 2; tips.push('Opis jest długi – TikTok pokazuje ok. 150 znaków przed „więcej”, skróć go.'); }
+  else tips.push('Brak opisu – dodaj moduł „Opis TikTok”.');
+  const tagCount = (descBody + ' ' + hashBody).match(/#[\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ]+/g);
+  const tags = tagCount ? new Set(tagCount).size : 0;
+  if(tags >= 8 && tags <= 12) metaScore += 4;
+  else if(tags) { metaScore += 2; tips.push(`Hashtagów jest ${tags} – optymalnie 8–12 (3 szerokie + 5 niszowych + 2 kontekstowe).`); }
+  else tips.push('Brak hashtagów – dodaj 8–12 tagów powiązanych z treścią.');
+  const brandTag = '#' + slug(brief.brand || brief.product || '');
+  if(brandTag.length > 2 && (descBody + hashBody).toLowerCase().includes(brandTag.toLowerCase())) metaScore += 2;
+  else tips.push('Brak hashtaga marki – dodaj własny tag, żeby budować rozpoznawalność.');
+  parts.push({ key:'meta', label:'Opis i hashtagi', score:metaScore, max:10 });
+
+  const score = parts.reduce((a, x) => a + x.score, 0);
+  const grade = score >= 85 ? 'gotowe do publikacji' : score >= 70 ? 'dobre – popraw szczegóły' : score >= 50 ? 'wymaga pracy' : 'słabe – przemyśl kreację';
+  return { score, parts, tips, grade };
+}
+
+/** Średnia ocena pakietu (do podsumowania i trybu hurtowego). */
+function averageScore(project){
+  const list = (project.variants || []).map(v => scoreVariant(project, v).score);
+  return list.length ? Math.round(list.reduce((a, b) => a + b, 0) / list.length) : 0;
+}
+/** Klasa CSS dla oceny. */
+function scoreClass(score){ return score >= 80 ? 'ok' : score >= 60 ? 'warn' : 'err'; }
+
+/* ============================================================================
    G2. TRACKER WYNIKÓW – domknięcie pętli A/B (dane użytkownika → zwycięzca)
    ========================================================================== */
 const TRACK_METRICS = [
@@ -3354,6 +3511,7 @@ function bindTracker(){
     if(act === 'csv') download(safeName(currentProject.name) + '-wyniki-testu.csv', resultsToCsv(currentProject), 'text/csv;charset=utf-8');
     if(act === 'reset'){
       if(!confirm('Wyczyścić wpisane wyniki testu?')) return;
+      pushUndo('czyszczenie wyników testu');
       currentProject.results = { metric:ensureResults(currentProject).metric, rows:{}, winner:null, computedAt:null };
       renderProject(currentProject); saveDraft(currentProject); saveToHistory(currentProject);
       toast('Wyniki wyczyszczone','info');
@@ -3407,7 +3565,60 @@ const RISKY_RULES = [
 ];
 
 /**
- * Skanuje projekt pod kątem zgodności z politykami reklamowymi.
+/**
+ * Normalizuje i waliduje projekt z zewnątrz (import JSON, historia, kopia zapasowa).
+ * Naprawia to, co da się naprawić (brakujące sekcje, etykiety, brief), odrzuca śmieci.
+ * @returns {object|null} poprawny projekt lub null
+ */
+function normalizeProject(data){
+  if(!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  if(!Array.isArray(data.variants) || !data.variants.length) return null;
+  let p;
+  try{ p = JSON.parse(JSON.stringify(data)); }catch(e){ warn('normalizeProject: nie można sklonować danych', e); return null; }
+  p.brief = (p.brief && typeof p.brief === 'object' && !Array.isArray(p.brief)) ? p.brief : {};
+  p.name = String(p.name || p.brief.campaign || 'Projekt bez nazwy');
+  p.createdAt = p.createdAt || new Date().toISOString();
+  p.updatedAt = p.updatedAt || p.createdAt;
+  p.kpis = Array.isArray(p.kpis) ? p.kpis : [];
+  p.disclaimers = Array.isArray(p.disclaimers) ? p.disclaimers : [];
+  const labels = SECTION_LABELS[p.lang] || SECTION_LABELS.pl;
+  p.variants = p.variants
+    .filter(v => v && typeof v === 'object' && !Array.isArray(v))
+    .map((v, i) => {
+      v.label = String(v.label || String.fromCharCode(65 + i));
+      v.angle = String(v.angle || 'Kąt nieznany');
+      v.hypothesis = String(v.hypothesis || '');
+      v.hookLine = String(v.hookLine || '');
+      const secs = (v.sections && typeof v.sections === 'object' && !Array.isArray(v.sections)) ? v.sections : {};
+      v.sections = {};
+      Object.keys(secs).forEach(k => {
+        const sec = secs[k] || {};
+        v.sections[k] = {
+          key:k,
+          title: String(sec.title || labels[k] || k.toUpperCase()),
+          body: String(sec.body == null ? '' : sec.body),
+          wide: !!sec.wide
+        };
+      });
+      return v;
+    })
+    .filter(v => Object.keys(v.sections).length > 0);
+  if(!p.variants.length) return null;
+  p.strategyLabel = p.strategyLabel || (STRATEGIES.find(x => x.id === p.strategy) || {}).label || 'Performance / Sprzedaż';
+  p.strategyHint = p.strategyHint || (STRATEGIES.find(x => x.id === p.strategy) || {}).hint || '';
+  return p;
+}
+
+/** Walidacja importu z czytelnym komunikatem (bez naprawiania danych). */
+function projectShapeError(data){
+  if(!data || typeof data !== 'object') return 'Plik nie zawiera obiektu JSON.';
+  if(!('variants' in data)) return 'Plik nie ma listy wariantów – to nie jest pakiet kampanii ani projekt z historii.';
+  if(!Array.isArray(data.variants)) return 'Pole „variants” nie jest listą – plik jest uszkodzony.';
+  if(!data.variants.length) return 'Lista wariantów jest pusta.';
+  return null;
+}
+
+/** Skanuje projekt pod kątem zgodności z politykami reklamowymi.
  * Gdy auto-fix jest włączony, zamienia ryzykowne frazy na neutralne.
  * @returns {{issues:Array, replaced:number}}
  */
@@ -3448,6 +3659,14 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&
 
 /** Renderuje cały pakiet kampanii w zakładce „Wyniki”. */
 function renderProject(project){
+  // Każde wejście (generacja, import, historia, kopia, cofanie) przechodzi przez walidację
+  const fixed = normalizeProject(project);
+  if(!fixed){
+    toast('Nie mogę wyświetlić tego projektu – brak poprawnych wariantów z sekcjami.','err', 6000);
+    warn('renderProject: odrzucono projekt o złym kształcie');
+    return;
+  }
+  project = fixed;
   currentProject = project;
   const area = document.getElementById('resultsArea');
   const sum = document.getElementById('projSummary');
@@ -3468,6 +3687,10 @@ function renderProject(project){
       <div><div class="hint">KPI</div><div>${esc((project.kpis || []).join(' · '))}</div></div>
       <div><div class="hint">Warianty</div><div>${project.variants.map(v => '<span class="chip pink">' + esc(v.label) + ' · ' + esc(short(v.angle, 34)) + '</span>').join(' ')}</div></div>
     </div>
+    <div class="grid-4" style="margin-top:12px">
+      <div><div class="hint">Średnia ocena kreacji</div><div style="font-weight:600" class="${scoreClass(averageScore(project)) === 'ok' ? 'ok' : ''}">🎯 ${averageScore(project)}/100 <span class="hint">(heurystyki hooka, budżetu słów, CTA i zgodności)</span></div></div>
+      <div><div class="hint">Najsłabszy wariant</div><div>${(() => { const arr = project.variants.map(v => ({ l:v.label, s:scoreVariant(project, v).score })); const worst = arr.reduce((a, b) => b.s < a.s ? b : a); return 'Wariant ' + esc(worst.l) + ' – ' + worst.s + '/100'; })()}</div></div>
+    </div>
     <p class="hint" style="margin-top:12px">${esc(project.strategyHint || '')}</p>`;
 
   const cards = project.variants.map((v, vi) => {
@@ -3482,6 +3705,7 @@ function renderProject(project){
         </header>
         <pre>${esc(s.body)}</pre>
       </section>`).join('');
+    const sc = scoreVariant(project, v);
     return `
     <div class="var-card" data-variant-card="${vi}">
       <div class="var-head">
@@ -3491,6 +3715,17 @@ function renderProject(project){
             <h3>Wariant ${esc(v.label)} · ${esc(v.angle)}</h3>
             <div class="angle">${esc(short(v.hookLine || '—', 120))}</div>
             <div class="hyp">${esc(v.hypothesis || '')}</div>
+            <div class="score-box">
+              <span class="score-val ${scoreClass(sc.score)}">🎯 ${sc.score}/100</span>
+              <span class="score-bar"><i style="width:${sc.score}%"></i></span>
+              <span class="hint">${esc(sc.grade)}</span>
+              <div class="score-tips">${
+                sc.tips.length
+                  ? sc.tips.slice(0, 5).map(t => `<span>→ ${esc(t)}</span>`).join('')
+                    + (sc.tips.length > 5 ? `<span class="hint">…i ${sc.tips.length - 5} więcej wskazówek w eksporcie</span>` : '')
+                  : '<span class="ok">Brak uwag – kreacja trzyma standardy (hook, budżet słów, CTA, zgodność).</span>'
+              }</div>
+            </div>
           </div>
         </div>
         <div class="meta-chips">
@@ -3498,6 +3733,7 @@ function renderProject(project){
           <span class="chip">${esc(String(b.length || ''))} s</span>
           <span class="chip">${esc(b.sellMode === 'soft' ? 'soft sell' : b.sellMode === 'hard' ? 'hard sell' : 'auto')}</span>
           <span class="chip pink">${esc(project.strategyLabel)}</span>
+          <span class="chip ${scoreClass(sc.score) === 'ok' ? 'ok' : ''}" title="${esc(sc.grade)}">🎯 Ocena ${sc.score}/100</span>
           ${(project.results && project.results.winner === v.label) ? '<span class="chip win">🏆 Zwycięzca testu</span>' : ''}
           <button class="btn mini" data-act="open-story">🎬 Storyboard</button>
           <button class="btn mini" data-act="copy-var">⧉ Cały wariant</button>
@@ -3610,7 +3846,10 @@ function fallbackCopy(text, done){
 
 /** Ekstrakcja tekstu wariantu (do kopiowania/eksportu). */
 function variantToText(project, v){
-  const head = `WARIANT ${v.label} · ${v.angle}\nHipoteza: ${v.hypothesis || '—'}\nKPI: ${(project.kpis || []).join(' · ')}\n`;
+  const sc = scoreVariant(project, v);
+  const head = `WARIANT ${v.label} · ${v.angle}\nHipoteza: ${v.hypothesis || '—'}\nKPI: ${(project.kpis || []).join(' · ')}\nOCENA KREACJI: ${sc.score}/100 (${sc.grade})\n` +
+    sc.parts.map(part => `  • ${part.label}: ${part.score}/${part.max}`).join('\n') + '\n' +
+    (sc.tips.length ? sc.tips.slice(0, 6).map(t => `  → ${t}`).join('\n') + '\n' : '');
   const body = Object.values(v.sections).map(s => `\n${'—'.repeat(30)}\n${s.title.toUpperCase()}\n${'—'.repeat(30)}\n${s.body}`).join('\n');
   return head + body;
 }
@@ -3627,7 +3866,8 @@ async function regenerateSection(vi, key, secEl, btn){
   const v = currentProject.variants[vi];
   const brief = currentProject.brief;
   const old = v.sections[key].body;
-  if(secEl) secEl.classList.add('busy');
+  pushUndo('regeneracja sekcji „' + v.sections[key].title + '” (wariant ' + v.label + ')');
+  if(secEl){ secEl.classList.add('busy'); secEl.setAttribute('aria-busy', 'true'); }
   log(`Regeneruję: Wariant ${v.label} · ${v.sections[key].title}…`);
   try{
     let fresh = '';
@@ -3660,7 +3900,7 @@ async function regenerateSection(vi, key, secEl, btn){
     if(btn) btn.disabled = false;
     return;
   }
-  if(secEl) secEl.classList.remove('busy');
+  if(secEl){ secEl.classList.remove('busy'); secEl.removeAttribute('aria-busy'); }
   if(btn) btn.disabled = false;
 }
 
@@ -3668,6 +3908,7 @@ async function regenerateSection(vi, key, secEl, btn){
 async function regenerateVariant(vi, btn){
   const v = currentProject.variants[vi];
   const keys = Object.keys(v.sections);
+  pushUndo('regeneracja całego wariantu ' + v.label);
   if(btn) btn.disabled = true;
   log(`Regeneruję cały wariant ${v.label} (${keys.length} sekcji)…`);
   if(currentProject.engine === 'local' || !settings.key || currentProject.brief.engine === 'local'){
@@ -3751,11 +3992,15 @@ function projectToTxt(p){
   L.push('');
   L.push('--- BRIEF ---');
   briefRows(p.brief || {}).forEach(([k, v]) => L.push(`${k}: ${v}`));
+  L.push(`Średnia ocena kreacji: ${averageScore(p)}/100 (heurystyki hooka, budżetu słów, CTA, zgodności i hashtagów)`);
   (p.variants || []).forEach(v => {
+    const sc = scoreVariant(p, v);
     L.push('');
     L.push('#'.repeat(64));
     L.push(`WARIANT ${v.label} · ${v.angle}`);
     L.push(`Hipoteza: ${v.hypothesis || '—'}`);
+    L.push(`Ocena kreacji: ${sc.score}/100 (${sc.grade})`);
+    if(sc.tips.length) sc.tips.forEach(t => L.push(`  → ${t}`));
     L.push('#'.repeat(64));
     Object.values(v.sections || {}).forEach(s => {
       L.push('');
@@ -3802,8 +4047,11 @@ function projectToMd(p){
     L.push('');
     L.push(`## Wariant ${v.label} · ${v.angle}`);
     L.push('');
-    L.push(`**Hipoteza:** ${v.hypothesis || '—'}`);
+    const sc = scoreVariant(p, v);
+    L.push(`**Hipoteza:** ${v.hypothesis || '—'}  `);
+    L.push(`**Ocena kreacji:** ${sc.score}/100 — ${sc.grade}`);
     L.push('');
+    if(sc.tips.length){ L.push('> **Do poprawy:**'); sc.tips.forEach(t => L.push('> - ' + t)); L.push(''); }
     Object.values(v.sections || {}).forEach(s => {
       L.push(`### ${s.title}`);
       L.push('');
@@ -3848,7 +4096,7 @@ function projectToMd(p){
 }
 
 /** Funkcje CSV – eksport hurtowy (jeden wiersz = jeden wariant). */
-const CSV_COLUMNS = ['Kampania','Wariant','Kąt','Hipoteza','Hook','Scenariusz','Shot list','Napisy','CTA','Opis','Hashtagi','Callout'];
+const CSV_COLUMNS = ['Kampania','Wariant','Kąt','Hipoteza','Ocena','Hook','Scenariusz','Shot list','Napisy','CTA','Opis','Hashtagi','Callout'];
 function csvEscape(v){
   const s = String(v == null ? '' : v).replace(/\r?\n/g, ' | ');
   return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -3861,6 +4109,7 @@ function projectsToCsv(projects){
       const S = k => (v.sections && v.sections[k] ? v.sections[k].body.replace(/\s*\n\s*/g, ' ') : '');
       rows.push([
         p.name || '', v.label || '', v.angle || '', v.hypothesis || '',
+        String((p.scores && p.scores[v.label] != null) ? p.scores[v.label] : scoreVariant(p, v).score),
         S('hook'), S('script'), S('shots'), S('subtitles'), S('cta'),
         S('description'), S('hashtags'), S('callout')
       ]);
@@ -3934,12 +4183,30 @@ function saveToHistory(project){
 
 /** Render listy historii. */
 function renderHistory(){
-  const list = getHistory();
+  const all = getHistory();
   const box = document.getElementById('historyList');
-  document.getElementById('pillHistory').textContent = list.length;
-  document.getElementById('histCount').textContent = list.length;
-  if(!list.length){ box.innerHTML = '<p class="hint">Brak zapisanych projektów. Wygeneruj pakiet i kliknij „Zapisz projekt” (Ctrl + S).</p>'; return; }
-  box.innerHTML = list.map(p => `
+  document.getElementById('pillHistory').textContent = all.length;
+  document.getElementById('histCount').textContent = all.length;
+  // filtr strategii (lista budowana raz, z zachowaniem wyboru)
+  const filterSel = document.getElementById('histFilter');
+  if(filterSel && filterSel.options.length <= 1){
+    STRATEGIES.forEach(st => {
+      const o = document.createElement('option');
+      o.value = st.id; o.textContent = st.label;
+      filterSel.appendChild(o);
+    });
+  }
+  const q = ((document.getElementById('histSearch') || {}).value || '').trim().toLowerCase();
+  const strategyFilter = (filterSel || {}).value || '';
+  const list = all.filter(p => {
+    if(strategyFilter && p.strategy !== strategyFilter) return false;
+    if(!q) return true;
+    const hay = [p.name, (p.brief || {}).product, (p.brief || {}).industry, p.niche, p.strategyLabel].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+  if(!all.length){ box.innerHTML = '<p class="hint">Brak zapisanych projektów. Wygeneruj pakiet i kliknij „Zapisz projekt” (Ctrl + S).</p>'; return; }
+  if(!list.length){ box.innerHTML = '<p class="hint">Brak wyników dla tego filtra. <button class="btn mini" id="btnHistReset">Wyczyść filtr</button></p>'; return; }
+  box.innerHTML = `<p class="hint" style="margin-bottom:9px">Pokazano ${list.length} z ${all.length} projektów.</p>` + list.map(p => `
     <div class="hist-card" data-id="${esc(p.id)}">
       <div style="min-width:240px">
         <div class="n">${esc(p.name || 'Bez nazwy')} <span class="chip pink">${p.variants ? p.variants.length : 0} warianty</span></div>
@@ -3957,12 +4224,27 @@ function renderHistory(){
 
 /** Obsługa akcji historii. */
 function bindHistory(){
+  const refresh = () => renderHistory();
+  const s1 = document.getElementById('histSearch');
+  const s2 = document.getElementById('histFilter');
+  if(s1) s1.addEventListener('input', refresh);
+  if(s2) s2.addEventListener('change', refresh);
   document.getElementById('historyList').addEventListener('click', e => {
+    if(e.target && e.target.id === 'btnHistReset'){
+      document.getElementById('histSearch').value = '';
+      document.getElementById('histFilter').value = '';
+      renderHistory(); return;
+    }
     const btn = e.target.closest('[data-hact]'); if(!btn) return;
     const id = btn.closest('.hist-card').dataset.id;
     const list = getHistory(); const p = list.find(x => x.id === id); if(!p) return;
     const act = btn.dataset.hact;
-    if(act === 'open'){ renderProject(p); switchTab('results'); toast('Projekt wczytany','ok'); }
+    if(act === 'open'){
+      const fixed = normalizeProject(p);
+      if(!fixed){ toast('Ten wpis jest uszkodzony i nie da się otworzyć','err'); return; }
+      pushUndo('wczytanie projektu „' + fixed.name + '”');
+      renderProject(fixed); switchTab('results'); toast('Projekt wczytany','ok');
+    }
     if(act === 'edit'){ applyBriefToForm(p.brief); currentProject = p; switchTab('campaign'); toast('Brief wczytany do edycji – po zmianach kliknij GENERUJ','info',4500); }
     if(act === 'dup'){
       const copy = JSON.parse(JSON.stringify(p));
@@ -4167,10 +4449,16 @@ async function runBatch(){
   renderBatchTable();
   document.getElementById('pillBatch').textContent = batchResults.length;
   if(failed.length) toast('Część linii pominięto: ' + failed.length, 'warn', 6000);
-  toast('Partia gotowa: ' + batchResults.length + ' kampanii · ' + batchResults.reduce((a, p) => a + p.variants.length, 0) + ' wariantów', batchResults.length ? 'ok' : 'err', 5000);
+  const avg = batchResults.length ? Math.round(batchResults.reduce((a, p) => a + averageScore(p), 0) / batchResults.length) : 0;
+  toast('Partia gotowa: ' + batchResults.length + ' kampanii · ' + batchResults.reduce((a, p) => a + p.variants.length, 0) + ' wariantów · średnia ocena ' + avg + '/100', batchResults.length ? 'ok' : 'err', 6000);
   setTimeout(() => setBatchProgress(0), 1200);
 }
-function setBatchProgress(pct){ document.getElementById('batchProgress').style.width = Math.max(0, Math.min(100, pct)) + '%'; }
+function setBatchProgress(pct){
+  const p = Math.max(0, Math.min(100, pct));
+  document.getElementById('batchProgress').style.width = p + '%';
+  const wrap = document.getElementById('batchProgressWrap');
+  if(wrap) wrap.setAttribute('aria-valuenow', String(Math.round(p)));
+}
 
 /** Tabela wyników partii. */
 function renderBatchTable(){
@@ -4186,13 +4474,14 @@ function renderBatchTable(){
       <td>${i + 1}</td>
       <td><b>${esc(p.name)}</b><div class="hint">${esc(p.niche)}</div></td>
       <td>${p.variants.length}</td>
+      <td><span class="score-val ${scoreClass(averageScore(p))}">🎯 ${averageScore(p)}</span></td>
       <td><div class="hint">${esc((p.kpis || []).slice(0, 3).join(' · '))}</div></td>
       <td class="hint">${esc(short(p.variants.map(v => v.hookLine || '').join(' / '), 96))}</td>
       <td><button class="btn mini" data-bact="open" data-i="${i}">📂 Otwórz</button></td>
       <td><button class="btn mini" data-bact="del" data-i="${i}">🗑</button></td>
     </tr>`).join('');
   box.innerHTML = `<table class="batch-table">
-    <thead><tr><th>#</th><th>Kampania</th><th>Warianty</th><th>KPI</th><th>Hooki</th><th></th><th></th></tr></thead>
+    <thead><tr><th>#</th><th>Kampania</th><th>Warianty</th><th>Ocena</th><th>KPI</th><th>Hooki</th><th></th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 }
 
@@ -4202,7 +4491,10 @@ function bindBatch(){
     const btn = e.target.closest('[data-bact]'); if(!btn) return;
     const i = Number(btn.dataset.i); const p = batchResults[i]; if(!p) return;
     if(btn.dataset.bact === 'open'){
-      renderProject(p); switchTab('results'); toast('Kampania z partii wczytana do Wyników','ok');
+      const fixed = normalizeProject(p);
+      if(!fixed){ toast('Ten wariant partii jest uszkodzony','err'); return; }
+      pushUndo('wczytanie kampanii z partii');
+      renderProject(fixed); switchTab('results'); toast('Kampania z partii wczytana do Wyników','ok');
     }
     if(btn.dataset.bact === 'del'){
       batchResults.splice(i, 1); renderBatchTable(); toast('Usunięto z partii','info');
@@ -4310,7 +4602,7 @@ function openStoryboard(vi){
        <div><b>${esc(b.label || 'Ujęcie')}</b></div>
        <div class="hint">${esc(b.text || '')}</div>
      </div>`).join('');
-  document.getElementById('modalStory').classList.add('open');
+  openModal('modalStory', 'storyPlay');
   document.getElementById('storyPlay').textContent = '▶ Odtwórz';
   storyRender();
 }
@@ -4340,7 +4632,7 @@ function storyRender(){
 /** Sterowanie odtwarzaniem storyboardu. */
 function bindStoryboard(){
   const modal = document.getElementById('modalStory');
-  const close = () => { if(story) story.playing = false; modal.classList.remove('open'); };
+  const close = () => closeModal('modalStory');
   document.getElementById('btnCloseStory').addEventListener('click', close);
   modal.addEventListener('click', e => { if(e.target === modal) close(); });
 
@@ -4525,7 +4817,12 @@ function decideEngine(brief, forceLocal){
 }
 
 /** Ustawia postęp i log generacji. */
-function setProgress(pct){ document.getElementById('genBar').style.width = Math.max(0, Math.min(100, pct)) + '%'; }
+function setProgress(pct){
+  const p = Math.max(0, Math.min(100, pct));
+  document.getElementById('genBar').style.width = p + '%';
+  const wrap = document.getElementById('genBarWrap');
+  if(wrap) wrap.setAttribute('aria-valuenow', String(Math.round(p)));
+}
 function log(msg, cls){
   const el = document.getElementById('genLog');
   const line = document.createElement('div');
@@ -4720,6 +5017,78 @@ function restoreDraft(){
   }
 }
 
+/* --------------------------- okna modalne (fokus + ARIA) --------------------------- */
+let lastFocusedEl = null;
+
+/** Otwiera modal: zapamiętuje fokus, ustawia aria-hidden, przenosi fokus do środka. */
+function openModal(id, focusId){
+  const m = document.getElementById(id); if(!m) return;
+  lastFocusedEl = (typeof document.activeElement !== 'undefined') ? document.activeElement : null;
+  m.classList.add('open');
+  m.setAttribute('aria-hidden', 'false');
+  const target = (focusId && document.getElementById(focusId)) || m.querySelector('input:not([type=hidden]), select, textarea, button');
+  if(target && target.focus) setTimeout(() => { try{ target.focus(); }catch(e){ warn('openModal: fokus', e); } }, 30);
+}
+/** Zamyka modal: zwraca fokus na element otwierający. */
+function closeModal(id){
+  const m = document.getElementById(id); if(!m) return;
+  m.classList.remove('open');
+  m.setAttribute('aria-hidden', 'true');
+  if(id === 'modalStory' && typeof story !== 'undefined' && story) story.playing = false;
+  if(lastFocusedEl && lastFocusedEl.focus){ try{ lastFocusedEl.focus(); }catch(e){ warn('closeModal: powrót fokusu', e); } }
+  lastFocusedEl = null;
+}
+/** Pułapka Tab wewnątrz otwartego modala. */
+function trapFocus(e){
+  if(e.key !== 'Tab') return;
+  const m = document.querySelector('.modal.open'); if(!m) return;
+  const items = Array.from(m.querySelectorAll('button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])'))
+    .filter(el => !el.disabled && el.type !== 'hidden');
+  if(!items.length) return;
+  const first = items[0], last = items[items.length - 1];
+  if(e.shiftKey && (document.activeElement === first || !m.contains(document.activeElement))){ e.preventDefault(); last.focus(); }
+  else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+}
+
+/* --------------------------- cofanie operacji (undo) --------------------------- */
+const undoStack = [];
+const UNDO_LIMIT = 12;
+/** Zapamiętuje stan projektu przed operacją destrukcyjną. */
+function pushUndo(label){
+  if(!currentProject) return;
+  try{
+    undoStack.push({ label: label || 'operacja', at:Date.now(), data:JSON.stringify(currentProject) });
+    if(undoStack.length > UNDO_LIMIT) undoStack.shift();
+    updateUndoUI();
+  }catch(e){ warn('pushUndo', e); }
+}
+/** Cofa ostatnią operację. */
+function performUndo(){
+  const snap = undoStack.pop();
+  if(!snap){ toast('Nie ma czego cofnąć','info'); return false; }
+  try{
+    const restored = normalizeProject(JSON.parse(snap.data));
+    if(!restored) throw new Error('Migawka jest uszkodzona');
+    currentProject = restored;
+    renderProject(currentProject);
+    saveDraft(currentProject);
+    updateUndoUI();
+    toast('Cofnięto: ' + snap.label, 'ok');
+    log('↶ Cofnięto operację: ' + snap.label + ' (pozostało w stosie: ' + undoStack.length + ')');
+    return true;
+  }catch(e){
+    warn('performUndo', e); toast('Nie udało się cofnąć: ' + e.message, 'err', 6000); updateUndoUI(); return false;
+  }
+}
+/** Odświeża stan przycisku cofania. */
+function updateUndoUI(){
+  const btn = document.getElementById('btnUndo'); if(!btn) return;
+  const has = undoStack.length > 0;
+  btn.disabled = !has;
+  btn.textContent = has ? '↶ Cofnij (' + undoStack.length + ')' : '↶ Cofnij';
+  btn.title = has ? ('Cofnij: ' + undoStack[undoStack.length - 1].label + ' (Ctrl+Z)') : 'Cofnij ostatnią operację (Ctrl+Z)';
+}
+
 /* --------------------------- toasty --------------------------- */
 function toast(msg, kind, ms){
   const box = document.getElementById('toasts');
@@ -4865,16 +5234,16 @@ function bindUI(){
 
   // klucz API – modal
   const modal = document.getElementById('modalKey');
-  const openModal = () => { document.getElementById('m_key').value = settings.key || ''; document.getElementById('m_provider').value = settings.provider; fillModelSelects(); modal.classList.add('open'); };
-  document.getElementById('btnKey').addEventListener('click', openModal);
-  document.getElementById('btnCloseKey').addEventListener('click', () => modal.classList.remove('open'));
-  modal.addEventListener('click', e => { if(e.target === modal) modal.classList.remove('open'); });
+  const openKeyModal = () => { document.getElementById('m_key').value = settings.key || ''; document.getElementById('m_provider').value = settings.provider; fillModelSelects(); openModal('modalKey', 'm_key'); };
+  document.getElementById('btnKey').addEventListener('click', openKeyModal);
+  document.getElementById('btnCloseKey').addEventListener('click', () => closeModal('modalKey'));
+  modal.addEventListener('click', e => { if(e.target === modal) closeModal('modalKey'); });
   document.getElementById('btnModalSave').addEventListener('click', () => {
     settings.provider = document.getElementById('m_provider').value;
     settings.key = document.getElementById('m_key').value.trim();
     settings.model = document.getElementById('m_model').value;
     saveSettings(); syncSettingsUI();
-    modal.classList.remove('open');
+    closeModal('modalKey');
     toast(settings.key ? 'Klucz zapisany lokalnie' : 'Klucz usunięty','ok');
   });
   document.getElementById('btnModalWipe').addEventListener('click', () => { settings.key = ''; saveSettings(); syncSettingsUI(); toast('Klucz usunięty z tej przeglądarki','info'); });
@@ -4941,6 +5310,8 @@ function bindUI(){
   });
 
   // historia
+  const undoBtn = document.getElementById('btnUndo');
+  if(undoBtn) undoBtn.addEventListener('click', () => performUndo());
   bindHistory();
   document.getElementById('btnClearHistory').addEventListener('click', () => { if(confirm('Wyczyścić całą historię projektów?')){ setHistory([]); renderHistory(); toast('Historia wyczyszczona','info'); } });
   document.getElementById('btnImportProject').addEventListener('click', () => document.getElementById('fileImport').click());
@@ -4949,12 +5320,18 @@ function bindUI(){
     const rd = new FileReader();
     rd.onload = () => {
       try{
-        const data = JSON.parse(rd.result);
-        if(!data.variants) throw new Error('Plik nie zawiera wariantów (to nie jest pakiet kampanii).');
-        data.id = data.id || ('p_' + Date.now());
-        saveToHistory(data); renderProject(data); applyBriefToForm(data.brief); switchTab('results');
-        toast('Projekt zaimportowany','ok');
-      }catch(err){ toast('Import nieudany: ' + err.message,'err',6000); }
+        const raw = JSON.parse(rd.result);
+        const shapeError = projectShapeError(raw);
+        if(shapeError) throw new Error(shapeError);
+        const fixed = normalizeProject(raw);
+        if(!fixed) throw new Error('Nie udało się odczytać wariantów – plik jest uszkodzony lub pusty.');
+        fixed.id = fixed.id || ('p_' + Date.now());
+        const repaired = fixed.variants.length !== raw.variants.length || !raw.kpis;
+        pushUndo('import projektu „' + fixed.name + '”');
+        saveToHistory(fixed); renderProject(fixed); applyBriefToForm(fixed.brief); switchTab('results');
+        toast('Projekt zaimportowany' + (repaired ? ' (dane częściowo uzupełnione)' : ''), 'ok', 5000);
+        log('Import projektu: ' + fixed.name + ' (' + fixed.variants.length + ' wariantów)', 'ok');
+      }catch(err){ toast('Import nieudany: ' + err.message,'err',7000); warn('import projektu', err); }
     };
     rd.readAsText(f);
     e.target.value = '';
@@ -4967,17 +5344,19 @@ function bindUI(){
     if(ctrl && e.key.toLowerCase() === 's'){ e.preventDefault(); document.getElementById('btnSaveProject').click(); }
     if(ctrl && e.key.toLowerCase() === 'k'){ e.preventDefault(); document.getElementById('btnKey').click(); }
     if(ctrl && e.shiftKey && e.key.toLowerCase() === 'l'){ e.preventDefault(); runGeneration(true); }
-    if(e.key === 'Escape'){
-      document.getElementById('modalKey').classList.remove('open');
-      document.getElementById('modalPreset').classList.remove('open');
-      document.getElementById('modalAngle').classList.remove('open');
-      document.getElementById('modalStory').classList.remove('open');
-      if(story) story.playing = false;
+    if(e.key === 'Escape' && document.querySelector('.modal.open')){
+      document.querySelectorAll('.modal.open').forEach(m => closeModal(m.id));
     }
+    if(ctrl && !e.shiftKey && e.key.toLowerCase() === 'z'){
+      const tag = (document.activeElement && document.activeElement.tagName) || '';
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+      if(!typing && undoStack.length){ e.preventDefault(); performUndo(); }
+    }
+    trapFocus(e);
   });
 
   // zapis stanu przy zamykaniu
-  window.addEventListener('beforeunload', () => { try{ saveDraft(); }catch(e){} });
+  window.addEventListener('beforeunload', () => { try{ saveDraft(); }catch(e){ warn('autosave przy zamknięciu', e); } });
 }
 
 /* --------------------------- start --------------------------- */
@@ -4995,6 +5374,7 @@ function bindUI(){
     log('Brak klucza API – pracujesz na silniku lokalnym offline. Klucz możesz dodać w „Ustawieniach” (albo przyciskiem 🔑 w nagłówku).','w');
   }
   updateBadges();
+  const verEl = document.getElementById('appVersion'); if(verEl) verEl.textContent = APP_VERSION;
   saveSettings();   // utrwala domyślny model wybrany przy pierwszym starcie
 })();
 </script>

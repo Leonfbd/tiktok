@@ -271,7 +271,55 @@ A.saveAngles([]);
 const restored = A.applyWorkspace(wsAngles);
 check('workspace: kąty przywrócone', restored.angles === 2 && A.getAngles().length === 2, JSON.stringify(restored));
 
-/* ---------- 19. Modele rozumujące ---------- */
+/* ---------- 19. Walidacja i normalizacja projektów (audyt A1) ---------- */
+check('normalizacja: odrzuca null/string/tablicę', A.normalizeProject(null) === null && A.normalizeProject('x') === null && A.normalizeProject([]) === null);
+check('normalizacja: odrzuca brak wariantów', A.normalizeProject({ name:'X', brief:{} }) === null);
+check('normalizacja: odrzuca variants jako string', A.normalizeProject({ variants:'nie-tablica' }) === null);
+check('normalizacja: odrzuca warianty bez sekcji', A.normalizeProject({ variants:[{ label:'A' }] }) === null);
+const junkMixed = A.normalizeProject({
+  name:'Mieszany', variants:[
+    { label:'A', sections:{ hook:{ body:'HOOK A\ntreść' } } },
+    { label:'B' },                       // bez sekcji → odpada
+    null,                                // śmieć → odpada
+    { label:'C', sections:'zły typ' }    // sekcje nie-obiekt → pusty obiekt → odpada
+  ], brief:'nie-obiekt'
+});
+check('normalizacja: zachowuje tylko zdrowe warianty', junkMixed && junkMixed.variants.length === 1, junkMixed && junkMixed.variants.length);
+check('normalizacja: naprawia brief', junkMixed && typeof junkMixed.brief === 'object');
+check('normalizacja: uzupełnia metadane sekcji', junkMixed && junkMixed.variants[0].sections.hook.title === 'Hooki 0–3 s', junkMixed && junkMixed.variants[0].sections.hook.title);
+check('normalizacja: domyślna nazwa projektu', A.normalizeProject({ variants:[{ label:'A', sections:{ hook:{ body:'x' } } }] }).name === 'Projekt bez nazwy');
+check('walidacja: komunikat – brak wariantów', /nie ma listy wariantów/.test(A.projectShapeError({ name:'X' })), A.projectShapeError({ name:'X' }));
+check('walidacja: komunikat – zły typ', /nie jest listą/.test(A.projectShapeError({ variants:'x' })));
+check('walidacja: komunikat – pusta lista', /jest pusta/.test(A.projectShapeError({ variants:[] })));
+check('walidacja: brak błędu dla poprawnego', A.projectShapeError({ variants:[{ label:'A' }] }) === null);
+
+/* ---------- 20. Ocena kreacji (scoring) ---------- */
+const pGood = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:2 }));
+const scGood = A.scoreVariant(pGood, pGood.variants[0]);
+check('scoring: zwraca ocenę 0–100', scGood.score >= 0 && scGood.score <= 100, scGood.score);
+check('scoring: 5 składników oceny', scGood.parts.length === 5 && scGood.parts.reduce((a, x) => a + x.max, 0) === 100, scGood.parts.map(x => x.max).join('+'));
+check('scoring: części nie przekraczają maksimów', scGood.parts.every(x => x.score <= x.max), JSON.stringify(scGood.parts));
+check('scoring: pakiet lokalny ocenia się przyzwoicie (>=60)', scGood.score >= 60, scGood.score);
+check('scoring: klasa oceny', A.scoreClass(90) === 'ok' && A.scoreClass(70) === 'warn' && A.scoreClass(30) === 'err');
+check('scoring: średnia pakietu', A.averageScore(pGood) > 0 && A.averageScore(pGood) <= 100, A.averageScore(pGood));
+check('scoring: werdykt słowny', /gotowe do publikacji|dobre|wymaga pracy|słabe/.test(scGood.grade), scGood.grade);
+
+// wariant celowo zepsuty: długi hook bez konkretu, hype, brak CTA i opisu
+const pBad = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:1, modules:['hook','script'] }));
+pBad.variants[0].sections.hook.body = 'HOOK A (0–3 s)\nGwarantujemy najlepszy na rynku efekt natychmiastowy, który zmieni Twoje życie raz na zawsze i już nigdy nie będziesz miał problemu z niczym';
+pBad.variants[0].sections.script.body = '[0–3 s] Coś się dzieje\nBez przedziałów i bez liczb';
+const scBad = A.scoreVariant(pBad, pBad.variants[0]);
+check('scoring: zepsuty wariant oceniony niżej', scBad.score < scGood.score, `${scBad.score} vs ${scGood.score}`);
+check('scoring: wykryty hype obniża hook', scBad.parts.find(x => x.key === 'hook').score <= 20, scBad.parts.find(x => x.key === 'hook').score);
+check('scoring: wskazówki dla słabego wariantu', scBad.tips.length >= 3, scBad.tips.length);
+check('scoring: wskazówka o CTA', scBad.tips.some(t => /CTA/i.test(t)), JSON.stringify(scBad.tips));
+check('scoring: wskazówka o konkret/stronie', scBad.tips.some(t => /liczb|konkret|obietnic|gwarancj/i.test(t)), JSON.stringify(scBad.tips));
+check('scoring: brak sekcji tylko jako wskazówka, nie wyjątek', (() => { try { A.scoreVariant({ brief:{length:15}, variants:[] }, { sections:{} }); return true; } catch(e){ return false; } })());
+
+/* ---------- 21. Wersja aplikacji ---------- */
+check('wersja: stała APP_VERSION', A.APP_VERSION === '2.3', A.APP_VERSION);
+
+/* ---------- 22. Modele rozumujące ---------- */
 check('o4-mini rozpoznany jako reasoning', A.isReasoningModel('o4-mini') === true);
 check('gpt-5-mini rozpoznany jako reasoning', A.isReasoningModel('gpt-5-mini') === true);
 check('gpt-4o-mini NIE jest reasoning', A.isReasoningModel('gpt-4o-mini') === false);
