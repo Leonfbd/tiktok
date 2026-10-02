@@ -412,6 +412,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 .score-box{display:flex;gap:10px;align-items:center;margin-top:9px;flex-wrap:wrap}
 .score-val{font-family:var(--mono);font-size:13px;font-weight:700}
 .score-val.ok{color:var(--ok)} .score-val.warn{color:var(--warn)} .score-val.err{color:var(--err)}
+.score-val.weak{background:rgba(255,184,106,.14);border:1px solid rgba(255,184,106,.4);border-radius:6px;padding:2px 6px}
 .score-bar{flex:1 1 120px;height:6px;min-width:110px;border-radius:99px;background:var(--bg-2);
   border:1px solid var(--line);overflow:hidden}
 .score-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--err),var(--warn) 55%,var(--ok));width:0}
@@ -471,7 +472,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
     <div class="logo">TT</div>
     <div>
       <h1>Automat do Reklam TikTok<span class="pro">PRO</span></h1>
-      <p>Scenariusze · hooki · shot list · storyboard · tryb hurtowy · własne kąty · tracker wyników</p>
+      <p>Scenariusze · hooki · shot list · storyboard · tryb hurtowy · auto-scoring · brief montażysty · biblioteka hooków</p>
     </div>
   </div>
   <div class="top-actions">
@@ -760,6 +761,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
           <button class="btn sm" data-exp="csv">⬇ CSV (hurt)</button>
           <button class="btn sm" id="btnUndo" title="Cofnij ostatnią operację (Ctrl+Z)" aria-label="Cofnij ostatnią operację" disabled>↶ Cofnij</button>
           <button class="btn sm" id="btnPrint">🖨 Drukuj / PDF</button>
+          <button class="btn sm" data-exp="montage" title="Brief montażowy całego pakietu (TXT)">🎬 Brief montażysty (pakiet)</button>
           <button class="btn sm primary" data-exp="package">📦 Eksport pełnego pakietu</button>
         </div>
       </div>
@@ -817,8 +819,15 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
           <button class="btn" id="btnBatchJson">⬇ Eksport JSON</button>
           <button class="btn" id="btnBatchSaveHistory">💾 Zapisz wszystkie do historii</button>
         </div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn" id="btnBatchRegenWeak" title="Ponownie generuje (best-of-3, nowe ziarno) kampanie poniżej progu oceny, max 10 w rundzie">⚡ Regeneruj najsłabsze</button>
+          <span class="hint" style="display:flex;align-items:center;gap:6px">próg oceny:
+            <input type="number" id="batchThreshold" min="0" max="100" value="70" aria-label="Próg oceny dla auto-scoringu partii" style="width:60px;padding:6px 8px;border-radius:7px;background:var(--bg-2);border:1px solid var(--line-2);color:var(--text);font-size:12.5px"> / 100
+          </span>
+        </div>
         <div class="bar" style="margin-top:12px" id="batchProgressWrap" role="progressbar" aria-label="Postęp generowania partii" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="batchProgress"></i></div>
-        <p class="hint">Partia pracuje na silniku lokalnym – to celowe: 20 kampanii w kilka sekund, zero kosztów API i zero limitów. Dla pojedynczych, kluczowych kreacji użyj zakładki „Kampania” z API.</p>
+        <p class="hint">Partia pracuje na silniku lokalnym – to celowe: 20 kampanii w kilka sekund, zero kosztów API i zero limitów. Dla pojedynczych, kluczowych kreacji użyj zakładki „Kampania” z API.
+        Kolumna „Ocena” to automatyczna ocena kreacji (0–100); „⚡ Regeneruj najsłabsze” wylosuje ponownie kampanie poniżej progu (best-of-3 – zawsze zostaje najlepszy wynik).</p>
       </div>
     </div>
 
@@ -956,6 +965,16 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
             </div>
           </div>
           <div class="body" id="presetList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="head">
+            <h2>📚 Biblioteka hooków</h2>
+            <div class="btn-row">
+              <input type="text" id="hookSearch" placeholder="Szukaj hooków…" aria-label="Szukaj hooków w bibliotece" style="min-width:190px">
+            </div>
+          </div>
+          <div class="body" id="hookList"></div>
         </div>
 
         <div class="panel">
@@ -1199,7 +1218,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
    ========================================================================== */
 
 /** Wersja aplikacji – jedno źródło prawdy (badge w UI i eksporty). */
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.4';
 
 /** Log diagnostyczny – zamiast cichych `catch(e){}`. */
 function warn(...args){ try{ if(typeof console !== 'undefined' && console.warn) console.warn('[Automat TikTok]', ...args); }catch(e){ /* brak konsoli */ } }
@@ -2062,10 +2081,11 @@ const LS = {
   draft:'tiktok_pro_draft_v1',
   history:'tiktok_pro_history_v1',
   presets:'tiktok_pro_presets_v1',
-  angles:'tiktok_pro_angles_v1'
+  angles:'tiktok_pro_angles_v1',
+  hooks:'tiktok_pro_hooks_v1'
 };
 const STORAGE_LIMIT = 4.4 * 1024 * 1024;    // bezpieczny limit (przeglądarki dają ~5 MB)
-const NUM_KEYS = { [LS.history]:true, [LS.presets]:true, [LS.angles]:true };
+const NUM_KEYS = { [LS.history]:true, [LS.presets]:true, [LS.angles]:true, [LS.hooks]:true };
 
 /** Szacowany rozmiar danych w localStorage (bajty, przybliżenie UTF-16 → 2 B/znak). */
 function approxSize(keys){
@@ -2112,7 +2132,7 @@ const store = {
 
 /** Przycina tablice w localStorage, dopóki całość nie zmieści się w limicie. */
 function pruneStorage(preferredKey){
-  const order = [preferredKey, LS.history, LS.presets, LS.angles].filter((k, i, a) => k && a.indexOf(k) === i);
+  const order = [preferredKey, LS.history, LS.presets, LS.angles, LS.hooks].filter((k, i, a) => k && a.indexOf(k) === i);
   order.forEach(k => {
     if(!NUM_KEYS[k]) return;
     let arr = store.get(k, []);
@@ -2298,8 +2318,8 @@ function renderPresets(){
       <div class="btn-row">
         <button class="btn mini" data-pact="use">▶ Użyj w briefie</button>
         <button class="btn mini" data-pact="edit">✎ Edytuj</button>
-        <button class="btn mini" data-pact="export">⬇</button>
-        <button class="btn mini danger" data-pact="del">🗑</button>
+        <button class="btn mini" data-pact="export" aria-label="Eksportuj preset JSON" title="Eksportuj preset (JSON)">⬇</button>
+        <button class="btn mini danger" data-pact="del" aria-label="Usuń preset" title="Usuń preset">🗑</button>
       </div>
     </div>`).join('');
 }
@@ -2430,6 +2450,100 @@ function saveAngleFromEditor(){
   toast('Kąt zapisany: ' + A.label + ' – zostanie użyty w najbliższej generacji','ok', 5000);
 }
 
+/* ------------------ BIBLIOTEKA HOOKÓW UŻYTKOWNIKA ------------------ */
+function getHooks(){ const a = store.get(LS.hooks, []); return Array.isArray(a) ? a : []; }
+function saveHooks(list){ return store.set(LS.hooks, list); }
+
+/** Zapisuje główny hook (HOOK A) wskazanego wariantu do biblioteki. */
+function saveHookFromVariant(vi){
+  if(!currentProject) return;
+  const v = currentProject.variants[vi];
+  if(!v) return;
+  const body = v.sections.hook ? String(v.sections.hook.body) : '';
+  const m = body.match(/^HOOK\s*A[^\n]*\n(.+)$/m);
+  const text = (m && m[1] ? m[1] : (v.hookLine || body.split('\n').filter(Boolean)[0] || '')).trim();
+  if(!text){ toast('Nie znalezłem hooka w tym wariancie','warn'); return; }
+  const list = getHooks();
+  if(list.some(h => h.text === text)){ toast('Ten hook jest już w bibliotece','info'); return; }
+  const sc = scoreVariant(currentProject, v);
+  list.unshift({
+    id:'h_' + Date.now() + '_' + Math.floor(Math.random() * 999),
+    text,
+    industry:(currentProject.brief || {}).industry || '',
+    length:(currentProject.brief || {}).length || '',
+    strategy: currentProject.strategyLabel || '',
+    score: sc.score,
+    campaign: currentProject.name || '',
+    at: new Date().toISOString()
+  });
+  if(!saveHooks(list)){ toast('Nie udało się zapisać hooka (pamięć pełna)','err'); return; }
+  renderHooks(); renderStorage();
+  toast('Hook w bibliotece: Ustawienia → 📚 Biblioteka hooków','ok', 5000);
+}
+
+/** Lista biblioteki hooków (z wyszukiwarką). */
+function renderHooks(){
+  const box = document.getElementById('hookList');
+  if(!box) return;
+  const q = ((document.getElementById('hookSearch') || {}).value || '').trim().toLowerCase();
+  const list = getHooks().filter(h => !q || (h.text + ' ' + h.industry + ' ' + h.campaign + ' ' + h.strategy).toLowerCase().includes(q));
+  if(!getHooks().length){
+    box.innerHTML = '<p class="hint">Biblioteka jest pusta. Z wygenerowanego wariantu kliknij „📚 Hook do biblioteki” — hook głównej kreacji wyląduje tutaj razem z kontekstem (branża, czas, strategia, ocena). Z biblioteki hook można skopiować albo jednym kliknięciem wstawić do wariantu A.</p>';
+    return;
+  }
+  if(!list.length){
+    box.innerHTML = '<p class="hint">Brak wyników dla „' + esc(q) + '”.</p>';
+    return;
+  }
+  box.innerHTML = list.map(h => `
+    <div class="preset-row" data-id="${esc(h.id)}">
+      <div>
+        <div class="t">${esc(h.text)}</div>
+        <div class="k">${esc(h.industry || '—')} · ${esc(h.length || '?')} s · ${esc(h.strategy || '—')} · 🎯 ${h.score}/100 · ${esc(h.campaign || '')}</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn mini" data-hhact="copy" title="Kopiuj hook do schowka">⧉</button>
+        <button class="btn mini" data-hhact="use" title="Wstaw jako HOOK A w wariant A otwartego pakietu">▶ Użyj w A</button>
+        <button class="btn mini danger" data-hhact="del" aria-label="Usuń hook z biblioteki" title="Usuń">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+/** Wstawia hook z biblioteki jako HOOK A pierwszego wariantu (z cofaniem). */
+function useHookInVariant(hookId){
+  if(!currentProject){ toast('Najpierw otwórz wygenerowany pakiet w zakładce Wyniki','warn'); return; }
+  const H = getHooks().find(x => x.id === hookId);
+  if(!H) return;
+  const v = currentProject.variants[0];
+  if(!v || !v.sections || !v.sections.hook){ toast('Wariant A nie ma sekcji hooków','err'); return; }
+  pushUndo('podmiana hooka w wariancie ' + v.label);
+  const body = String(v.sections.hook.body);
+  v.sections.hook.body = body.replace(/^(HOOK\s*A[^\n]*\n).+$/m, (m, head) => head + H.text) || ('HOOK A (0–3 s)\n' + H.text);
+  currentProject.compliance = complianceScan(currentProject);
+  renderProject(currentProject);
+  saveDraft(currentProject);
+  toast('Hook wstawiony do wariantu ' + v.label + ' (Ctrl+Z cofa)','ok', 5000);
+}
+
+/** Obsługa biblioteki hooków (delegacja). */
+function bindHooks(){
+  const box = document.getElementById('hookList');
+  box.addEventListener('click', e => {
+    const btn = e.target.closest('[data-hhact]'); if(!btn) return;
+    const id = btn.closest('.preset-row').dataset.id;
+    const H = getHooks().find(x => x.id === id); if(!H) return;
+    const act = btn.dataset.hhact;
+    if(act === 'copy'){ copyText(H.text, btn); }
+    if(act === 'use'){ useHookInVariant(id); }
+    if(act === 'del'){
+      if(!confirm('Usunąć hook z biblioteki?')) return;
+      saveHooks(getHooks().filter(x => x.id !== id)); renderHooks(); renderStorage();
+      toast('Hook usunięty','info');
+    }
+  });
+  document.getElementById('hookSearch').addEventListener('input', renderHooks);
+}
+
 /** Lista własnych kątów w Ustawieniach. */
 function renderAngles(){
   const box = document.getElementById('angleList');
@@ -2447,8 +2561,8 @@ function renderAngles(){
       <div class="btn-row">
         <button class="btn mini" data-aact="edit">✎ Edytuj</button>
         <button class="btn mini" data-aact="dup">⧉ Duplikuj</button>
-        <button class="btn mini" data-aact="export">⬇</button>
-        <button class="btn mini danger" data-aact="del">🗑</button>
+        <button class="btn mini" data-aact="export" aria-label="Eksportuj kąt JSON" title="Eksportuj kąt (JSON)">⬇</button>
+        <button class="btn mini danger" data-aact="del" aria-label="Usuń kąt" title="Usuń kąt">🗑</button>
       </div>
     </div>`).join('');
 }
@@ -3340,35 +3454,128 @@ function numVal(v){
 }
 /** Struktura wyników w projekcie (tworzona w razie potrzeby). */
 function ensureResults(project){
-  if(!project.results) project.results = { metric:'ctr', rows:{}, winner:null, computedAt:null };
-  project.results.rows = project.results.rows || {};
+  if(!project.results || typeof project.results !== 'object') project.results = { metric:'ctr', rows:{}, winner:null, computedAt:null };
+  if(!TRACK_METRICS.some(m => m.id === project.results.metric)) project.results.metric = 'ctr';
+  normalizeResultsRows(project.results);
   return project.results;
 }
+/**
+ * Migruje wiersze wyników do modelu „wiele pomiarów”:
+ *   starszy format:  rows[A] = { views, hook, ctr, cvr, spend }
+ *   nowy format:     rows[A] = { measurements: [ {at, views, hook, ctr, cvr, spend} ], draft: {...} }
+ * Idempotentna – można wołać na każdym wejściu danych.
+ */
+function normalizeResultsRows(R){
+  R.rows = (R.rows && typeof R.rows === 'object') ? R.rows : {};
+  const FIELDS = ['views','hook','ctr','cvr','spend','cpa'];
+  Object.keys(R.rows).forEach(label => {
+    let row = R.rows[label];
+    if(!row || typeof row !== 'object'){ R.rows[label] = { measurements:[], draft:{} }; return; }
+    if(Array.isArray(row.measurements)){
+      row.measurements = row.measurements.filter(m => m && typeof m === 'object');
+    } else {
+      const m = {};
+      FIELDS.forEach(f => { if(row[f] != null && row[f] !== '') m[f] = row[f]; });
+      row.measurements = Object.keys(m).length ? [m] : [];
+      FIELDS.forEach(f => { delete row[f]; });
+    }
+    row.draft = (row.draft && typeof row.draft === 'object') ? row.draft : {};
+    FIELDS.forEach(f => { if(row.draft[f] != null && row.draft[f] !== '') numVal(row.draft[f]) == null ? delete row.draft[f] : 0; });
+  });
+}
+/** Ostatni ZAPISANY pomiar wiersza (null, jeśli brak). */
+function rowLatest(row){
+  if(!row || !Array.isArray(row.measurements) || !row.measurements.length) return null;
+  return row.measurements[row.measurements.length - 1];
+}
+/** Czy draft wiersza ma wartości? */
+function rowHasDraft(row){
+  return !!(row && row.draft && Object.values(row.draft).some(v => v != null && v !== ''));
+}
+/** Zapisuje niepuste drifty wszystkich wierszy jako nowe pomiary (wywołuje „wyłoń zwycięzcę”). */
+function commitDrafts(project){
+  const R = ensureResults(project);
+  let committed = 0;
+  Object.keys(R.rows).forEach(label => {
+    const row = R.rows[label];
+    if(!rowHasDraft(row)) return;
+    const m = { at: new Date().toISOString() };
+    ['views','hook','ctr','cvr','spend','cpa'].forEach(f => { if(row.draft[f] != null && row.draft[f] !== '') m[f] = row.draft[f]; });
+    row.measurements.push(m);
+    row.draft = {};
+    committed++;
+  });
+  return committed;
+}
+/** Mini-sparkline (SVG inline, bez bibliotek) dla serii wartości metryki. */
+function sparklineSvg(series, higherIsBetter){
+  if(!series || series.length < 2) return '';
+  const w = 64, h = 20, pad = 3;
+  const min = Math.min.apply(null, series), max = Math.max.apply(null, series);
+  const span = (max - min) || 1;
+  const pts = series.map((v, i) => {
+    const x = pad + (i * (w - 2 * pad)) / (series.length - 1);
+    const y = h - pad - ((v - min) / span) * (h - 2 * pad);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  const improved = higherIsBetter ? series[series.length - 1] >= series[0] : series[series.length - 1] <= series[0];
+  const color = improved ? 'var(--ok)' : 'var(--warn)';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6"/></svg>`;
+}
 
-/** Przelicza wyniki: kliknięcia, konwersje, CPA i wyłania zwycięzcę. */
+/** Wskaźniki z pojedynczego pomiaru (kliknięcia, konwersje, CPA). */
+function measurementStats(m){
+  const views = numVal(m.views), ctr = numVal(m.ctr), cvr = numVal(m.cvr), spend = numVal(m.spend);
+  const clicks = (views != null && ctr != null) ? views * ctr / 100 : null;
+  const conv = (clicks != null && cvr != null) ? clicks * cvr / 100 : null;
+  const cpaDirect = numVal(m.cpa);
+  const cpa = cpaDirect != null ? cpaDirect : ((conv != null && spend != null && conv > 0) ? spend / conv : null);
+  return { views, hook: numVal(m.hook), ctr, cvr, spend, clicks, conv, cpa };
+}
+/** Przelicza wyniki z OSTATNICH pomiarów: wyłania zwycięzcę i trend. */
 function computeResults(project){
   const R = ensureResults(project);
   const metricDef = TRACK_METRICS.find(m => m.id === R.metric) || TRACK_METRICS[1];
+  const pick = (arr) => arr.length ? arr.reduce((a, b) => metricDef.higher ? (b.metricVal > a.metricVal ? b : a) : (b.metricVal < a.metricVal ? b : a)) : null;
   const rows = project.variants.map(v => {
-    const r = R.rows[v.label] || {};
-    const views = numVal(r.views), hook = numVal(r.hook), ctr = numVal(r.ctr), cvr = numVal(r.cvr), spend = numVal(r.spend);
-    const clicks = (views != null && ctr != null) ? views * ctr / 100 : null;
-    const conv = (clicks != null && cvr != null) ? clicks * cvr / 100 : null;
-    const cpaDirect = numVal(r.cpa);
-    const cpa = cpaDirect != null ? cpaDirect : ((conv != null && spend != null && conv > 0) ? spend / conv : null);
-    return { label:v.label, angle:v.angle, views, hook, ctr, cvr, spend, clicks, conv, cpa, enough:(views != null && views >= 2000) };
+    const row = R.rows[v.label] || { measurements:[], draft:{} };
+    const source = rowHasDraft(row) ? row.draft : rowLatest(row);
+    const stats = source ? measurementStats(source) : { views:null, hook:null, ctr:null, cvr:null, spend:null, clicks:null, conv:null, cpa:null };
+    const prev = row.measurements.length > 1 ? row.measurements[row.measurements.length - 2] : null;
+    const prevStats = prev ? measurementStats(prev) : null;
+    const metricVal = stats[metricDef.id];
+    const prevVal = prevStats ? prevStats[metricDef.id] : null;
+    const delta = (metricVal != null && prevVal != null) ? metricVal - prevVal : null;
+    const series = row.measurements.map(m => measurementStats(m)[metricDef.id]).filter(x => x != null);
+    return {
+      label:v.label, angle:v.angle,
+      views: stats.views, hook: stats.hook, ctr: stats.ctr, cvr: stats.cvr, spend: stats.spend,
+      clicks: stats.clicks, conv: stats.conv, cpa: stats.cpa,
+      metricVal, delta, series, count: row.measurements.length,
+      hasDraft: rowHasDraft(row),
+      enough: (stats.views != null && stats.views >= 2000)
+    };
   });
-  const scored = rows.filter(x => x.views != null && x[metricDef.id] != null);
+  const scored = rows.filter(x => x.views != null && x.metricVal != null);
   // Próg decyzyjny 2 000 wyświetleń: na małej próbie wynik jest szumem, nie sygnałem
   const eligible = scored.filter(x => x.enough);
   const pool = eligible.length ? eligible : scored;
-  let winner = null;
-  if(pool.length){
-    winner = pool.reduce((a, b) => metricDef.higher ? (b[metricDef.id] > a[metricDef.id] ? b : a) : (b[metricDef.id] < a[metricDef.id] ? b : a));
+  const winner = pick(pool);
+  // Kto wygrywał na poprzednim pomiarze (tylko gdy każdy wariant ma ≥2 pomiary)?
+  let prevWinner = null;
+  if(rows.length && rows.every(r => r.count >= 2)){
+    const prevRows = rows.map(r => {
+      const m = R.rows[r.label].measurements[r.count - 2];
+      const s = measurementStats(m);
+      return { label:r.label, views:s.views, metricVal: s[metricDef.id], enough: (s.views != null && s.views >= 2000) };
+    });
+    const pEligible = prevRows.filter(x => x.views != null && x.metricVal != null && x.enough);
+    const pPool = pEligible.length ? pEligible : prevRows.filter(x => x.views != null && x.metricVal != null);
+    prevWinner = pick(pPool);
   }
   return {
-    rows, winner, metric:metricDef,
-    anyData: rows.some(r => r.views != null),
+    rows, winner, metric:metricDef, prevWinner,
+    anyData: rows.some(r => r.views != null || r.hasDraft),
     poolFromEnough: eligible.length > 0,
     belowThreshold: rows.filter(r => r.views != null && !r.enough).map(r => r.label)
   };
@@ -3389,19 +3596,31 @@ function trackerSummaryHtml(project){
     return '<p class="hint" style="margin-top:11px">Brak wpisanych danych. Uzupełnij przynajmniej kolumnę „Wyświetlenia” i jedną metrykę, którą oceniasz.</p>';
   }
   const below = res.belowThreshold || [];
+  const pending = res.rows.filter(r => r.hasDraft).map(r => r.label);
+  const totalMeas = res.rows.reduce((a, r) => a + r.count, 0);
   const lines = [];
   if(res.winner && !res.poolFromEnough){
     lines.push('<div class="hd warn">⚠ Wynik wstępny – wszystkie warianty poniżej progu 2 000 wyświetleń</div>');
+  }
+  if(pending.length){
+    lines.push(`<span class="warn">Niezapisane pomiary: ${esc(pending.join(', '))}</span> – kliknij „🏆 Wyłoń zwycięzcę” lub „＋ pomiar” przy wierszu.`);
   }
   if(res.winner){
     const w = res.winner;
     lines.push(`<div class="hd">🏆 Zwycięzca: <span class="ok">Wariant ${esc(w.label)}</span> — ${esc(short(w.angle, 60))}</div>`);
     lines.push(`Metryka decyzyjna: <b>${esc(res.metric.label)}</b> → ${esc(fnum(w[res.metric.id]))} przy ${esc(fnum(w.views, 0))} wyświetleniach.`);
     if(w.clicks != null) lines.push(`Szacowane kliknięcia: <b>${esc(fnum(w.clicks, 0))}</b>${w.conv != null ? `, konwersje: <b>${esc(fnum(w.conv, 1))}</b>` : ''}${w.cpa != null ? `, CPA: <b>${esc(fnum(w.cpa))} zł</b>` : ''}.`);
+    lines.push(`<b>Pomiary:</b> łącznie ${totalMeas} (${res.rows.map(r => r.label + ': ' + r.count).join(', ')}).`);
+    if(res.prevWinner){
+      lines.push(res.prevWinner.label === w.label
+        ? '<span class="ok">📈 Zwycięzca ten sam jak na poprzednim pomiarze – wynik się utrzymuje.</span>'
+        : `<span class="warn">📉 Zwycięzca zmienił się vs poprzedni pomiar (wcześniej: wariant ${esc(res.prevWinner.label)}) – nie skaluj od razu, rób jeszcze jeden pomiar.</span>`);
+    }
     lines.push('<b>Kolejny krok:</b><ul>' +
       `<li>Przenieś hook zwycięzcy (wariant ${esc(w.label)}) do nowej kreacji i przetestuj na nim nowe CTA – jedna zmiana naraz.</li>` +
       '<li>Zwiększ budżet zwycięzcy o 20–30% dziennie, nie skokowo – większe skoki resetują fazę uczenia.</li>' +
       '<li>Odstaw najsłabszy wariant do 20% budżetu jako kontrolę – sezonowość potrafi odwrócić wyniki.</li>' +
+      '<li>Wpisz następny pomiar za 24–72 h („＋ pomiar”), żeby sprawdzić, czy trend się utrzymuje.</li>' +
       '</ul>');
   } else {
     lines.push('<div class="hd warn">Za mało danych, by wyłonić zwycięzcę</div>');
@@ -3418,8 +3637,21 @@ function trackerSummaryHtml(project){
 function renderTracker(project){
   const R = ensureResults(project);
   const body = project.variants.map(v => {
-    const r = R.rows[v.label] || {};
-    const inp = (field, ph) => `<input type="number" min="0" step="any" data-tfield="${field}" data-tvar="${esc(v.label)}" value="${r[field] != null ? esc(r[field]) : ''}" placeholder="${ph}">`;
+    const r = R.rows[v.label] || { measurements:[], draft:{} };
+    const d = r.draft || {};
+    const inp = (field, ph) => `<input type="number" min="0" step="any" data-tfield="${field}" data-tvar="${esc(v.label)}" value="${d[field] != null && d[field] !== '' ? esc(d[field]) : ''}" placeholder="${ph}">`;
+    const src = rowHasDraft(r) ? r.draft : rowLatest(r);
+    const metricDef0 = TRACK_METRICS.find(m => m.id === R.metric) || TRACK_METRICS[1];
+    const stats0 = src ? measurementStats(src) : null;
+    const metricVal0 = stats0 ? stats0[metricDef0.id] : null;
+    const prevM = r.measurements.length > 1 ? r.measurements[r.measurements.length - 2] : null;
+    const prevStats0 = prevM ? measurementStats(prevM) : null;
+    const prevVal0 = prevStats0 ? prevStats0[metricDef0.id] : null;
+    const delta0 = (metricVal0 != null && prevVal0 != null) ? metricVal0 - prevVal0 : null;
+    const series0 = r.measurements.map(m => measurementStats(m)[metricDef0.id]).filter(x => x != null);
+    const spark0 = sparklineSvg(series0, metricDef0.higher);
+    const deltaTxt = delta0 == null ? '' : (delta0 >= 0 ? '▲ +' : '▼ −') + fnum(Math.abs(delta0));
+    const deltaColor = delta0 == null ? '' : (metricDef0.higher ? delta0 >= 0 : delta0 <= 0) ? 'var(--ok)' : 'var(--warn)';
     return `<tr data-trow="${esc(v.label)}"${R.winner === v.label ? ' class="win"' : ''}>
       <td><b>${esc(v.label)}</b><div class="hint">${esc(short(v.angle, 28))}</div></td>
       <td>${inp('views','0')}</td>
@@ -3427,7 +3659,10 @@ function renderTracker(project){
       <td>${inp('ctr','0')}</td>
       <td>${inp('cvr','0')}</td>
       <td>${inp('spend','0')}</td>
+      <td class="calc">${spark0 || ''} ${deltaTxt ? `<span style="color:${deltaColor}">${deltaTxt}</span>` : ''}</td>
+      <td class="calc">${r.measurements.length}${r.measurements.length > 1 ? ` pom.` : ''}${r.measurements.length > 2 ? ` <span class="hint">(ostatni wygrywa)</span>` : ''}</td>
       <td class="calc" data-tcalc="${esc(v.label)}">–</td>
+      <td><button class="btn mini" data-tact="addmeas" data-tvar="${esc(v.label)}" title="Zapisz wartości z wiersza jako nowy pomiar" aria-label="Dodaj pomiar dla wariantu ${esc(v.label)}">＋ pomiar</button></td>
     </tr>`;
   }).join('');
   return `<div class="panel" style="margin-bottom:18px" id="trackerPanel">
@@ -3443,9 +3678,10 @@ function renderTracker(project){
       </div>
     </div>
     <div class="body">
-      <p class="hint">Dane zostają w Twojej przeglądarce (localStorage, razem z projektem). Kolumny: wyświetlenia · hook rate 3 s % · CTR % · CVR % · budżet w zł. Kliknięcia, konwersje i CPA liczone są automatycznie z CTR i CVR.</p>
+      <p class="hint">Dane zostają w Twojej przeglądarce (localStorage, razem z projektem). Kolumny: wyświetlenia · hook rate 3 s % · CTR % · CVR % · budżet w zł. Kliknięcia, konwersje i CPA liczone są automatycznie z CTR i CVR.
+      Każde „＋ pomiar” (albo „Wyłoń zwycięzcę”) zapisuje wartości wiersza jako <b>nowy punkt w czasie</b> – kolumna Trend pokazuje Δ i mini-wykres, a zwycięzca liczony jest z ostatniego pomiaru (próg 2 000 wyświetleń).</p>
       <div class="track-scroll"><table class="track-table">
-        <thead><tr><th>Wariant</th><th>Wyświetlenia</th><th>Hook 3 s %</th><th>CTR %</th><th>CVR %</th><th>Budżet zł</th><th>Wynik</th></tr></thead>
+        <thead><tr><th>Wariant</th><th>Wyświetlenia</th><th>Hook 3 s %</th><th>CTR %</th><th>CVR %</th><th>Budżet zł</th><th>Trend metryki</th><th>Pomiary</th><th>Wynik</th><th></th></tr></thead>
         <tbody>${body}</tbody>
       </table></div>
       <div id="trackSummary">${R.computedAt || Object.keys(R.rows).length ? trackerSummaryHtml(project) : '<p class="hint" style="margin-top:11px">Wpisz dane i kliknij „🏆 Wyłoń zwycięzcę”, żeby zobaczyć rekomendację i kolejny krok.</p>'}</div>
@@ -3456,29 +3692,32 @@ function renderTracker(project){
 /** Żywa kalkulacja w wierszu (bez pełnego re-renderu). */
 function updateRowCalc(label){
   if(!currentProject) return;
-  const res = computeResults(currentProject);
-  const row = res.rows.find(r => r.label === label);
+  const R = ensureResults(currentProject);
+  const row = R.rows[label] || { measurements:[], draft:{} };
+  const source = rowHasDraft(row) ? row.draft : rowLatest(row);
+  const stats = source ? measurementStats(source) : { clicks:null, conv:null, cpa:null };
   const cell = document.querySelector(`[data-tcalc="${label}"]`);
-  if(!row || !cell) return;
+  if(!cell) return;
   const parts = [];
-  if(row.clicks != null) parts.push('klik ' + fnum(row.clicks, 0));
-  if(row.conv != null) parts.push('konw ' + fnum(row.conv, 1));
-  if(row.cpa != null) parts.push('CPA ' + fnum(row.cpa) + ' zł');
+  if(stats.clicks != null) parts.push('klik ' + fnum(stats.clicks, 0));
+  if(stats.conv != null) parts.push('konw ' + fnum(stats.conv, 1));
+  if(stats.cpa != null) parts.push('CPA ' + fnum(stats.cpa) + ' zł');
   cell.textContent = parts.length ? parts.join(' · ') : '–';
 }
 
 /** Przeliczenie wyników i zapis zwycięzcy w projekcie. */
 function applyTrackerCompute(){
   if(!currentProject) return;
+  const committed = commitDrafts(currentProject);
   const R = ensureResults(currentProject);
   const res = computeResults(currentProject);
   R.winner = res.winner ? res.winner.label : null;
   R.computedAt = new Date().toISOString();
   renderProject(currentProject);        // odświeża chip zwycięzcy, wiersz i podsumowanie
   saveToHistory(currentProject); saveDraft(currentProject);
-  toast(res.winner ? 'Zwycięzca: wariant ' + res.winner.label + ' (' + res.metric.label + ')' : 'Za mało danych do wyłonienia zwycięzcy',
-        res.winner ? 'ok' : 'warn', 5000);
-  log('Wyniki przeliczone. ' + (res.winner ? `Zwycięzca: wariant ${res.winner.label} – ${res.metric.label}: ${fnum(res.winner[res.metric.id])}` : 'Brak wystarczających danych.'), 'ok');
+  toast((committed ? `Zapisano ${committed} pomiar(y). ` : '') + (res.winner ? 'Zwycięzca: wariant ' + res.winner.label + ' (' + res.metric.label + ')' : 'Za mało danych do wyłonienia zwycięzcy'),
+        res.winner ? 'ok' : 'warn', 6000);
+  log('Wyniki przeliczone. ' + (res.winner ? `Zwycięzca: wariant ${res.winner.label} – ${res.metric.label}: ${fnum(res.winner.metricVal)}` : 'Brak wystarczających danych.') + (res.prevWinner ? (res.prevWinner.label === res.winner.label ? ' Trend: stabilny.' : ' Trend: zmiana zwycięzcy!') : ''), 'ok');
 }
 
 /** Obsługa panelu trackera (delegacja, podpinana raz). */
@@ -3491,8 +3730,9 @@ function bindTracker(){
     if(!inp || !currentProject) return;
     const R = ensureResults(currentProject);
     const label = inp.dataset.tvar, field = inp.dataset.tfield;
-    R.rows[label] = R.rows[label] || {};
-    R.rows[label][field] = inp.value;
+    const row = R.rows[label] || (R.rows[label] = { measurements:[], draft:{} });
+    row.draft = row.draft || {};
+    if(inp.value === '') delete row.draft[field]; else row.draft[field] = inp.value;
     updateRowCalc(label);
     scheduleAutosave();
   });
@@ -3508,6 +3748,15 @@ function bindTracker(){
     if(!btn || !currentProject) return;
     const act = btn.dataset.tact;
     if(act === 'compute') applyTrackerCompute();
+    if(act === 'addmeas' && btn.dataset.tvar){
+      const R = ensureResults(currentProject);
+      const row = R.rows[btn.dataset.tvar];
+      if(!rowHasDraft(row)){ toast('Wpisz najpierw wartości pomiaru w tym wierszu','warn'); return; }
+      commitDrafts(currentProject);
+      renderProject(currentProject);
+      saveDraft(currentProject);
+      toast('Pomiar zapisany dla wariantu ' + btn.dataset.tvar + (row.measurements.length > 2 ? ' (widać już trend)' : ''), 'ok');
+    }
     if(act === 'csv') download(safeName(currentProject.name) + '-wyniki-testu.csv', resultsToCsv(currentProject), 'text/csv;charset=utf-8');
     if(act === 'reset'){
       if(!confirm('Wyczyścić wpisane wyniki testu?')) return;
@@ -3519,18 +3768,27 @@ function bindTracker(){
   });
 }
 
-/** Raport CSV z wyników testu (jeden wiersz = jeden wariant). */
+/** Raport CSV z wyników testu (jeden wiersz = jeden pomiar; format długi). */
 function resultsToCsv(project){
   const res = computeResults(project);
-  const head = ['Kampania','Wariant','Kąt','Wyświetlenia','Hook 3s %','CTR %','CVR %','Budżet zł','Kliknięcia','Konwersje','CPA zł','Zwycięzca'];
-  const rows = res.rows.map(r => [
-    project.name || '', r.label, r.angle || '',
-    r.views == null ? '' : r.views, r.hook == null ? '' : r.hook, r.ctr == null ? '' : r.ctr,
-    r.cvr == null ? '' : r.cvr, r.spend == null ? '' : r.spend,
-    r.clicks == null ? '' : r.clicks.toFixed(0), r.conv == null ? '' : r.conv.toFixed(1),
-    r.cpa == null ? '' : r.cpa.toFixed(2),
-    (ensureResults(project).winner === r.label ? 'TAK' : '')
-  ]);
+  const R = ensureResults(project);
+  const head = ['Kampania','Wariant','Kąt','Pomiar #','Data pomiaru','Wyświetlenia','Hook 3s %','CTR %','CVR %','Budżet zł','Kliknięcia','Konwersje','CPA zł','Zwycięzca (ostatni pomiar)'];
+  const rows = [];
+  res.rows.forEach(r => {
+    const row = R.rows[r.label] || { measurements:[] };
+    row.measurements.forEach((m, i) => {
+      const st = measurementStats(m);
+      rows.push([
+        project.name || '', r.label, r.angle || '', i + 1,
+        m.at ? new Date(m.at).toLocaleString('pl-PL') : '',
+        st.views == null ? '' : st.views, m.hook == null || m.hook === '' ? '' : m.hook,
+        st.ctr == null ? '' : st.ctr, st.cvr == null ? '' : st.cvr, st.spend == null ? '' : st.spend,
+        st.clicks == null ? '' : st.clicks.toFixed(0), st.conv == null ? '' : st.conv.toFixed(1),
+        st.cpa == null ? '' : st.cpa.toFixed(2),
+        (R.winner === r.label ? 'TAK' : '')
+      ]);
+    });
+  });
   return [head].concat(rows).map(r => r.map(csvEscape).join(';')).join('\r\n');
 }
 
@@ -3581,6 +3839,7 @@ function normalizeProject(data){
   p.updatedAt = p.updatedAt || p.createdAt;
   p.kpis = Array.isArray(p.kpis) ? p.kpis : [];
   p.disclaimers = Array.isArray(p.disclaimers) ? p.disclaimers : [];
+  if(p.results && typeof p.results === 'object') normalizeResultsRows(p.results);
   const labels = SECTION_LABELS[p.lang] || SECTION_LABELS.pl;
   p.variants = p.variants
     .filter(v => v && typeof v === 'object' && !Array.isArray(v))
@@ -3736,6 +3995,8 @@ function renderProject(project){
           <span class="chip ${scoreClass(sc.score) === 'ok' ? 'ok' : ''}" title="${esc(sc.grade)}">🎯 Ocena ${sc.score}/100</span>
           ${(project.results && project.results.winner === v.label) ? '<span class="chip win">🏆 Zwycięzca testu</span>' : ''}
           <button class="btn mini" data-act="open-story">🎬 Storyboard</button>
+          <button class="btn mini" data-act="montage-var" title="Pobierz techniczny brief montażowy tego wariantu">🎬 Brief montażysty</button>
+          <button class="btn mini" data-act="save-hook" title="Zapisz główny hook tego wariantu do biblioteki (Ustawienia → 📚)">📚 Hook do biblioteki</button>
           <button class="btn mini" data-act="copy-var">⧉ Cały wariant</button>
           <button class="btn mini" data-act="regen-var">↻ Wszystkie sekcje</button>
         </div>
@@ -3823,6 +4084,15 @@ function bindResultActions(){
     if(act === 'open-story'){
       openStoryboard(Number(btn.closest('.var-card').dataset.variantCard)); return;
     }
+    if(act === 'montage-var'){
+      const vi = Number(btn.closest('.var-card').dataset.variantCard);
+      const v = currentProject.variants[vi];
+      download(safeName(currentProject.name || 'kampania-tiktok') + '-wariant-' + v.label + '-brief-montazysty.txt', montageBriefText(currentProject, v), 'text/plain;charset=utf-8');
+      toast('Brief montażysty (wariant ' + v.label + ') pobrany','ok'); return;
+    }
+    if(act === 'save-hook'){
+      saveHookFromVariant(Number(btn.closest('.var-card').dataset.variantCard)); return;
+    }
     if(act === 'copy-abplan'){ copyText(currentProject.abPlan, btn); return; }
     if(act === 'copy-checklist'){ copyText(currentProject.checklist, btn); return; }
     if(act === 'copy-disc'){ copyText((currentProject.disclaimers || []).join('\n'), btn); return; }
@@ -3852,6 +4122,66 @@ function variantToText(project, v){
     (sc.tips.length ? sc.tips.slice(0, 6).map(t => `  → ${t}`).join('\n') + '\n' : '');
   const body = Object.values(v.sections).map(s => `\n${'—'.repeat(30)}\n${s.title.toUpperCase()}\n${'—'.repeat(30)}\n${s.body}`).join('\n');
   return head + body;
+}
+
+/** Brief montażowy JEDNEGO wariantu — czysto produkcyjny dokument (bez strategii i hipotez). */
+function montageBriefText(project, v){
+  const b = project.brief || {};
+  const S = k => (v.sections[k] ? String(v.sections[k].body || '').trim() : '');
+  const length = Number(b.length) || 15;
+  const hookBody = S('hook');
+  const hookLine = (hookBody.match(/^HOOK\s*A[^\n]*\n(.+)$/m) || [,''])[1] || v.hookLine || hookBody.split('\n').filter(Boolean)[0] || '';
+  const style = STYLES[b.style] || null;
+  const L = [];
+  L.push('='.repeat(64));
+  L.push('BRIEF MONTAŻOWY — WARIANT ' + v.label);
+  L.push('='.repeat(64));
+  L.push('Kampania : ' + (project.name || '—'));
+  L.push('Produkt  : ' + (b.product || '—'));
+  L.push('Format   : 9:16 (1080×1920) · ' + length + ' s · ' + (b.platform || 'TikTok Feed'));
+  L.push('Styl     : ' + (style ? style.label + ' — ' + style.camera : (b.style || '—')));
+  L.push('Data     : ' + new Date().toLocaleDateString('pl-PL') + ' · automat v' + APP_VERSION);
+  L.push('');
+  L.push('--- ZASADY TECHNICZNE ---');
+  L.push('• Pierwszy frame bez czerni i bez logo — ruch od pierwszej klatki.');
+  L.push('• Napisy i overlay w środkowej strefie klatki; dolne ~200 px i górne ~150 px to interfejs TikTok (nie wchodzisz).');
+  L.push('• Cięcia co ' + (length <= 15 ? '1–1,5 s' : '2–3 s') + ', zero „martwych” przerw.');
+  L.push('• Budżet słów: ' + Math.round(length * 2.6) + ' — nie przekraczaj (lepsza dynamika niż gęstość).');
+  L.push('• Dźwięk: ' + (b.style === 'narracja' ? 'voice-over z offu, spokojne tempo' : 'mowa twórcy / mocny wokal; trending sound ściszony pod mową'));
+  L.push('');
+  L.push('--- HOOK (0–3 s) ---');
+  L.push(hookLine || '(brak hooka w sekcji)');
+  L.push('');
+  L.push('--- SCENARIUSZ (beat po beacie) ---');
+  L.push(S('script') || '(brak scenariusza)');
+  if(S('narration')){ L.push(''); L.push('--- NARRACJA / VO ---'); L.push(S('narration')); }
+  L.push('');
+  L.push('--- SHOT LIST ---');
+  L.push(S('shots') || '(brak shot listy)');
+  if(S('overlay')){ L.push(''); L.push('--- OVERLAY TEXT ---'); L.push(S('overlay')); }
+  if(S('subtitles')){ L.push(''); L.push('--- NAPISY ---'); L.push(S('subtitles')); }
+  L.push('');
+  L.push('--- CTA (zakończenie) ---');
+  L.push(S('cta') || '(brak CTA)');
+  L.push('');
+  L.push('--- NIE ROBIMY ---');
+  L.push('• Startu od logo lub czerni; przedłużania hooka ponad 3 s.');
+  L.push('• Napisów wchodzących w bezpieczne strefy UI (góra/dół klatki).');
+  L.push('• Przekraczania budżetu słów — lepiej krócej i konkretniej.');
+  L.push('• „Plastykowych” korekt i filtrów zmieniających oświetlenie między kadrami.');
+  return L.join('\n');
+}
+/** Brief montażowy CAŁEGO pakietu (wariant po wariancie). */
+function montageBriefPackage(project){
+  const b = project.brief || {};
+  const head = [
+    'BRIEF MONTAŻOWY — PEŁNY PAKIET: ' + (project.name || '—'),
+    'Wariantów: ' + project.variants.length + ' · Język: ' + (b.lang || 'pl') + ' · ' + (project.engineLabels || ''),
+    new Date().toLocaleString('pl-PL') + ' · automat v' + APP_VERSION,
+    ''
+  ];
+  const body = project.variants.map(v => montageBriefText(project, v)).join('\n\n' + '-'.repeat(64) + '\n\n');
+  return head.concat(body).join('\n');
 }
 
 /**
@@ -3888,9 +4218,12 @@ async function regenerateSection(vi, key, secEl, btn){
     v.sections[key].body = fresh.trim();
     currentProject.compliance = complianceScan(currentProject);
     renderProject(currentProject);
-    const el = document.querySelector(`.sec[data-variant="${vi}"][data-key="${key}"]`);
-    if(el){ el.classList.add('flash'); el.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
     saveDraft();
+    // Kosmetyka (podświetlenie + przewinięcie) nie może zatruć wyniku regeneracji
+    try{
+      const el = document.querySelector(`.sec[data-variant="${vi}"][data-key="${key}"]`);
+      if(el){ el.classList.add('flash'); if(typeof el.scrollIntoView === 'function') el.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+    }catch(e){ warn('regenerateSection: podświetlenie sekcji', e); }
     log(`✔ Nowa wersja: Wariant ${v.label} · ${key}`, 'ok');
     toast('Sekcja zregenerowana','ok');
   }catch(err){
@@ -4160,6 +4493,10 @@ function exportProject(format){
     setTimeout(() => download(base + '-pakiet.md', projectToMd(p), 'text/markdown;charset=utf-8'), 700);
     toast('Eksport pakietu: JSON (do reimportu) + MD (do pracy)','info',5000);
   }
+  if(format === 'montage'){
+    download(base + '-brief-montazysty.txt', montageBriefPackage(p), 'text/plain;charset=utf-8');
+    toast('Brief montażysty pobrany (TXT)','ok');
+  }
 }
 
 /* ============================================================================
@@ -4217,7 +4554,7 @@ function renderHistory(){
         <button class="btn mini" data-hact="edit">✎ Edytuj brief</button>
         <button class="btn mini" data-hact="dup">⧉ Duplikuj</button>
         <button class="btn mini" data-hact="export">⬇ Eksport</button>
-        <button class="btn mini danger" data-hact="del">🗑</button>
+        <button class="btn mini danger" data-hact="del" aria-label="Usuń projekt z historii" title="Usuń">🗑</button>
       </div>
     </div>`).join('');
 }
@@ -4451,7 +4788,46 @@ async function runBatch(){
   if(failed.length) toast('Część linii pominięto: ' + failed.length, 'warn', 6000);
   const avg = batchResults.length ? Math.round(batchResults.reduce((a, p) => a + averageScore(p), 0) / batchResults.length) : 0;
   toast('Partia gotowa: ' + batchResults.length + ' kampanii · ' + batchResults.reduce((a, p) => a + p.variants.length, 0) + ' wariantów · średnia ocena ' + avg + '/100', batchResults.length ? 'ok' : 'err', 6000);
+
   setTimeout(() => setBatchProgress(0), 1200);
+}
+
+/**
+ * Auto-scoring partii: ponownie generuje (best-of-3, nowe ziarno) kampanie
+ * poniżej progu oceny i zostawia zawsze kandydata z najwyższą oceną.
+ */
+async function regenWeakestBatch(){
+  if(!batchResults.length){ toast('Najpierw wygeneruj partię','warn'); return; }
+  const th = Math.max(0, Math.min(100, Number(document.getElementById('batchThreshold').value) || 70));
+  const weak = batchResults
+    .map((p, i) => ({ i, s: averageScore(p) }))
+    .filter(x => x.s < th)
+    .sort((a, b) => a.s - b.s)
+    .slice(0, 10);
+  if(!weak.length){ toast('Brak kampanii poniżej progu ' + th + '/100 – partia w normie','info'); return; }
+  const btn = document.getElementById('btnBatchRegenWeak');
+  btn.disabled = true;
+  const before = weak.map(x => x.s);
+  log('Auto-scoring: ponownie losuję ' + weak.length + ' kampanii poniżej progu ' + th + '/100 (best-of-3)…');
+  for(const { i } of weak){
+    const p = batchResults[i];
+    const beforeScore = averageScore(p);
+    let best = p, bestScore = beforeScore;
+    for(let n = 0; n < 3; n++){
+      const cand = generateLocalPackage(Object.assign({}, p.brief, { _seedExtra: Math.floor(Math.random() * 999999) }));
+      cand.id = p.id; cand.name = p.name;
+      const sc = averageScore(cand);
+      if(sc > bestScore){ best = cand; bestScore = sc; }
+    }
+    batchResults[i] = best;
+    await new Promise(r => setTimeout(r, 0));   // oddaj wątek – UI nie zamarza
+  }
+  renderBatchTable();
+  const after = weak.map(x => averageScore(batchResults[x.i]));
+  const avg = a => Math.round(a.reduce((x, y) => x + y, 0) / a.length);
+  toast('Auto-scoring: ' + weak.length + ' kampanii · średnia ' + avg(before) + ' → ' + avg(after) + '/100', avg(after) >= avg(before) ? 'ok' : 'warn', 6000);
+  log('Auto-scoring zakończony: średnia ocen partii ' + avg(before) + ' → ' + avg(after) + '/100.', avg(after) >= avg(before) ? 'ok' : 'warn');
+  btn.disabled = false;
 }
 function setBatchProgress(pct){
   const p = Math.max(0, Math.min(100, pct));
@@ -4474,11 +4850,11 @@ function renderBatchTable(){
       <td>${i + 1}</td>
       <td><b>${esc(p.name)}</b><div class="hint">${esc(p.niche)}</div></td>
       <td>${p.variants.length}</td>
-      <td><span class="score-val ${scoreClass(averageScore(p))}">🎯 ${averageScore(p)}</span></td>
+      <td><span class="score-val ${scoreClass(averageScore(p))}${(function(){ const th = Number(document.getElementById('batchThreshold').value); return (th && averageScore(p) < th) ? ' weak' : ''; })()}">🎯 ${averageScore(p)}</span></td>
       <td><div class="hint">${esc((p.kpis || []).slice(0, 3).join(' · '))}</div></td>
       <td class="hint">${esc(short(p.variants.map(v => v.hookLine || '').join(' / '), 96))}</td>
       <td><button class="btn mini" data-bact="open" data-i="${i}">📂 Otwórz</button></td>
-      <td><button class="btn mini" data-bact="del" data-i="${i}">🗑</button></td>
+      <td><button class="btn mini" data-bact="del" data-i="${i}" aria-label="Usuń wiersz z partii" title="Usuń wiersz">🗑</button></td>
     </tr>`).join('');
   box.innerHTML = `<table class="batch-table">
     <thead><tr><th>#</th><th>Kampania</th><th>Warianty</th><th>Ocena</th><th>KPI</th><th>Hooki</th><th></th><th></th></tr></thead>
@@ -4542,6 +4918,7 @@ function bindBatch(){
     if(!batchResults.length){ toast('Najpierw wygeneruj partię','warn'); return; }
     download('partia-' + batchResults.length + '-kampanii.json', JSON.stringify({ app:'Automat do Reklam TikTok – PRO', type:'batch', count:batchResults.length, projects:batchResults }, null, 2), 'application/json');
   });
+  document.getElementById('btnBatchRegenWeak').addEventListener('click', regenWeakestBatch);
   document.getElementById('btnBatchSaveHistory').addEventListener('click', () => {
     if(!batchResults.length){ toast('Najpierw wygeneruj partię','warn'); return; }
     batchResults.forEach(p => saveToHistory(p));
@@ -4682,6 +5059,7 @@ function renderStorage(){
     ['Historia projektów', [LS.history]],
     ['Własne presety', [LS.presets]],
     ['Własne kąty reklamowe', [LS.angles]],
+    ['Biblioteka hooków', [LS.hooks]],
     ['Ustawienia + klucz API', [LS.settings]],
     ['RAZEM', null]
   ];
@@ -4692,7 +5070,8 @@ function renderStorage(){
     return `<tr><td>${esc(label)}</td><td><b>${fmtBytes(size)}</b> <span class="hint">(${pct}% limitu)</span></td></tr>`;
   }).join('') + `<tr><td>Liczba projektów w historii</td><td>${getHistory().length}</td></tr>` +
   `<tr><td>Liczba własnych presetów</td><td>${getPresets().length}</td></tr>` +
-  `<tr><td>Liczba własnych kątów</td><td>${getAngles().length}</td></tr>`;
+  `<tr><td>Liczba własnych kątów</td><td>${getAngles().length}</td></tr>` +
+  `<tr><td>Liczba hooków w bibliotece</td><td>${getHooks().length}</td></tr>`;
 }
 
 /** Zawartość kopii zapasowej (klucz API domyślnie pomijany – bezpieczeństwo). */
@@ -4702,8 +5081,8 @@ function workspacePayload(includeKey){
   return {
     app:'Automat do Reklam TikTok – PRO', type:'workspace-backup', version:2,
     exportedAt:new Date().toISOString(),
-    counts:{ history:getHistory().length, presets:getPresets().length, angles:getAngles().length, hasDraft: !!store.get(LS.draft, null) },
-    settings:s, draft:store.get(LS.draft, null), history:getHistory(), presets:getPresets(), angles:getAngles()
+    counts:{ history:getHistory().length, presets:getPresets().length, angles:getAngles().length, hooks:getHooks().length, hasDraft: !!store.get(LS.draft, null) },
+    settings:s, draft:store.get(LS.draft, null), history:getHistory(), presets:getPresets(), angles:getAngles(), hooks:getHooks()
   };
 }
 /** Wczytuje kopię workspace. Klucz API zostaje lokalny – nie jest nadpisywany z pliku. */
@@ -4714,9 +5093,10 @@ function applyWorkspace(data){
   store.set(LS.settings, settings);
   if(Array.isArray(data.presets)) store.set(LS.presets, data.presets);
   if(Array.isArray(data.angles)) store.set(LS.angles, data.angles);
+  if(Array.isArray(data.hooks)) store.set(LS.hooks, data.hooks);
   if(Array.isArray(data.history)) store.set(LS.history, data.history);
   if(data.draft) store.set(LS.draft, data.draft);
-  return { history:(data.history || []).length, presets:(data.presets || []).length, angles:(data.angles || []).length, draft: !!data.draft };
+  return { history:(data.history || []).length, presets:(data.presets || []).length, angles:(data.angles || []).length, hooks:(data.hooks || []).length, draft: !!data.draft };
 }
 
 /* ============================================================================
@@ -5269,6 +5649,7 @@ function bindUI(){
   bindBatch();
   bindPresets();
   bindAngles();
+  bindHooks();
   bindStoryboard();
   document.getElementById('batchStrategy').innerHTML =
     '<option value="" selected>Z briefu / strategia z zakładki Kampania</option>' +
@@ -5293,9 +5674,9 @@ function bindUI(){
     rd.onload = () => {
       try{
         const res = applyWorkspace(JSON.parse(rd.result));
-        toast(`Kopia wczytana: ${res.history} projektów, ${res.presets} presetów, ${res.angles || 0} kątów`, 'ok', 6000);
+        toast(`Kopia wczytana: ${res.history} projektów, ${res.presets} presetów, ${res.angles || 0} kątów, ${res.hooks || 0} hooków`, 'ok', 7000);
         // odświeżenie widoku (w przeglądarce i tak nastąpi przeładowanie strony)
-        syncSettingsUI(); renderPresets(); renderAngles(); renderHistory(); renderStorage(); updateBadges();
+        syncSettingsUI(); renderPresets(); renderAngles(); renderHooks(); renderHistory(); renderStorage(); updateBadges();
         if(res.draft) restoreDraft();
         try{ location.reload(); }catch(err){}
       }catch(err){ toast('Import nieudany: ' + err.message, 'err', 6000); }
@@ -5367,6 +5748,7 @@ function bindUI(){
   renderHistory();
   renderPresets();
   renderAngles();
+  renderHooks();
   renderStorage();
   restoreDraft();
   log('Aplikacja gotowa. Skróty: Ctrl+Enter (generuj), Ctrl+Shift+L (pakiet lokalny), Ctrl+S (zapisz projekt), Ctrl+K (klucz API).');

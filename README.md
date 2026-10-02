@@ -3,6 +3,9 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.4:** pomiary w czasie w trackerze (trend + sparkline, zwycięzca z ostatniego pomiaru), brief montażysty
+(wariant i pakiet), auto-scoring partii („Regeneruj najsłabsze”, best-of-3) i biblioteka hooków użytkownika.
+
 **v2.3:** ocena kreacji 0–100 z konkretnymi wskazówkami, cofanie operacji (Ctrl+Z), walidacja importów JSON,
 wyszukiwarka i filtr historii, dostępność (ARIA, klawiatura) oraz pełna responsywność na telefonie.
 
@@ -157,6 +160,38 @@ Nad listą historii są pole **Szukaj** (nazwa, produkt, branża, strategia) i l
 Licznik pokazuje, ile pozycji spełnia kryteria („Pokazano 2 z 7”), a gdy nic nie pasuje — przycisk
 **Wyczyść filtr**. Filtry działają natychmiast, bez przeładowania listy.
 
+## Pomiary w czasie (trend wyników)
+
+Każdy wariant w trackerze może mieć **wiele pomiarów** — wpisywane dane są „driftem”, a **„＋ pomiar”** (albo „🏆 Wyłoń
+zwycięzcę”) zapisuje je jako punkt w czasie. Dzięki temu:
+
+- kolumna **Trend** pokazuje Δ ostatniego pomiaru względem poprzedniego (▲/▼) i mini-wykres (SVG),
+- zwycięzca jest liczony **z ostatniego pomiaru**, a podsumowanie mówi, czy wynik **się utrzymuje**
+(„ten sam zwycięzca co na poprzednim pomiarze”) czy zmienił,
+- raport CSV przechodzi w **format długi** (wiersz = pomiar, z datą i numerem),
+- stare dane (jeden pomiar na wariant) są migrowane automatycznie przy każdym wczytaniu projektu.
+
+## Brief dla montażysty
+
+Przycisk **🎬 Brief montażysty** przy wariancie (oraz „(pakiet)” w nagłówku Wyników) pobiera czysto produkcyjny
+dokument TXT: specyfikację (9:16, 1080×1920, czas, styl i dźwięk), zasady techniczne (pierwszy frame bez czerni,
+bezpieczne strefy interfejsu TikTok, cięcia, budżet słów), hook z ramą czasową, scenariusz beat po beacie,
+shot list, overlay/napisy, CTA i listę „NIE ROBIMY”. Bez strategii i hipotez — dokument gotowy do wysłania ekipie.
+
+## Auto-scoring partii
+
+Po wygenerowaniu partii w tabeli jest kolumna **Ocena** (0–100, heurystyki v2.3). Ustawiasz **próg** (domyślnie 70)
+i klikasz **⚡ Regeneruj najsłabsze** — partia ponownie losuje (best-of-3, nowe ziarno) kampanie poniżej progu
+(maks. 10 w rundzie) i zawsze zostawia kandydata z najwyższą oceną, więc średnia ocen nigdy nie spada.
+Słabe wiersze są podświetlane, a toast podaje średnią przed/po.
+
+## Biblioteka hooków
+
+Z dowolnego wygenerowanego wariantu: **📚 Hook do biblioteki** — hook A ląduje w Ustawieniach → **📚 Biblioteka
+hooków** razem z kontekstem (branża, czas, strategia, ocena pakietu, kampania). W bibliotece: szukaj, **⧉ kopiuj**,
+**▶ Użyj w A** (podmienia HOOK A otwartego pakietu, z `Ctrl+Z`) i usuń. Biblioteka jest częścią kopii zapasowej
+workspace i panelu pamięci lokalnej.
+
 ## Storyboard 9:16
 
 Przycisk **🎬 Storyboard** przy wariancie otwiera odtwarzacz: ramka 9:16 z overlayem, opisem kadru z shot listy
@@ -201,7 +236,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 311 asercji: jednostkowe (147) + E2E (137) + API (27)
+bash tests/run-all.sh        # 351 asercji: jednostkowe (167) + E2E (157) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.

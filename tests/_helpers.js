@@ -69,7 +69,9 @@ function stubEnv(code){
     getPresets, savePresets, allNiches, GENERIC_NICHE,
     batchListFromCsv, batchListFromJson, csvTemplate, workspacePayload, applyWorkspace,
     getAngles, saveAngles, computeResults, resultsToCsv, ensureResults, TRACK_METRICS, HOOK_STYLES, hookStyleLabel,
-    normalizeProject, projectShapeError, scoreVariant, averageScore, scoreClass, APP_VERSION };`;
+    normalizeProject, projectShapeError, scoreVariant, averageScore, scoreClass, APP_VERSION,
+    normalizeResultsRows, commitDrafts, rowLatest, measurementStats, sparklineSvg, montageBriefText, montageBriefPackage,
+    getHooks, saveHooks, saveHookFromVariant, useHookInVariant };`;
   eval(code + exports);
   return globalThis.__API;
 }

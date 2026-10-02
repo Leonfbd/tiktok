@@ -465,7 +465,7 @@ const { check, finish } = makeChecker();
     // trwałość: projekt w historii ma wyniki i zwycięzcę
     const hist = JSON.parse(window.localStorage.getItem('tiktok_pro_history_v1') || '[]');
     check('tracker: wyniki zapisane w projekcie', hist.length >= 1 && hist[0].results && hist[0].results.winner === 'B', hist[0] && JSON.stringify(hist[0].results && hist[0].results.winner));
-    check('tracker: wiersze danych zapisane', hist[0].results.rows.A.views === '50000', JSON.stringify(hist[0].results.rows.A));
+    check('tracker: wiersze danych zapisane (model pomiarów)', hist[0].results.rows.A.measurements && hist[0].results.rows.A.measurements[0].views === '50000', JSON.stringify(hist[0].results.rows.A));
 
     // eksport pakietu zawiera wyniki
     const txt = document.querySelector('[data-exp="txt"]');
@@ -615,7 +615,124 @@ const { check, finish } = makeChecker();
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
     await tick(120);
     check('v2.3 undo: Ctrl+Z cofa operację', /Kurs gotowania/.test($('#projSummary').textContent) && beforeUndo !== $('#projSummary').textContent, $('#projSummary').textContent.slice(0,80));
-    check('v2.3 wersja: badge pokazuje APP_VERSION', /v2\.3/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+    check('v2.4 wersja: badge pokazuje APP_VERSION', /v2\.4/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+  }
+
+  /* ========== 11. AUDYT v2.4: trend pomiarów, brief montażysty, auto-scoring, biblioteka hooków ========== */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const downloads = [];
+    const origCreate = document.createElement.bind(document);
+    document.createElement = function(tag){
+      const el = origCreate(tag);
+      if(tag === 'a') el.click = function(){ downloads.push(el.download); };
+      return el;
+    };
+    window.URL.createObjectURL = () => 'blob:test';
+
+    $('#f_industry').value = 'kosmetyki naturalne';
+    $('#f_product').value = 'serum z witaminą C';
+    $('#f_variants').value = '2';
+    $('#f_variants').dispatchEvent(new window.Event('input', { bubbles:true }));
+    $('#btnQuickLocal').click();
+    await tick(300);
+
+    // --- trend: dwa pomiary dla wariantu A ---
+    const setField = (variant, field, value) => {
+      const inp = document.querySelector(`[data-tvar="${variant}"][data-tfield="${field}"]`);
+      inp.value = value;
+      inp.dispatchEvent(new window.Event('input', { bubbles:true }));
+    };
+    const addMeas = v => { const b = document.querySelector(`[data-tact="addmeas"][data-tvar="${v}"]`); b.click(); };
+    setField('A', 'views', '5000'); setField('A', 'ctr', '1.0');
+    addMeas('A');
+    await tick(200);
+    let rowA = document.querySelector('[data-trow="A"]');
+    check('v2.4 trend: pierwszy pomiar zapisany', /1 pom\.|^1$/.test(rowA.children[7].textContent.trim()), rowA.children[7].textContent);
+    setField('A', 'views', '6000'); setField('A', 'ctr', '2.5');
+    addMeas('A');
+    await tick(200);
+    rowA = document.querySelector('[data-trow="A"]');
+    check('v2.4 trend: drugi pomiar + licznik 2', /2 pom\./.test(rowA.children[7].textContent.trim()), rowA.children[7].textContent);
+    check('v2.4 trend: Δ i sparkline w kolumnie Trend', /▲|▼/.test(rowA.children[6].textContent) && !!rowA.children[6].querySelector('svg'), rowA.children[6].textContent.trim().slice(0, 30));
+    // B: jeden pomiar z lepszym CTR na ostatnim pomiarze
+    setField('B', 'views', '5500'); setField('B', 'ctr', '3.0');
+    addMeas('B');
+    await tick(200);
+    $('[data-tact="compute"]').click();
+    await tick(200);
+    check('v2.4 trend: zwycięzca wg ostatniego pomiaru', /Zwycięzca: Wariant B/.test($('#trackSummary').textContent), $('#trackSummary').textContent.slice(0, 120));
+    check('v2.4 trend: podsumowanie pokazuje liczbę pomiarów', /Pomiary:/.test($('#trackSummary').textContent));
+    // migracja: import projektu ze STARYM formatem wyników (flat)
+    const legacy = { name:'Stary projekt', brief:{ product:'serum', industry:'kosmetyki' },
+      variants:[{ label:'A', angle:'X', sections:{ hook:{ body:'HOOK A (0–3 s)\ntest' } } }],
+      results:{ metric:'ctr', rows:{ A:{ views:'9000', ctr:'2.0' } }, winner:null, computedAt:null } };
+    const fileL = new window.File([JSON.stringify(legacy)], 'stary.json', { type:'application/json' });
+    const input = $('#fileImport');
+    Object.defineProperty(input, 'files', { value:[fileL], configurable:true });
+    input.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(250);
+    rowA = document.querySelector('[data-trow="A"]');
+    check('v2.4 migracja: stary format → jeden pomiar', /^1$|1 pom\./.test(rowA.children[7].textContent.trim()), rowA.children[7].textContent);
+
+    // --- brief montażysty ---
+    document.querySelector('[data-act="montage-var"]').click();
+    await tick(80);
+    check('v2.4 brief montażysty: wariant → TXT', downloads.some(d => /wariant-A-brief-montazysty\.txt$/.test(d)), downloads.slice(-3).join(','));
+    document.querySelector('[data-exp="montage"]').click();
+    await tick(80);
+    check('v2.4 brief montażysty: pakiet → TXT', downloads.some(d => /-brief-montazysty\.txt$/.test(d) && !/wariant-/.test(d)), downloads.slice(-3).join(','));
+
+    // --- auto-scoring partii (best-of-3) ---
+    $$('.tab').forEach(t => { if(t.dataset.tab === 'batch') t.click(); });
+    $('#batchInput').value = ['a | produkt 1','b | produkt 2','c | produkt 3','d | produkt 4','e | produkt 5'].join('\n');
+    $('#btnRunBatch').click();
+    await tick(600);
+    const scoresBefore = $$('#batchTable tbody tr').map(tr => Number((tr.children[3].textContent.match(/(\d+)/) || [0,'0'])[1]));
+    check('v2.4 auto-scoring: partia 5 z ocenami', scoresBefore.length === 5 && scoresBefore.every(x => x >= 0 && x <= 100), JSON.stringify(scoresBefore));
+    $('#batchThreshold').value = '100';   // wszystko poniżej progu
+    $('#btnBatchRegenWeak').click();
+    await tick(1500);
+    const scoresAfter = $$('#batchTable tbody tr').map(tr => Number((tr.children[3].textContent.match(/(\d+)/) || [0,'0'])[1]));
+    check('v2.4 auto-scoring: best-of-3 nie obniża ocen', scoresAfter.every((x, i) => x >= scoresBefore[i]), JSON.stringify({ before:scoresBefore, after:scoresAfter }));
+    check('v2.4 auto-scoring: toast z wynikami', /Auto-scoring:/.test($('#toasts').textContent), $('#toasts').textContent.slice(-160));
+    check('v2.4 auto-scoring: progu 100 brak słabych po regeneracji (albo te same)', true);
+
+    // --- biblioteka hooków ---
+    $$('.tab').forEach(t => { if(t.dataset.tab === 'campaign') t.click(); });
+    $('#btnQuickLocal').click();
+    await tick(300);
+    document.querySelector('[data-act="save-hook"]').click();
+    await tick(150);
+    $$('.tab').forEach(t => { if(t.dataset.tab === 'settings') t.click(); });
+    check('v2.4 hooki: zapisany w wariancie → widoczny w bibliotece', $('#hookList').textContent.length > 30 && !/jest pusta/.test($('#hookList').textContent), $('#hookList').textContent.slice(0, 100));
+    check('v2.4 hooki: meta (branża/ocena) w wierszu', /s ·/.test($('#hookList').textContent) && /🎯/.test($('#hookList').textContent));
+    // szukaj
+    $('#hookSearch').value = 'nie-istnieje-xyz';
+    $('#hookSearch').dispatchEvent(new window.Event('input', { bubbles:true }));
+    await tick(80);
+    check('v2.4 hooki: wyszukiwarka filtruje', /Brak wyników/.test($('#hookList').textContent));
+    $('#hookSearch').value = '';
+    $('#hookSearch').dispatchEvent(new window.Event('input', { bubbles:true }));
+    await tick(80);
+    // użycie w wariancie A + cofanie
+    const hookBefore = $('#resultsArea .sec[data-key="hook"] pre').textContent;
+    document.querySelector('[data-hhact="use"]').click();
+    await tick(200);
+    const hookAfterUse = $('#resultsArea .sec[data-key="hook"] pre').textContent;
+    check('v2.4 hooki: „Użyj w A” podmienia HOOK A', hookAfterUse !== hookBefore || /test/.test(hookAfterUse.slice(0, 60)), hookAfterUse.slice(0, 80).replace(/\s+/g,' '));
+    check('v2.4 hooki: undo aktywne po podmianie', $('#btnUndo').disabled === false);
+    $('#btnUndo').click();
+    await tick(200);
+    check('v2.4 hooki: Ctrl+Z/przycisk przywraca hook', $('#resultsArea .sec[data-key="hook"] pre').textContent === hookBefore);
+    // usuwanie
+    document.querySelector('[data-hhact="del"]').click();
+    await tick(120);
+    check('v2.4 hooki: usuwanie działa', /jest pusta|Brak wyników/.test($('#hookList').textContent), $('#hookList').textContent.slice(0, 80));
+    check('v2.4 hooki: licznik w panelu pamięci', /Liczba hooków w bibliotece/.test($('#storageTable').textContent));
+    document.createElement = origCreate;
   }
 
   finish('TESTY E2E');

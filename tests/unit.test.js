@@ -317,9 +317,100 @@ check('scoring: wskazówka o konkret/stronie', scBad.tips.some(t => /liczb|konkr
 check('scoring: brak sekcji tylko jako wskazówka, nie wyjątek', (() => { try { A.scoreVariant({ brief:{length:15}, variants:[] }, { sections:{} }); return true; } catch(e){ return false; } })());
 
 /* ---------- 21. Wersja aplikacji ---------- */
-check('wersja: stała APP_VERSION', A.APP_VERSION === '2.3', A.APP_VERSION);
+check('wersja: stała APP_VERSION (v2.4)', A.APP_VERSION === '2.4', A.APP_VERSION);
 
-/* ---------- 22. Modele rozumujące ---------- */
+/* ---------- 23. Tracker: pomiary w czasie (trend) ---------- */
+check('trend: migracja starego formatu (flat → measurements)', (() => {
+  const R = { metric:'ctr', rows:{ A:{ views:'5000', ctr:'2.0' } }, winner:null, computedAt:null };
+  A.normalizeResultsRows(R);
+  return R.rows.A.measurements.length === 1 && R.rows.A.measurements[0].views === '5000' && R.rows.A.draft && Object.keys(R.rows.A.draft).length === 0;
+})(), JSON.stringify({}));
+check('trend: migracja idempotentna', (() => {
+  const R = { rows:{ A:{ measurements:[{ views:'1', ctr:'2' }], draft:{} } } };
+  A.normalizeResultsRows(R); A.normalizeResultsRows(R);
+  return R.rows.A.measurements.length === 1;
+})());
+check('trend: delta i seria po dwóch pomiarach', (() => {
+  const p = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:1, modules:['hook'] }));
+  p.results = { metric:'ctr', rows:{ A:{ measurements:[{ views:'5000', ctr:'1.0' }, { views:'6000', ctr:'2.5' }], draft:{} } }, winner:null, computedAt:null };
+  const res = A.computeResults(p);
+  const r = res.rows[0];
+  return r.count === 2 && r.delta === 1.5 && r.series.length === 2 && r.metricVal === 2.5 && res.winner && res.winner.label === 'A';
+})(), JSON.stringify({}));
+check('trend: zwycięzca wg OSTATNIEGO pomiaru (zmiana)', (() => {
+  const p = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:2, modules:['hook'] }));
+  p.results = { metric:'ctr', rows:{
+    A:{ measurements:[{ views:'5000', ctr:'4.0' }, { views:'5200', ctr:'1.0' }], draft:{} },
+    B:{ measurements:[{ views:'5000', ctr:'1.5' }, { views:'5100', ctr:'2.0' }], draft:{} }
+  }, winner:null, computedAt:null };
+  const res = A.computeResults(p);
+  return res.winner.label === 'B' && res.prevWinner && res.prevWinner.label === 'A';
+})(), JSON.stringify({}));
+check('trend: trend stabilny (ten sam zwycięzca)', (() => {
+  const p = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:2, modules:['hook'] }));
+  p.results = { metric:'ctr', rows:{
+    A:{ measurements:[{ views:'5000', ctr:'4.0' }, { views:'5200', ctr:'3.0' }], draft:{} },
+    B:{ measurements:[{ views:'5000', ctr:'1.5' }, { views:'5100', ctr:'2.0' }], draft:{} }
+  }, winner:null, computedAt:null };
+  const res = A.computeResults(p);
+  return res.winner.label === 'A' && res.prevWinner && res.prevWinner.label === 'A';
+})());
+check('trend: commitDrafts zapisuje pomiar z datą', (() => {
+  const p = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:1, modules:['hook'] }));
+  p.results = { metric:'ctr', rows:{ A:{ measurements:[], draft:{ views:'3000', ctr:'2.0' } } }, winner:null, computedAt:null };
+  const n = A.commitDrafts(p);
+  const row = A.ensureResults(p).rows.A;
+  return n === 1 && row.measurements.length === 1 && !!row.measurements[0].at && Object.keys(row.draft).length === 0;
+})(), JSON.stringify({}));
+check('trend: CPA liczony w metryce (nie czytany z pola)', (() => {
+  const p = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:1, modules:['hook'] }));
+  p.results = { metric:'cpa', rows:{ A:{ measurements:[{ views:'5000', ctr:'2.0', cvr:'2.0', spend:'1000' }], draft:{} } }, winner:null, computedAt:null };
+  const res = A.computeResults(p);
+  return res.rows[0].cpa != null && Math.abs(res.rows[0].cpa - 500) < 1 && res.rows[0].metricVal === res.rows[0].cpa;
+})(), JSON.stringify({}));
+check('trend: sparkline SVG dla serii', (() => {
+  const svg = (A.sparklineSvg ? A.sparklineSvg([1, 2, 3], true) : '');
+  return /<svg/.test(svg) && /<polyline/.test(svg);
+})(), '');
+check('trend: CSV format długi (wiersz = pomiar)', (() => {
+  const p = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:1, modules:['hook'] }));
+  p.results = { metric:'ctr', rows:{ A:{ measurements:[{ views:'5000', ctr:'1.0' }, { views:'5200', ctr:'2.5' }], draft:{} } }, winner:'A', computedAt:null };
+  const csv = A.resultsToCsv(p);
+  const lines = csv.split('\r\n');
+  return lines[0].includes('Pomiar #') && lines.length === 3 && lines[1].includes(';2;') || (lines[0].includes('Pomiar #') && lines.length === 3);
+})(), JSON.stringify({}));
+
+/* ---------- 24. Brief dla montażysty ---------- */
+const pMontage = A.generateLocalPackage(Object.assign({}, baseBrief, { variants:2 }));
+const mbA = A.montageBriefText(pMontage, pMontage.variants[0]);
+check('brief montażysty: nagłówek wariantu', /BRIEF MONTAŻOWY — WARIANT A/.test(mbA));
+check('brief montażysty: specyfikacja techniczna', /9:16/.test(mbA) && /1080/.test(mbA) && /s/.test(mbA));
+check('brief montażysty: zasady (bezpieczne strefy)', /bezpieczne strefy|interfejs TikTok/.test(mbA), mbA.slice(0, 400));
+check('brief montażysty: sekcje produkcji', /--- HOOK/.test(mbA) && /--- SCENARIUSZ/.test(mbA) && /--- SHOT LIST/.test(mbA) && /--- CTA/.test(mbA) && /--- NIE ROBIMY/.test(mbA));
+check('brief montażysty: budżet słów', /Budżet słów:/.test(mbA));
+check('brief montażysty: bez strategii i hipotez', !/Hipoteza:/.test(mbA) && !/ZWYCIĘZCA/.test(mbA));
+const mbPack = A.montageBriefPackage(pMontage);
+check('brief montażysty: pakiet = wszystkie warianty', /PEŁNY PAKIET/.test(mbPack) && /WARIANT A/.test(mbPack) && /WARIANT B/.test(mbPack) && mbPack.length > mbA.length);
+
+/* ---------- 25. Biblioteka hooków (magazyn) ---------- */
+check('hooki: magazyn pusty na starcie', A.getHooks().length === 0, A.getHooks().length);
+check('hooki: zapis i odczyt', (() => {
+  A.saveHooks([{ id:'h_1', text:'Przestań kupować kremy za 200 zł', industry:'kosmetyki', length:15, strategy:'Viral', score:88, campaign:'X', at:new Date().toISOString() }]);
+  return A.getHooks().length === 1 && A.getHooks()[0].text.includes('Przestań');
+})());
+check('hooki: kopia zapasowa zawiera bibliotekę', (() => {
+  const ws = A.workspacePayload(false);
+  return Array.isArray(ws.hooks) && ws.hooks.length === 1 && ws.counts.hooks === 1;
+})(), JSON.stringify({}));
+check('hooki: import kopii przywraca bibliotekę', (() => {
+  const ws = A.workspacePayload(false);
+  A.saveHooks([]);
+  const res = A.applyWorkspace(ws);
+  return res.hooks === 1 && A.getHooks().length === 1;
+})(), JSON.stringify({}));
+A.saveHooks([]);
+
+/* ---------- 26. Modele rozumujące ---------- */
 check('o4-mini rozpoznany jako reasoning', A.isReasoningModel('o4-mini') === true);
 check('gpt-5-mini rozpoznany jako reasoning', A.isReasoningModel('gpt-5-mini') === true);
 check('gpt-4o-mini NIE jest reasoning', A.isReasoningModel('gpt-4o-mini') === false);
