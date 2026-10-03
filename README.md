@@ -3,6 +3,8 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.8:** **🧪 macierz testów hook×CTA** (3 hooki A/B/C × 3 CTA, każda kombinacja oceniona 0–100 na klonie wariantu, „Zastosuj najlepszą” — cofalna), **🖨 PDF storyboardu** (okno drukowania, strona na beat), **⏰ przypomnienie** o kolejnym pomiarze (dane starsze niż 24 h), import wielodniowy sortowany chronologicznie (daty ISO i PL), guard eksportu PNG.
+
 **v2.7:** import CSV Ads Manager potrafi **wielodniowe serie** (każdy wiersz = osobny pomiar w
 trendzie, data z kolumny „data”), odporny na **BOM** (realne eksporty Menedżera), a sam import jest
 **do cofnięcia** (undo); **⬇ eksport PNG klatki storyboardu** (1080×1920, offline, canvas);
@@ -152,9 +154,11 @@ W zakładce **Wyniki** znajduje się panel **📊 Wyniki testu**: wpisujesz dane
   rozpozna wariant po nazwie (np. „A — kąt główny”) albo po kolejności wierszy; brakujące CTR/CVR
   wylicza z pozostałych kolumn, `hookRate3s` zamienia z ułamka na %, a wiersze # / nieznane warianty pomija
   (liczba pominiętych w postradze), pliki z **BOM** też. **Wielodniowy eksport:** każdy wiersz =
-  osobny pomiar w serii (trend), data z kolumny „data”/„date” trafia do pomiaru, a całość importu jest
-  **jednym krokiem undo** (Ctrl+Z cofa import) i od razu przelicza zwycięzcę; **⬇ Szablon CSV**
-  pobiera gotowy wzór do wypełnienia,
+  osobny pomiar w serii (trend), data z kolumny „data”/„date” trafia do pomiaru, a seria jest sortowana
+  **chronologicznie** (daty ISO `yyyy-mm-dd` i PL `dd.mm.yyyy` — eksporty często grupują wiersze po reklamie,
+  nie po dacie), a całość importu jest **jednym krokiem undo** (Ctrl+Z) i od razu przelicza zwycięzcę;
+  **⏰** gdy ostatni pomiar jest starszy niż 24 h, podsumowanie przypomina o nowym (cykl 24–72 h);
+  **⬇ Szablon CSV** pobiera gotowy wzór do wypełnienia,
 - **cel KPI:** pole „cel” obok metryki (np. CTR 2%) — podsumowanie pokazuje, który wariant osiągnął cel
   (✅) / jest poniżej (⚠), a raport CSV zyskuje kolumnę „Cel”; cel trafia też do eksportów TXT i MD.
 
@@ -165,6 +169,14 @@ oceny 0–100 obok siebie, paski pięciu obszarów oceny (hook, scenariusz, shot
 podświetleniem obszaru wygranego, hooki A i CTA do przeczytania obok siebie — każdy z nich ma przycisk
 **⧉** kopiowania całej sekcji. Przy jednym wybranym wariancie panel podpowiada, by dokliknąć drugi.
 „✕ Wyczyść porównanie” zamyka widok. Selekcja należy do otwartego projektu — zmiana projektu ją czyści.
+
+## Macierz testów hook×CTA
+
+Przy wariancie jest przycisk **🧪 Hook×CTA** (testy bez nowych generacji — wszystko z obecnego pakietu).
+Macierz bierze hooki A/B/C z sekcji hook i trzy CTA z sekcji CTA (Główne / Test B / Komentarz), a każdą z 9
+kombinacji **ocenia na klonie wariantu** istniejącym skalerem 0–100 (delta do obecnej wersji). Tabela pokazuje
+wyniki w komórkach (▲/▼ vs baza), najlepsza jest podświetlona; „Użyj” per komórka albo „⭐ Zastosuj
+najlepszą” podmienia HOOK A i podnosi wybrane CTA do slotu Głównego — zmiana jest cofalna (Ctrl+Z).
 ## Ocena kreacji (0–100)
 
 Każdy wariant dostaje automatyczną ocenę z pięciu obszarów — bez API, w całości offline:
@@ -232,6 +244,7 @@ Przycisk **🎬 Storyboard** przy wariancie otwiera odtwarzacz: ramka 9:16 z ove
 i listą beatów. Sterowanie: odtwarzanie, prędkość (×1 / ×0.5 / ×0.25 / ×2), klik na pasku postępu i przeskoki po beatach,
 **⬇ PNG** — zapis bieżącej klatki jako obraz 1080×1920 (format TikTok): gradient tła, chip beatu, tekst
 overlayu (zawijany), lower third z opisem kadru, pasek czasu i — jeśli włączone — obrysy stref UI;
+**🖨 PDF** — okno drukowania z **stroną na każdy beat** (rama 9:16 + opis ujęcia) do zapisu jako PDF;
 **⛶ Strefy** — nakładka bezpieczeństwa: pas górny (~8% klatki, tu siedzi powrót/profil/live) i pas dolny
 (~20%, opis, dźwięk, akcje) pokazują, gdzie interfejs TikTok zasłania kadr — dzięki temu overlayy i teksty
 nie wylądują pod UI platformy. Pozwala sprawdzić rytm reklamy i to, czy teksty nie zasłaniają interfejsu TikToka.
@@ -274,7 +287,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 433 asercje: jednostkowe (197) + E2E (209) + API (27)
+bash tests/run-all.sh        # 460 asercji: jednostkowe (211) + E2E (222) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.

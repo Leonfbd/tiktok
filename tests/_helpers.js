@@ -71,7 +71,7 @@ function stubEnv(code){
     getAngles, saveAngles, computeResults, resultsToCsv, ensureResults, TRACK_METRICS, HOOK_STYLES, hookStyleLabel,
     normalizeProject, projectShapeError, scoreVariant, averageScore, scoreClass, APP_VERSION,
     normalizeResultsRows, commitDrafts, rowLatest, measurementStats, sparklineSvg, montageBriefText, montageBriefPackage,
-    adsManagerCsvToMeasurements, adsCsvTemplate, wrapTextByChars,
+    adsManagerCsvToMeasurements, adsCsvTemplate, wrapTextByChars, parseDateLoose, lastMeasurementAgeHours, extractHookCandidates, extractCtaCandidates, promoteCta, hookCtaMatrix, storyboardPrintHtml,
     getHooks, saveHooks, saveHookFromVariant, useHookInVariant, extractMainHook, replaceMainHook };`;
   eval(code + exports);
   return globalThis.__API;

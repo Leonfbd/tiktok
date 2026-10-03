@@ -493,6 +493,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   .top-actions{width:100%}
 }
 
+.mx-table{width:100%;border-collapse:collapse;font-size:12.6px}
+.mx-table th,.mx-table td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}
+.mx-table thead th{background:var(--panel-2)}
+.mx-table td.mx-best{background:rgba(49,214,143,.10);outline:2px solid rgba(49,214,143,.45);outline-offset:-2px}
+
 /* --- 29. Porównanie A/B --- */
 .cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
 .cmp-head{font-size:14px}
@@ -1122,6 +1127,17 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   </div>
 </div>
 
+<!-- MODAL: macierz testów hook×CTA -->
+<div class="modal" id="modalMatrix" role="dialog" aria-modal="true" aria-labelledby="matrixTitle" aria-hidden="true">
+  <div class="box" style="width:min(880px,100%)">
+    <header>
+      <h3 id="matrixTitle">Macierz hook×CTA</h3>
+      <button class="btn mini" id="btnCloseMatrix" aria-label="Zamknij macierz hook×CTA">✕</button>
+    </header>
+    <div class="body" id="matrixArea"></div>
+  </div>
+</div>
+
 <!-- MODAL: podgląd storyboardu 9:16 -->
 <div class="modal" id="modalStory" role="dialog" aria-modal="true" aria-labelledby="storyTitle" aria-hidden="true">
   <div class="box" style="width:min(1000px,100%)">
@@ -1147,6 +1163,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
             <button class="btn sm" id="storySpeed" title="Prędkość odtwarzania">×1</button>
             <button class="btn sm" id="storySafe" title="Pokaż/ukryj strefy bezpieczeństwa interfejsu TikTok">⛶ Strefy</button>
             <button class="btn sm" id="storyPng" title="Zapisz bieżącą klatkę jako PNG 1080×1920 (format TikTok)">⬇ PNG</button>
+            <button class="btn sm" id="storyPdf" title="Okno drukowania: strona na każdy beat — zapisz jako PDF">🖨 PDF</button>
             <span class="hint" id="storyTimeInfo">0,0 / 0,0 s</span>
           </div>
         </div>
@@ -1286,7 +1303,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
    ========================================================================== */
 
 /** Wersja aplikacji – jedno źródło prawdy (badge w UI i eksporty). */
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 
 /** Log diagnostyczny – zamiast cichych `catch(e){}`. */
 function warn(...args){ try{ if(typeof console !== 'undefined' && console.warn) console.warn('[Automat TikTok]', ...args); }catch(e){ /* brak konsoli */ } }
@@ -3704,6 +3721,19 @@ function fnum(n, dec){
 }
 
 /** HTML podsumowania wyników (zwycięzca + kolejny krok). */
+/** Wiek ostatniego pomiaru w trackerze w godzinach (null, gdy brak pomiarów lub dat niedatowych). */
+function lastMeasurementAgeHours(R){
+  let maxTs = null;
+  const rows = (R && R.rows) || {};
+  Object.keys(rows).forEach(lab => {
+    const row = rows[lab] || {};
+    (row.measurements || []).forEach(m => {
+      const ts = parseDateLoose(m && m.at);
+      if(ts != null && (maxTs == null || ts > maxTs)) maxTs = ts;
+    });
+  });
+  return maxTs == null ? null : (Date.now() - maxTs) / 3.6e6;
+}
 function trackerSummaryHtml(project){
   const R = ensureResults(project);
   const res = computeResults(project);
@@ -3748,6 +3778,12 @@ function trackerSummaryHtml(project){
   } else {
     lines.push('<div class="hd warn">Za mało danych, by wyłonić zwycięzcę</div>');
     lines.push('Uzupełnij wyświetlenia i metrykę decyzyjną dla co najmniej jednego wariantu.');
+  }
+  const ageH = lastMeasurementAgeHours(R);
+  if(ageH != null && ageH > 24){
+    const dd = Math.floor(ageH / 24), hh = Math.floor(ageH % 24);
+    const when = dd > 0 ? (dd + (dd === 1 ? ' dzień' : ' dni') + (hh > 0 ? ' ' + hh + ' h' : '')) : (hh + ' h');
+    lines.push(`<div class="hd hint">⏰ Ostatni pomiar jest sprzed ${when} — wpisz nowy pomiar, żeby trend był miarowy (zalecany cykl: 24–72 h).</div>`);
   }
   if(below.length){
     lines.push(`<span class="warn">Warianty poniżej progu 2 000 wyświetleń: ${esc(below.join(', '))}</span> – nie wyłączaj ich jeszcze, wynik może się zmienić.`);
@@ -3967,6 +4003,18 @@ function resultsToCsv(project){
   return [head].concat(rows).map(r => r.map(csvEscape).join(';')).join('\r\n');
 }
 
+/** Parsuje datę luźno: ISO yyyy-mm-dd(…), PL dd.mm.yyyy / dd/mm/yyyy, a na końcu Date(s). @returns {number|null} timestamp. */
+function parseDateLoose(str){
+  const t = String(str == null ? '' : str).trim();
+  if(!t) return null;
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m){ const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])); return isNaN(d.getTime()) ? null : d.getTime(); }
+  m = t.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
+  if(m){ const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])); return isNaN(d.getTime()) ? null : d.getTime(); }
+  const d = new Date(t);
+  return isNaN(d.getTime()) ? null : d.getTime();
+}
+
 /** Synonimy nagłówków z eksportu TikTok Ads Manager (PL/EN). */
 const ADS_COL_KEYS = {
   label:       ['wariant','variant','adname','nazwakreacji','nazwa','kreacja','adnamepl'],
@@ -4048,6 +4096,17 @@ function adsManagerCsvToMeasurements(text, variants){
     }
     else skipped++;
   }
+  // A9: eksporty często grupują wiersze po reklamie, nie po dacie — jeśli daty są parsowalne,
+  // seria musi iść chronologicznie (sort stabilny: równe znaczniki zachowują kolejność pliku)
+  Object.keys(series).forEach(lab => {
+    const ms = series[lab];
+    if(ms.length < 2) return;
+    const ts = ms.map(x => parseDateLoose(x.at));
+    if(!ts.every(x => x != null)) return;
+    const order = ts.map((x, i) => i).sort((a, b) => ts[a] - ts[b]);
+    series[lab] = order.map(i => ms[i]);
+    matched[lab] = series[lab][series[lab].length - 1];
+  });
   return { matched, series, total, skipped, error: !looksHeader && !Object.keys(matched).length ? 'Nie rozpoznano struktury CSV (nagłówek bez znanych kolumn lub brak danych).' : undefined };
 }
 
@@ -4279,6 +4338,7 @@ function renderProject(project, fresh){
           <button class="btn mini" data-act="montage-var" title="Pobierz techniczny brief montażowy tego wariantu">🎬 Brief montażysty</button>
           <button class="btn mini" data-act="save-hook" title="Zapisz główny hook tego wariantu do biblioteki (Ustawienia → 📚)">📚 Hook do biblioteki</button>
           <button class="btn mini${compareSel.includes(v.label) ? ' cyan' : ''}" data-act="compare" data-lab="${esc(v.label)}" title="Dodaj do porównania A/B (maks. 2 warianty)">${compareSel.includes(v.label) ? '⚖ W porównaniu' : '⚖ Do porównania'}</button>
+          <button class="btn mini" data-act="matrix" title="Macierz testów: hooki A/B/C × CTA (Główne/Test B/Komentarz) — każda kombinacja oceniona 0–100">🧪 Hook×CTA</button>
           <button class="btn mini" data-act="copy-var">⧉ Cały wariant</button>
           <button class="btn mini" data-act="regen-var">↻ Wszystkie sekcje</button>
         </div>
@@ -4366,6 +4426,9 @@ function bindResultActions(){
     }
     if(act === 'open-story'){
       openStoryboard(Number(btn.closest('.var-card').dataset.variantCard)); return;
+    }
+    if(act === 'matrix'){
+      openMatrix(Number(btn.closest('.var-card').dataset.variantCard)); return;
     }
     if(act === 'montage-var'){
       const vi = Number(btn.closest('.var-card').dataset.variantCard);
@@ -5285,6 +5348,118 @@ function storyBeats(project, v){
 }
 
 /** Otwiera podgląd storyboardu dla wskazanego wariantu. */
+/** Kandydaci HOOK A/B/C z sekcji hook (pomija adnotacje ↳ i nagłówki). */
+function extractHookCandidates(v){
+  const body = v && v.sections && v.sections.hook ? String(v.sections.hook.body || '') : '';
+  const out = [];
+  const re = /HOOK\s+([A-C])(?:\s*\([^)]*\))?[^\n]*\n/g;
+  let m;
+  while((m = re.exec(body))){
+    const line = body.slice(re.lastIndex).split('\n').map(x => x.trim()).find(x => x && !x.startsWith('↳') && !/^(HOOK [A-C]|REKOMENDACJA|ZASADA)/.test(x));
+    if(line) out.push({ label: m[1], text: line });
+    if(out.length >= 3) break;
+  }
+  return out;
+}
+/** Kandydaci CTA z sekcji cta: Główne / Test B / Komentarz (pierwsza niepusta linia po markerze). */
+function extractCtaCandidates(v){
+  const body = v && v.sections && v.sections.cta ? String(v.sections.cta.body || '') : '';
+  const out = [];
+  [['Główny', /CTA GŁÓWNE[^\n]*\n/], ['Test B', /CTA ALTERNATYWNE[^\n]*\n/], ['Komentarz', /CTA W KOMENTARZU[^\n]*\n/]].forEach(pair => {
+    const m = body.match(pair[1]);
+    if(!m) return;
+    const line = body.slice(m.index + m[0].length).split('\n').map(x => x.trim()).find(x => x);
+    if(line) out.push({ label: pair[0], text: line });
+  });
+  return out;
+}
+/** Podnosi wskazany tekst do slotu CTA GŁÓWNE (nadpisuje linię po markerze, resztę zostawia). */
+function promoteCta(ctaBody, text){
+  const re = /^(CTA GŁÓWNE[^\n]*\n)([^\n]*)/m;
+  if(!re.test(String(ctaBody || ''))) return ctaBody;
+  return String(ctaBody).replace(re, mm => mm.split('\n')[0] + '\n' + text);
+}
+/** Macierz testów hook×CTA: każda kombinacja oceniana na klonie wariantu (scoreVariant). */
+function hookCtaMatrix(project, vi){
+  const v = project && project.variants ? project.variants[vi] : null;
+  if(!v) return null;
+  const hooks = extractHookCandidates(v);
+  const ctas = extractCtaCandidates(v);
+  if(!hooks.length || !ctas.length) return null;
+  const base = scoreVariant(project, v).score;
+  const cells = [];
+  hooks.forEach(h => ctas.forEach(c => {
+    const copy = JSON.parse(JSON.stringify(v));
+    if(copy.sections.hook) copy.sections.hook.body = replaceMainHook(copy.sections.hook.body, h.text);
+    if(copy.sections.cta) copy.sections.cta.body = promoteCta(copy.sections.cta.body, c.text);
+    const sc = scoreVariant(project, copy).score;
+    cells.push({ hook: h.label, cta: c.label, score: sc, delta: sc - base });
+  }));
+  return { hooks, ctas, base, cells };
+}
+/** HTML do wydruku storyboardu (strona na beat; funkcja czysta — testowalna bez DOM). */
+function storyboardPrintHtml(project, vi){
+  const v = project.variants[vi];
+  const beats = storyBeats(project, v);
+  const pages = beats.map((b, i) => `
+    <section class="sp-page">
+      <div class="sp-frame">
+        <div class="sp-chip">${i + 1}/${beats.length} · ${esc(b.label || 'Ujęcie')} · ${b.from.toFixed(0)}–${b.to.toFixed(0)} s</div>
+        <div class="sp-ov">${esc(b.overlay || b.text || '')}</div>
+        <div class="sp-low">${esc(b.shot ? ('Kadr: ' + b.shot) : (b.text || ''))}</div>
+      </div>
+      <div class="sp-meta"><b>${esc(project.name)}</b> · Wariant ${esc(v.label)} · ${esc(v.angle)}<br>${esc(b.text || '')}</div>
+    </section>`).join('');
+  return '<html><head><meta charset="utf-8"><title>Storyboard – ' + esc(project.name) + ' – Wariant ' + esc(v.label) + '</title><style>' +
+    'body{font-family:system-ui,sans-serif;margin:0;background:#fff;color:#111}' +
+    '.sp-page{page-break-after:always;padding:24px;box-sizing:border-box}.sp-page:last-child{page-break-after:auto}' +
+    '.sp-frame{width:360px;height:640px;margin:0 auto;border:1px solid #999;border-radius:18px;position:relative;overflow:hidden;background:#0d1117}' +
+    '.sp-chip{position:absolute;top:14px;left:14px;background:#1b2330;color:#e9eef7;font-size:10px;padding:4px 10px;border-radius:99px}' +
+    '.sp-ov{position:absolute;top:38%;left:14px;right:14px;text-align:center;color:#fff;font-weight:800;font-size:20px}' +
+    '.sp-low{position:absolute;bottom:36px;left:14px;right:14px;background:rgba(255,255,255,.9);font-size:11px;padding:6px 10px;border-radius:8px}' +
+    '.sp-meta{width:360px;margin:10px auto 0;font-size:11px;line-height:1.5}' +
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+    '</style></head><body>' + pages + '</body></html>';
+}
+/** Otwiera okno drukowania storyboardu (strona na beat) — użytkownik zapisuje jako PDF. */
+function exportStoryPdf(){
+  if(!story || !story.beats || !story.beats.length){ toast('Najpierw otwórz storyboard wariantu','warn'); return; }
+  const v = currentProject.variants[story.vi];
+  if(!v){ toast('Wariant niedostępny — otwórz storyboard ponownie','err'); return; }
+  const w = (typeof window.open === 'function') ? window.open('', '_blank') : null;
+  if(!w || !w.document){ toast('Ta przeglądarka nie pozwala na okno drukowania — użyj ⬇ PNG','err', 6000); return; }
+  w.document.write(storyboardPrintHtml(currentProject, story.vi));
+  w.document.close();
+  w.focus();
+  log('🖨 Storyboard PDF: okno drukowania (Wariant ' + v.label + ', ' + story.beats.length + ' stron)','ok');
+  setTimeout(() => { try{ w.print(); }catch(e){ warn('exportStoryPdf: print', e); } }, 300);
+}
+/** Otwiera modal macierzy hook×CTA dla wariantu. */
+function openMatrix(vi){
+  if(!currentProject) return;
+  const v = currentProject.variants[vi];
+  const m = hookCtaMatrix(currentProject, vi);
+  if(!v || !m){ toast('Nie mogę zbudować macierzy — wariant bez HOOK B/C lub sekcji CTA','warn'); return; }
+  const best = m.cells.reduce((b, c) => c.score > b.score ? c : b, m.cells[0]);
+  const head = '<tr><th>Hook \\ CTA</th>' + m.ctas.map(c => '<th>' + esc(c.label) + '</th>').join('') + '</tr>';
+  const rows = m.hooks.map(h => '<tr><td><b>HOOK ' + esc(h.label) + '</b><div class="hint">' + esc(short(h.text, 60)) + '</div></td>' +
+    m.ctas.map(c => {
+      const cell = m.cells.find(x => x.hook === h.label && x.cta === c.label);
+      const isBest = cell.hook === best.hook && cell.cta === best.cta;
+      const d = cell.delta;
+      const chip = d > 0 ? '<span class="ok">▲ +' + d + '</span>' : (d < 0 ? '<span class="warn">▼ −' + Math.abs(d) + '</span>' : '<span class="hint">=</span>');
+      return '<td' + (isBest ? ' class="mx-best"' : '') + '><b>' + cell.score + '</b>/100 ' + chip +
+        '<div><button class="btn mini" data-mact="apply" data-vi="' + vi + '" data-hi="' + esc(h.label) + '" data-ci="' + esc(c.label) + '">Użyj</button></div></td>';
+    }).join('') + '</tr>').join('');
+  document.getElementById('matrixArea').innerHTML =
+    '<p class="hint">Każda kombinacja HOOK × CTA oceniona jest na klonie wariantu (skala 0–100, delta vs obecna wersja: <b>' + m.base + '/100</b>). ' +
+    'Zastosuj najlepszą kombinację albo wybierz ręcznie — zmiana jest cofalna (Ctrl+Z).</p>' +
+    '<table class="mx-table"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table>' +
+    '<div class="btn-row" style="margin-top:12px"><button class="btn sm primary" data-mact="best" data-vi="' + vi + '">⭐ Zastosuj najlepszą (HOOK ' + esc(best.hook) + ' × CTA ' + esc(best.cta) + ', ' + best.score + '/100)</button></div>';
+  document.getElementById('matrixTitle').textContent = '🧪 Macierz hook×CTA · Wariant ' + v.label;
+  openModal('modalMatrix', 'btnCloseMatrix');
+}
+
 /** Zawija tekst na linie max. maxChars znaków (zachłannie po słowach; nadmiarowo długie słowa tnie po znakach). */
 function wrapTextByChars(text, maxChars){
   const max = Math.max(8, Math.floor(Number(maxChars) || 24));
@@ -5323,6 +5498,7 @@ function exportStoryPng(btn){
   const W = 1080, H = 1920;
   canvas.width = W; canvas.height = H;
   const v = currentProject.variants[story.vi];
+  if(!v){ toast('Wariant niedostępny — otwórz storyboard ponownie','err'); return; } // A10
   const total = story.beats[story.beats.length - 1].to || 1;
   let idx = story.beats.findIndex(b => story.t >= b.from && story.t < b.to);
   if(idx < 0) idx = story.t >= total ? story.beats.length - 1 : 0;
@@ -6130,6 +6306,30 @@ function bindUI(){
   bindAngles();
   bindHooks();
   bindStoryboard();
+  document.getElementById('storyPdf').addEventListener('click', () => exportStoryPdf());
+  document.getElementById('btnCloseMatrix').addEventListener('click', () => closeModal('modalMatrix'));
+  document.getElementById('matrixArea').addEventListener('click', e => {
+    const btn = e.target.closest ? e.target.closest('[data-mact]') : null;
+    if(!btn || !currentProject) return;
+    const vi = Number(btn.dataset.vi);
+    const v = currentProject.variants[vi];
+    const m = hookCtaMatrix(currentProject, vi);
+    if(!v || !m) return;
+    const cell = btn.dataset.mact === 'best'
+      ? m.cells.reduce((b, c) => c.score > b.score ? c : b, m.cells[0])
+      : m.cells.find(c => c.hook === btn.dataset.hi && c.cta === btn.dataset.ci);
+    if(!cell) return;
+    const h = m.hooks.find(x => x.label === cell.hook), c = m.ctas.find(x => x.label === cell.cta);
+    pushUndo('macierz hook×CTA: HOOK ' + h.label + ' × CTA ' + c.label + ' (wariant ' + v.label + ')');
+    v.sections.hook.body = replaceMainHook(v.sections.hook.body, h.text);
+    v.sections.cta.body = promoteCta(v.sections.cta.body, c.text);
+    currentProject.compliance = complianceScan(currentProject);
+    renderProject(currentProject);
+    saveToHistory(currentProject); saveDraft(currentProject);
+    toast('Zastosowano: HOOK ' + h.label + ' × CTA ' + c.label + ' (' + cell.score + '/100)','ok');
+    log('🧪 Macierz: Wariant ' + v.label + ' → HOOK ' + h.label + ' × CTA ' + c.label + ' (' + cell.score + '/100, Δ' + (cell.delta >= 0 ? '+' : '') + cell.delta + ')','ok');
+    closeModal('modalMatrix');
+  });
   document.getElementById('batchStrategy').innerHTML =
     '<option value="" selected>Z briefu / strategia z zakładki Kampania</option>' +
     STRATEGIES.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');

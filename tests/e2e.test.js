@@ -615,7 +615,7 @@ const { check, finish } = makeChecker();
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
     await tick(120);
     check('v2.3 undo: Ctrl+Z cofa operację', /Kurs gotowania/.test($('#projSummary').textContent) && beforeUndo !== $('#projSummary').textContent, $('#projSummary').textContent.slice(0,80));
-    check('v2.7 wersja: badge pokazuje APP_VERSION', /v2\.7/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+    check('v2.8 wersja: badge pokazuje APP_VERSION', /v2\.8/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
   }
 
   /* ========== 11. AUDYT v2.4: trend pomiarów, brief montażysty, auto-scoring, biblioteka hooków ========== */
@@ -887,6 +887,31 @@ const { check, finish } = makeChecker();
     await tick(80);
     check('v2.6 porównanie: wyczyszczone', !document.querySelector('#resultsArea .cmp-panel') && !document.querySelector('#resultsArea .cmp-pick'));
 
+    // --- F1: macierz hook×CTA ---
+    document.querySelector('#resultsArea [data-act="matrix"]').click();
+    await tick(80);
+    check('v2.8 macierz: modal otwarty (tytuł z wariantem)', $('#modalMatrix').classList.contains('open') && /Wariant A/.test($('#matrixTitle').textContent), $('#matrixTitle').textContent);
+    const mxApply = document.querySelectorAll('#matrixArea [data-mact="apply"]');
+    check('v2.8 macierz: 9 komórek (3 hooki × 3 CTA)', mxApply.length === 9, mxApply.length);
+    check('v2.8 macierz: najlepsza komórka podświetlona', document.querySelectorAll('#matrixArea .mx-best').length >= 1);
+    const hookBeforeMx = $('#resultsArea .sec[data-key="hook"] pre').textContent;
+    const ctaBeforeMx = $('#resultsArea .sec[data-key="cta"] pre').textContent;
+    const mxCell = document.querySelector('#matrixArea [data-mact="apply"][data-hi="B"][data-ci="Test B"]');
+    check('v2.8 macierz: komórka HOOK B × Test B', !!mxCell);
+    mxCell.click();
+    await tick(150);
+    check('v2.8 macierz: modal zamknięty po zastosowaniu', !$('#modalMatrix').classList.contains('open'));
+    const hookAfterMx = $('#resultsArea .sec[data-key="hook"] pre').textContent;
+    const ctaAfterMx = $('#resultsArea .sec[data-key="cta"] pre').textContent;
+    const bHookText = hookBeforeMx.split(/HOOK B[^\n]*\n/)[1].split('\n').map(l => l.trim()).find(l => l && !l.startsWith('↳'));
+    const ctaAltText = ctaBeforeMx.split(/CTA ALTERNATYWNE[^\n]*\n/)[1].split('\n').map(l => l.trim()).find(l => l);
+    check('v2.8 macierz: HOOK A zastąpiony tekstem HOOK B', !!bHookText && hookAfterMx !== hookBeforeMx && hookAfterMx.includes(bHookText), hookAfterMx.slice(0, 120));
+    check('v2.8 macierz: CTA główne = tekst CTA Test B', !!ctaAltText && ctaAfterMx.split(/CTA GŁÓWNE[^\n]*\n/)[1].trim().startsWith(ctaAltText.slice(0, 12)), ctaAfterMx.slice(0, 140));
+    $('#btnUndo').click();
+    await tick(150);
+    check('v2.8 macierz: undo przywraca hook', $('#resultsArea .sec[data-key="hook"] pre').textContent === hookBeforeMx);
+    check('v2.8 macierz: undo przywraca CTA', $('#resultsArea .sec[data-key="cta"] pre').textContent === ctaBeforeMx);
+
     // --- F6: PNG klatki storyboardu (jsdom: canvas null → grzeczny toast) ---
     document.querySelector('#resultsArea [data-act="open-story"]').click();
     await tick(80);
@@ -895,6 +920,10 @@ const { check, finish } = makeChecker();
     $('#storyPng').click();
     await tick(80);
     check('v2.7 PNG: bez canvas → grzeczny toast, bez wyjątku', /nie wspiera canvas/.test($('#toasts').textContent), $('#toasts').textContent.slice(-160));
+    check('v2.8 PDF: przycisk w odtwarzaczu', !!$('#storyPdf'));
+    $('#storyPdf').click();
+    await tick(80);
+    check('v2.8 PDF: bez okna drukowania → grzeczny toast', /nie pozwala na okno drukowania|okno drukowania/.test($('#toasts').textContent), $('#toasts').textContent.slice(-160));
     // --- F4/A7: strefy + reset przy ponownym otwarciu ---
     check('v2.6 strefy: pasy obecne, ukryte', !!$('#storySafeTop') && !$('#storySafeTop').classList.contains('on'));
     document.getElementById('storySafe').click();
@@ -954,6 +983,17 @@ const { check, finish } = makeChecker();
     await tick(200);
     check('v2.7 A5: cofnięcie usuwa import (seria 4)', /4 pom\./.test(countA()), countA());
     check('v2.7 A5: licznik undo spowrotem', undoCount2() === beforeUndo2, { before: beforeUndo2, after: undoCount2() });
+
+    // --- F3: przypomnienie o kolejnym pomiarze (projekt z pomiarami sprzed >24 h) ---
+    const oldProject = { name:'Projekt starych pomiarów', brief:{ product:'serum', industry:'kosmetyki' },
+      variants:[{ label:'A', angle:'X', sections:{ hook:{ body:'HOOK A (0–3 s)\ntest' } } }],
+      results:{ metric:'ctr', rows:{ A:{ measurements:[{ at:'2026-09-01', views:'9000', ctr:'2.0' }] },
+                                       B:{ measurements:[{ at:'2026-09-01', views:'8000', ctr:'1.5' }] } }, winner:null, computedAt:null } };
+    Object.defineProperty(inputL, 'files', { value: [ { name:'old.json', __txt: JSON.stringify(oldProject) } ], configurable:true });
+    inputL.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(250);
+    check('v2.8 F3: ⏰ przypomnienie w podsumowaniu (daty sprzed 24 h)', /⏰ Ostatni pomiar jest sprzed/.test($('#trackSummary').textContent), $('#trackSummary').textContent.slice(-260));
+    check('v2.8 F3: zwycięzca wyliczony mimo starych dat', /Zwycięzca: Wariant A/.test($('#trackSummary').textContent), $('#trackSummary').textContent.slice(0, 140));
 
     // --- A1: błąd regeneracji nie zostawia snapshotu no-op w undo ---
     const undoCount = () => { const t = $('#btnUndo').textContent; const m = t.match(/\((\d+)\)/); return m ? Number(m[1]) : 0; };

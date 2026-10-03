@@ -317,7 +317,7 @@ check('scoring: wskazówka o konkret/stronie', scBad.tips.some(t => /liczb|konkr
 check('scoring: brak sekcji tylko jako wskazówka, nie wyjątek', (() => { try { A.scoreVariant({ brief:{length:15}, variants:[] }, { sections:{} }); return true; } catch(e){ return false; } })());
 
 /* ---------- 21. Wersja aplikacji ---------- */
-check('wersja: stała APP_VERSION (v2.7)', A.APP_VERSION === '2.7', A.APP_VERSION);
+check('wersja: stała APP_VERSION (v2.8)', A.APP_VERSION === '2.8', A.APP_VERSION);
 
 /* ---------- 23. Tracker: pomiary w czasie (trend) ---------- */
 check('trend: migracja starego formatu (flat → measurements)', (() => {
@@ -511,5 +511,64 @@ check('wrap: długie słowo tnie po znakach (clamp 8)', JSON.stringify(A.wrapTex
 check('wrap: pusty tekst → pusta linia', JSON.stringify(A.wrapTextByChars('', 10)) === JSON.stringify(['']));
 check('wrap: zachowuje podział na akapity', JSON.stringify(A.wrapTextByChars('a b\nc d', 30)) === JSON.stringify(['a b','c d']));
 check('wrap: max < 8 traktowany jako 8', JSON.stringify(A.wrapTextByChars('aa bb', 3)) === JSON.stringify(['aa bb']));
+
+/* ---------- 30. v2.8: daty, sortowanie serii, macierz hook×CTA, PDF ---------- */
+check('v2.8 parseDateLoose: ISO', A.parseDateLoose('2026-10-01') === new Date(2026, 9, 1).getTime());
+check('v2.8 parseDateLoose: PL dd.mm.yyyy', A.parseDateLoose('01.10.2026') === new Date(2026, 9, 1).getTime());
+check('v2.8 parseDateLoose: dd/mm/yyyy', A.parseDateLoose('01/10/2026') === new Date(2026, 9, 1).getTime());
+check('v2.8 parseDateLoose: niepoprawna → null', A.parseDateLoose('kwiecień') === null && A.parseDateLoose('') === null);
+check('v2.8 A9: seria sortowana chronologicznie (wiersze 03/01/02)', (() => {
+  const r = A.adsManagerCsvToMeasurements('wariant;data;wyswietlenia\nA;2026-09-03;300\nA;2026-09-01;100\nA;2026-09-02;200', [{ label:'A' }]);
+  return r.series.A.length === 3 && r.series.A[0].at === '2026-09-01' && r.series.A[2].at === '2026-09-03'
+    && r.matched.A.views === 300 && r.matched.A.at === '2026-09-03';
+})(), '');
+check('v2.8 A9: bez kolumny dat → kolejność pliku', (() => {
+  const r = A.adsManagerCsvToMeasurements('wariant;wyswietlenia\nA;300\nA;100\nA;200', [{ label:'A' }]);
+  return r.series.A.map(x => x.views).join(',') === '300,100,200' && r.matched.A.views === 200;
+})(), '');
+check('v2.8 F3: wiek ostatniego pomiaru (brak → null; stary → >24 h)', (() => {
+  const empty = A.lastMeasurementAgeHours({ rows: {} });
+  const old = A.lastMeasurementAgeHours({ rows: { A: { measurements: [{ at: '2026-09-01' }] } } });
+  return empty === null && old != null && old > 24;
+})(), '');
+const mxProject = {
+  name: 'Test macierzy', createdAt: new Date().toISOString(), brief: { product: 'serum', length: 15, industry: 'kosmetyki' },
+  variants: [{
+    label: 'A', angle: 'Problem → Rozwiązanie',
+    sections: {
+      hook: { key: 'hook', title: 'Hook', body: 'HOOK A (0–3 s)\nSTOP. Przestań kupować kremy za 200 zł\n  ↳ wariant testowy: główny\n\nHOOK B (0–3 s)\nPOV. Kupiłam ten krem i wracam do niego\n  ↳ wariant testowy: alternatywa A\n\nHOOK C (0–3 s)\n3 oznaki, że twój krem nie działa' },
+      script: { key: 'script', title: 'Scenariusz', body: '0–3 s: hook. 3–10 s: problem. 10–15 s: rozwiązanie i CTA.' },
+      cta: { key: 'cta', title: 'CTA', body: 'CTA GŁÓWNE (na końcu wideo, na wizji):\nKup teraz z kodem BLASK10\n\nCTA ALTERNATYWNE (test B):\nSprawdź link w bio\n\nCTA W KOMENTARZU (przypięty komentarz):\nPytania? Odpowiadam na wszystkie!' },
+      description: { key: 'description', title: 'Opis', body: 'Serum z witaminą C — blask w 14 dni. #skincare' },
+      hashtags: { key: 'hashtags', title: 'Hashtagi', body: '#serum #witaminaC #skincare #uroda #pielęgnacja #blask #kosmetyki' }
+    }
+  }]
+};
+check('v2.8 macierz: 3 hooki z adnotacjami pominącymi ↳', (() => {
+  const h = A.extractHookCandidates(mxProject.variants[0]);
+  return h.length === 3 && h[0].label === 'A' && h[0].text === 'STOP. Przestań kupować kremy za 200 zł'
+    && h[1].text === 'POV. Kupiłam ten krem i wracam do niego';
+})(), '');
+check('v2.8 macierz: 3 CTA z markerów', (() => {
+  const c = A.extractCtaCandidates(mxProject.variants[0]);
+  return c.length === 3 && c[0].label === 'Główny' && c[0].text === 'Kup teraz z kodem BLASK10'
+    && c[1].text === 'Sprawdź link w bio' && c[2].text === 'Pytania? Odpowiadam na wszystkie!';
+})(), '');
+check('v2.8 macierz: promoteCta podmienia główną, resztę zostawia', (() => {
+  const body = mxProject.variants[0].sections.cta.body;
+  const out = A.promoteCta(body, 'NOWE CTA');
+  return /CTA GŁÓWNE[^\n]*\nNOWE CTA/.test(out) && out.includes('Sprawdź link w bio') && !out.includes('Kup teraz z kodem BLASK10');
+})(), '');
+check('v2.8 macierz: promoteCta bez markera → bez zmian', A.promoteCta('bez markerów', 'X') === 'bez markerów');
+check('v2.8 macierz: 3×3 = 9 komórek, zakresy 0–100, delta do base', (() => {
+  const m = A.hookCtaMatrix(mxProject, 0);
+  return m && m.cells.length === 9 && m.hooks.length === 3 && m.ctas.length === 3
+    && Number.isFinite(m.base) && m.cells.every(c => c.score >= 0 && c.score <= 100 && c.delta === c.score - m.base);
+})(), '');
+check('v2.8 macierz: brak sekcji CTA → null', A.hookCtaMatrix({ brief: mxProject.brief, variants: [{ label:'A', sections: mxProject.variants[0].sections.cta ? { hook: mxProject.variants[0].sections.hook } : {} }] }, 0) === null);
+check('v2.8 PDF: HTML zawiera wszystkie beaty, projekt i wariant', (() => {
+  const html = A.storyboardPrintHtml(mxProject, 0);
+  return /sp-page/.test(html) && html.includes('Test macierzy') && html.includes('Wariant A') && html.includes('page-break-after');
+})(), '');
 
 finish('TESTY JEDNOSTKOWE');
