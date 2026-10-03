@@ -615,7 +615,7 @@ const { check, finish } = makeChecker();
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
     await tick(120);
     check('v2.3 undo: Ctrl+Z cofa operację', /Kurs gotowania/.test($('#projSummary').textContent) && beforeUndo !== $('#projSummary').textContent, $('#projSummary').textContent.slice(0,80));
-    check('v2.6 wersja: badge pokazuje APP_VERSION', /v2\.6/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+    check('v2.7 wersja: badge pokazuje APP_VERSION', /v2\.7/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
   }
 
   /* ========== 11. AUDYT v2.4: trend pomiarów, brief montażysty, auto-scoring, biblioteka hooków ========== */
@@ -876,23 +876,84 @@ const { check, finish } = makeChecker();
     check('v2.6 porównanie: panel A vs B', !!panel && /Porównanie: Wariant A vs B/.test(panel.textContent), panel ? panel.textContent.slice(0, 100) : 'brak panelu');
     check('v2.6 porównanie: 5 obszarów oceny', document.querySelectorAll('#resultsArea .cmp-row').length === 5);
     check('v2.6 porównanie: zwycięzca obszaru podświetlony', document.querySelectorAll('#resultsArea .cmp-col.win').length >= 1);
+    // --- F7: kopiowanie sekcji w porównaniu ---
+    const copyBtns = document.querySelectorAll('#resultsArea .cmp-copy');
+    check('v2.7 copy: 4 przyciski ⧉ w panelu (2 warianty × hook/CTA)', copyBtns.length === 4, copyBtns.length);
+    copyBtns[0].click();
+    await tick(120);
+    check('v2.7 copy: kopiowanie sekcji (toast, jsdom = fallback)', /Skopiowane|Nie udało się skopiować/.test($('#toasts').textContent), $('#toasts').textContent.slice(-160));
     const clearBtn = document.querySelector('#resultsArea [data-act="compare-clear"]');
     if(clearBtn) clearBtn.click();
     await tick(80);
     check('v2.6 porównanie: wyczyszczone', !document.querySelector('#resultsArea .cmp-panel') && !document.querySelector('#resultsArea .cmp-pick'));
 
-    // --- F4: strefy bezpieczeństwa w storyboardzie ---
+    // --- F6: PNG klatki storyboardu (jsdom: canvas null → grzeczny toast) ---
     document.querySelector('#resultsArea [data-act="open-story"]').click();
     await tick(80);
     check('v2.6 strefy: modal otwarty', $('#modalStory').classList.contains('open'));
+    check('v2.7 PNG: przycisk w odtwarzaczu', !!$('#storyPng'));
+    $('#storyPng').click();
+    await tick(80);
+    check('v2.7 PNG: bez canvas → grzeczny toast, bez wyjątku', /nie wspiera canvas/.test($('#toasts').textContent), $('#toasts').textContent.slice(-160));
+    // --- F4/A7: strefy + reset przy ponownym otwarciu ---
     check('v2.6 strefy: pasy obecne, ukryte', !!$('#storySafeTop') && !$('#storySafeTop').classList.contains('on'));
     document.getElementById('storySafe').click();
     check('v2.6 strefy: góra włączona', $('#storySafeTop').classList.contains('on'));
     check('v2.6 strefy: dół włączony', $('#storySafeBottom').classList.contains('on'));
-    document.getElementById('storySafe').click();
-    check('v2.6 strefy: ponownie ukryte', !$('#storySafeTop').classList.contains('on'));
     document.getElementById('btnCloseStory').click();
     await tick(50);
+    document.querySelector('#resultsArea [data-act="open-story"]').click();
+    await tick(80);
+    check('v2.7 strefy: reset do ukrytych przy ponownym otwarciu', !$('#storySafeTop').classList.contains('on') && !$('#storySafe').classList.contains('cyan'));
+    document.getElementById('btnCloseStory').click();
+    await tick(50);
+
+    // --- A8: porównanie czyści się przy zmianie projektu ---
+    document.querySelector('#resultsArea [data-act="compare"]').click();
+    await tick(60);
+    document.querySelector('#resultsArea [data-act="compare"][data-lab="B"]').click();
+    await tick(80);
+    check('v2.7 A8: panel przed zmianą projektu', !!document.querySelector('#resultsArea .cmp-panel'));
+    const legacy2 = { name:'Projekt z importu', brief:{ product:'serum', industry:'kosmetyki' },
+      variants:[{ label:'A', angle:'X', sections:{ hook:{ body:'HOOK A (0–3 s)\ntest' } } }],
+      results:{ metric:'ctr', rows:{ A:{ views:'9000', ctr:'2.0' } }, winner:null, computedAt:null } };
+    const inputL = $('#fileImport');
+    Object.defineProperty(inputL, 'files', { value: [ { name:'legacy.json', __txt: JSON.stringify(legacy2) } ], configurable:true });
+    inputL.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(250);
+    check('v2.7 A8: nowy projekt otwarty', /Projekt z importu/.test($('#projSummary').textContent), $('#projSummary').textContent.slice(0, 80));
+    check('v2.7 A8: zmiana projektu czyści porównanie', !document.querySelector('#resultsArea .cmp-panel') && !document.querySelector('#resultsArea .cmp-pick'));
+
+    // --- A4: BOM w imporcie Ads Manager ---
+    const countA = () => { const row = document.querySelector('[data-trow="A"]'); return row ? row.children[7].textContent.trim() : ''; };
+    check('v2.7 A4: legacy dało 1 pomiar A', /^1$|1 pom\./.test(countA()), countA());
+    // UWAGA: każdy import przebudowuje DOM trackera → input pobieramy na nowo przed każdym wysłaniem
+    const doAdsImport = (name, txt) => {
+      const fi = $('#fileAdsImport');
+      Object.defineProperty(fi, 'files', { value: [ { name, __txt: txt } ], configurable:true });
+      fi.dispatchEvent(new window.Event('change', { bubbles:true }));
+    };
+    doAdsImport('bom.csv', '\uFEFFwariant;wyświetlenia;kliknięcia\nA;5000;250');
+    await tick(150);
+    check('v2.7 A4: plik z BOM zaimportowany', /Zaimportowano 1 pomiar/.test($('#toasts').textContent), $('#toasts').textContent.slice(-200));
+    check('v2.7 A4: pomiar A dodany (seria 2)', /2 pom\./.test(countA()), countA());
+
+    // --- F5: wielodniowy import (2 wiersze tego samego wariantu) ---
+    doAdsImport('multi.csv', 'wariant;wyswietlenia;klikniecia\nA;6000;600\nA;7000;770');
+    await tick(150);
+    check('v2.7 F5: 2 wiersze A = 2 pomiary (seria 4)', /4 pom\./.test(countA()), countA());
+
+    // --- A5: import do cofnięcia (undo) ---
+    const undoCount2 = () => { const t = $('#btnUndo').textContent; const mm = t.match(/\((\d+)\)/); return mm ? Number(mm[1]) : 0; };
+    const beforeUndo2 = undoCount2();
+    doAdsImport('multi2.csv', 'wariant;wyswietlenia\nA;8000\nA;9000');
+    await tick(150);
+    check('v2.7 A5: import → snapshot w undo', undoCount2() === beforeUndo2 + 1, { before: beforeUndo2, after: undoCount2() });
+    check('v2.7 A5: seria 6', /6 pom\./.test(countA()), countA());
+    $('#btnUndo').click();
+    await tick(200);
+    check('v2.7 A5: cofnięcie usuwa import (seria 4)', /4 pom\./.test(countA()), countA());
+    check('v2.7 A5: licznik undo spowrotem', undoCount2() === beforeUndo2, { before: beforeUndo2, after: undoCount2() });
 
     // --- A1: błąd regeneracji nie zostawia snapshotu no-op w undo ---
     const undoCount = () => { const t = $('#btnUndo').textContent; const m = t.match(/\((\d+)\)/); return m ? Number(m[1]) : 0; };

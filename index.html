@@ -509,6 +509,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 .cmp-text{font-size:12.6px;line-height:1.55}
 .cmp-text.right{text-align:right}
 .cmp-text .hint{margin-bottom:2px}
+.cmp-copy{padding:2px 8px;font-size:11px;line-height:1.5;margin-left:4px;vertical-align:1px}
+.cmp-text.right .cmp-copy{margin-left:0;margin-right:4px}
 @media (max-width:760px){.cmp-grid{grid-template-columns:minmax(0,1fr)}.cmp-head.right,.cmp-text.right{text-align:left}}
 
 @media (prefers-reduced-motion: reduce){
@@ -1131,8 +1133,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
       <div class="story">
         <div>
           <div class="phone" id="storyPhone">
-            <div class="safe-zone top" id="storySafeTop"><span>górne ~8% — UI TikTok (powrót, profil, live)</span></div>
-            <div class="safe-zone bottom" id="storySafeBottom"><span>dolne ~20% — UI TikTok (opis, dźwięk, akcje)</span></div>
+            <div class="safe-zone top" id="storySafeTop" aria-hidden="true"><span>górne ~8% — UI TikTok (powrót, profil, live)</span></div>
+            <div class="safe-zone bottom" id="storySafeBottom" aria-hidden="true"><span>dolne ~20% — UI TikTok (opis, dźwięk, akcje)</span></div>
             <div class="beat-label" id="storyBeatLabel">—</div>
             <div class="timer" id="storyTimer">0,0 s</div>
             <div class="overlay-text" id="storyOverlay">—</div>
@@ -1144,6 +1146,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
             <button class="btn primary sm" id="storyPlay">▶ Odtwórz</button>
             <button class="btn sm" id="storySpeed" title="Prędkość odtwarzania">×1</button>
             <button class="btn sm" id="storySafe" title="Pokaż/ukryj strefy bezpieczeństwa interfejsu TikTok">⛶ Strefy</button>
+            <button class="btn sm" id="storyPng" title="Zapisz bieżącą klatkę jako PNG 1080×1920 (format TikTok)">⬇ PNG</button>
             <span class="hint" id="storyTimeInfo">0,0 / 0,0 s</span>
           </div>
         </div>
@@ -1283,7 +1286,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
    ========================================================================== */
 
 /** Wersja aplikacji – jedno źródło prawdy (badge w UI i eksporty). */
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 
 /** Log diagnostyczny – zamiast cichych `catch(e){}`. */
 function warn(...args){ try{ if(typeof console !== 'undefined' && console.warn) console.warn('[Automat TikTok]', ...args); }catch(e){ /* brak konsoli */ } }
@@ -3891,10 +3894,12 @@ function bindTracker(){
           const res = adsManagerCsvToMeasurements(rd.result, currentProject.variants);
           if(res.error) throw new Error(res.error);
           const R = ensureResults(currentProject);
+          pushUndo('import CSV Ads Manager');
           let n = 0;
-          Object.keys(res.matched).forEach(lab => {
+          Object.keys(res.series || res.matched).forEach(lab => {
             const row = R.rows[lab] || (R.rows[lab] = { measurements:[], draft:{} });
-            row.measurements.push(res.matched[lab]); n++;
+            const items = res.series ? res.series[lab] : [res.matched[lab]];
+            items.forEach(m => { row.measurements.push(m); n++; });
           });
           if(!n) throw new Error('Żaden wiersz nie pasuje do wariantów (kolumna „wariant” albo kolejność A/B/C…).');
           const comp = computeResults(currentProject);
@@ -3970,6 +3975,7 @@ const ADS_COL_KEYS = {
   ctr:         ['ctr(%)','ctr%','ctr'],
   cvr:         ['cvr(%)','cvr%','cvr','tws','conversionrate','konwersja%'],
   spend:       ['budzet','cost','spend','koszt','wydatki','wydanie','budżet'],
+  date:        ['date','data','day'],
   hook:        ['hookrate3s','hookrate','hook'],
   conversions: ['konwersje','conversions','convert','konw']
 };
@@ -3977,10 +3983,12 @@ const normAdsHeader = h => String(h || '').toLowerCase().replace(/\s+/g,'').repl
 
 /**
  * Parsuje eksport CSV z TikTok Ads Manager → pomiary per wariant.
- * @returns {{matched:Object<string,{views,hook,ctr,cvr,spend}>, total:number, skipped:number, error?:string}}
+ * @returns {{matched:Object<string,object>, series:Object<string,object[]>, total:number, skipped:number, error?:string}}
+ *          matched = ostatni wiersz per wariant (wsteczna kompatybilność),
+ *          series  = wszystkie wiersze per wariant w kolejności pliku (wielodniowy import).
  */
 function adsManagerCsvToMeasurements(text, variants){
-  const rows = String(text || '').replace(/\r/g, '').split('\n')
+  const rows = String(text || '').replace(/^\uFEFF/, '').replace(/\r/g, '').split('\n')
     .map(l => l.trim()).filter(l => l && !l.startsWith('#'));
   if(!rows.length) return { matched:{}, total:0, skipped:0, error:'Plik jest pusty.' };
   const delim = detectDelimiter(rows[0]);
@@ -3998,7 +4006,7 @@ function adsManagerCsvToMeasurements(text, variants){
   const looksHeader = known >= 2;
   let start = 0;
   if(looksHeader) start = 1;
-  const matched = {}; let total = 0, skipped = 0;
+  const matched = {}; const series = {}; let total = 0, skipped = 0;
   const getNum = (f, i, k) => { const raw = String(f[i] == null ? '' : f[i]).trim().replace(',', '.'); const n = parseFloat(raw); return isFinite(n) ? n : null; };
   for(let i = start; i < rows.length; i++){
     const f = splitCsvRow(rows[i], delim);
@@ -4025,6 +4033,7 @@ function adsManagerCsvToMeasurements(text, variants){
     if(ctr == null && clicks != null && views) ctr = Math.round(clicks / views * 10000) / 100;
     if(cvr == null && conv != null && clicks) cvr = Math.round(conv / clicks * 10000) / 100;
     const m = { at: new Date().toISOString() };
+    if(idx.date != null){ const d = String(f[idx.date] == null ? '' : f[idx.date]).trim(); if(d) m.at = d; }
     if(views != null) m.views = views;
     if(clicks != null) m.clicks = clicks;
     if(ctr != null) m.ctr = ctr;
@@ -4032,10 +4041,14 @@ function adsManagerCsvToMeasurements(text, variants){
     if(spend != null) m.spend = spend;
     if(conv != null) m.conversions = conv;
     if(hook != null) m.hook = hook;
-    if(Object.keys(m).length > 1) matched[lab] = m;
+    if(Object.keys(m).length > 1){
+      if(!series[lab]) series[lab] = [];
+      series[lab].push(m);
+      matched[lab] = m; // ostatni wiersz wygrywa (wsteczna kompatybilność)
+    }
     else skipped++;
   }
-  return { matched, total, skipped, error: !looksHeader && !Object.keys(matched).length ? 'Nie rozpoznano struktury CSV (nagłówek bez znanych kolumn lub brak danych).' : undefined };
+  return { matched, series, total, skipped, error: !looksHeader && !Object.keys(matched).length ? 'Nie rozpoznano struktury CSV (nagłówek bez znanych kolumn lub brak danych).' : undefined };
 }
 
 /** Wzór CSV dopasowany do importu z Ads Manager. */
@@ -4183,6 +4196,10 @@ function renderProject(project, fresh){
     return;
   }
   project = fixed;
+  // A8: selekcja porównania A/B należy do konkretnego projektu — przy zmianie czyścimy
+  // (klucz, nie tożsamość obiektu: normalizeProject klonuje projekt przy każdym renderze)
+  const pk = projectKey(project);
+  if(compareProjectKey !== pk){ compareSel = []; compareProjectKey = pk; }
   currentProject = project;
   const area = document.getElementById('resultsArea');
   // „fresh” = nowe generowanie/importowanie → karty i sekcje wchodzą kaskadą;
@@ -4370,6 +4387,13 @@ function bindResultActions(){
     if(act === 'compare-clear'){
       compareSel = [];
       renderProject(currentProject);
+      return;
+    }
+    if(act === 'cmp-copy'){
+      const parts = String(btn.dataset.cmp || '').split('|');
+      const vv = currentProject.variants.find(x => x.label === parts[0]);
+      const body = vv && vv.sections[parts[1]] ? vv.sections[parts[1]].body : '';
+      copyText(body, btn);
       return;
     }
     if(act === 'copy-abplan'){ copyText(currentProject.abPlan, btn); return; }
@@ -5261,12 +5285,116 @@ function storyBeats(project, v){
 }
 
 /** Otwiera podgląd storyboardu dla wskazanego wariantu. */
+/** Zawija tekst na linie max. maxChars znaków (zachłannie po słowach; nadmiarowo długie słowa tnie po znakach). */
+function wrapTextByChars(text, maxChars){
+  const max = Math.max(8, Math.floor(Number(maxChars) || 24));
+  const out = [];
+  String(text == null ? '' : text).split('\n').forEach(par => {
+    let line = '';
+    par.split(/\s+/).filter(Boolean).forEach(w => {
+      if(w.length > max){
+        if(line){ out.push(line); line = ''; }
+        for(let i = 0; i < w.length; i += max) out.push(w.slice(i, i + max));
+        line = '';
+      } else if((line + ' ' + w).trim().length <= max){
+        line = (line ? line + ' ' : '') + w;
+      } else { out.push(line); line = w; }
+    });
+    if(line !== '' || par === '') out.push(line);
+  });
+  return out;
+}
+/** Rysuje prosty, zaokrąglony prostokąt (ctx, x, y, w, h, r). */
+function roundRectPath(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+/** Eksport bieżącej klatki storyboardu jako PNG 1080×1920 (canvas, w 100% offline). */
+function exportStoryPng(btn){
+  if(!story || !story.beats || !story.beats.length){ toast('Najpierw otwórz storyboard wariantu','warn'); return; }
+  const canvas = document.createElement('canvas');
+  const ctx = (canvas.getContext && canvas.getContext('2d')) || null;
+  if(!ctx){ toast('Ta przeglądarka nie wspiera canvas – nie mogę wygenerować PNG','err', 6000); return; }
+  const W = 1080, H = 1920;
+  canvas.width = W; canvas.height = H;
+  const v = currentProject.variants[story.vi];
+  const total = story.beats[story.beats.length - 1].to || 1;
+  let idx = story.beats.findIndex(b => story.t >= b.from && story.t < b.to);
+  if(idx < 0) idx = story.t >= total ? story.beats.length - 1 : 0;
+  const b = story.beats[idx];
+  // tło: gradient
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0b0f14'); g.addColorStop(0.55, '#101722'); g.addColorStop(1, '#18202e');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // chip beatu (lewy górny)
+  const chipTxt = (idx + 1) + '/' + story.beats.length + ' · ' + (b.label || 'Ujęcie') + ' · ' + b.from.toFixed(0) + '–' + b.to.toFixed(0) + ' s';
+  ctx.font = '600 40px system-ui, sans-serif';
+  const chipW = Math.min(W - 240, ctx.measureText(chipTxt).width + 64);
+  ctx.fillStyle = 'rgba(17,23,34,.92)'; roundRectPath(ctx, 48, 96, chipW, 84, 42); ctx.fill();
+  ctx.strokeStyle = '#2e3a4d'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.fillStyle = '#e9eef7'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillText(chipTxt, 80, 140, chipW - 64);
+  // wariant (prawy górny)
+  ctx.font = '600 34px system-ui, sans-serif'; ctx.textAlign = 'right';
+  ctx.fillStyle = '#9fb0c8';
+  ctx.fillText('Wariant ' + v.label + ' · ' + short(v.angle, 28), W - 48, 140, W - 400);
+  ctx.textAlign = 'left';
+  // overlay (środek) — tekst zawinięty
+  const ovText = (b.overlay || b.text || '').split('\n').filter(Boolean)[0] || '';
+  ctx.font = '800 68px system-ui, sans-serif';
+  const ovLines = wrapTextByChars(ovText, 22).slice(0, 4);
+  const ovY = H * 0.40;
+  ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 18;
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center';
+  ovLines.forEach((ln, i) => ctx.fillText(ln, W / 2, ovY + i * 88, W - 160));
+  ctx.shadowBlur = 0;
+  // lower third (opis kadru)
+  const lowText = b.shot ? ('Kadr: ' + b.shot) : (b.text || '');
+  const lowLines = wrapTextByChars(lowText, 34).slice(0, 3);
+  const lowH = 64 + lowLines.length * 52;
+  ctx.fillStyle = 'rgba(8,10,14,.78)'; roundRectPath(ctx, 64, H * 0.72, W - 128, lowH, 28); ctx.fill();
+  ctx.font = '500 40px system-ui, sans-serif'; ctx.fillStyle = '#dfe7f3'; ctx.textAlign = 'left';
+  lowLines.forEach((ln, i) => ctx.fillText(ln, 104, H * 0.72 + 56 + i * 52, W - 208));
+  // pasek czasu (dół)
+  ctx.font = '500 32px system-ui, sans-serif'; ctx.fillStyle = '#9fb0c8';
+  ctx.fillText(story.t.toFixed(1) + ' s / ' + total.toFixed(1) + ' s', 64, H - 64);
+  // strefy UI TikTok (jeśli włączone)
+  const zonesOn = document.getElementById('storySafeTop').classList.contains('on');
+  if(zonesOn){
+    ctx.strokeStyle = 'rgba(255,84,112,.8)'; ctx.lineWidth = 4; ctx.setLineDash([22, 16]);
+    ctx.strokeRect(20, 20, W - 40, Math.round(H * 0.08) - 20);
+    ctx.strokeRect(20, Math.round(H * 0.8), W - 40, H - Math.round(H * 0.8) - 20);
+    ctx.setLineDash([]);
+    ctx.font = '500 26px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,140,160,.9)';
+    ctx.fillText('UI TikTok (góra ~8%)', 40, Math.round(H * 0.08) - 34);
+    ctx.fillText('UI TikTok (dół ~20%)', 40, Math.round(H * 0.8) - 18);
+  }
+  // zapis
+  try{
+    const a = document.createElement('a');
+    a.download = safeName(currentProject.name || 'kampania-tiktok') + '-wariant-' + v.label + '-klatka-' + (idx + 1) + '.png';
+    a.href = canvas.toDataURL('image/png');
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toast('Klatka zapisana: ' + a.download,'ok');
+    log('⬇ PNG klatki ' + (idx + 1) + '/' + story.beats.length + ' (Wariant ' + v.label + ')','ok');
+  }catch(err){ toast('Nie udało się zapisać PNG: ' + err.message,'err', 6000); warn('exportStoryPng', err); }
+}
+
 function openStoryboard(vi){
   if(!currentProject) return;
   const v = currentProject.variants[vi];
   const beats = storyBeats(currentProject, v);
   story = { beats, t:0, playing:false, speed:1, vi };
   document.getElementById('storyTitle').textContent = `Storyboard · Wariant ${v.label} · ${v.angle}`;
+  // A7: świeży podgląd za każdym razem — strefy zaczynają się ukryte
+  document.getElementById('storySafeTop').classList.remove('on');
+  document.getElementById('storySafeBottom').classList.remove('on');
+  document.getElementById('storySafe').classList.remove('cyan');
   document.getElementById('storyBeats').innerHTML = beats.map((b, i) =>
     `<div class="beat-item${i === 0 ? ' on' : ''}" data-beat="${i}">
        <div class="t">${b.from.toFixed(1)}–${b.to.toFixed(1)} s</div>
@@ -5311,6 +5439,7 @@ function bindStoryboard(){
     document.getElementById('storySafe').classList.toggle('cyan', on);
     toast(on ? 'Strefy bezpieczeństwa widoczne (góra ~8%, dół ~20% klatki)' : 'Strefy ukryte','info');
   });
+  document.getElementById('storyPng').addEventListener('click', e => exportStoryPng(e.target));
   modal.addEventListener('click', e => { if(e.target === modal) close(); });
 
   document.getElementById('storyPlay').addEventListener('click', () => {
@@ -5732,6 +5861,8 @@ function trapFocus(e){
 
 /* --------------------------- porównanie A/B (do 2 wariantów) --------------------------- */
 let compareSel = [];
+let compareProjectKey = null; // identyfikator projektu (nazwa+createdAt), dla którego wybrano porównanie (A8)
+const projectKey = p => (p && p.name ? p.name : '') + '::' + (p && p.createdAt ? p.createdAt : '');
 /** Panel porównania dwóch wybranych wariantów (side-by-side). */
 function renderComparePanel(project){
   if(!compareSel.length) return '';
@@ -5757,6 +5888,7 @@ function renderComparePanel(project){
     </div>`;
   }).join('');
   const S = (v, k) => (v.sections[k] ? String(v.sections[k].body || '').split('\n').filter(Boolean)[0] || '' : '');
+  const cpy = (lab, key) => `<button class="btn mini ghost cmp-copy" data-act="cmp-copy" data-cmp="${esc(lab + '|' + key)}" title="Kopiuj sekcję (wariant ${esc(lab)})">⧉</button>`;
   return `<div class="panel cmp-panel" style="margin-bottom:18px">
     <div class="head"><h2>⚖ Porównanie: Wariant ${esc(a.label)} vs ${esc(b.label)}</h2>
       <div class="btn-row"><button class="btn mini" data-act="compare-clear">✕ Wyczyść porównanie</button></div></div>
@@ -5769,8 +5901,8 @@ function renderComparePanel(project){
       </div>
       <div class="cmp-areas">${cells}</div>
       <div class="cmp-grid">
-        <div class="cmp-text"><div class="hint">HOOK A</div><div>${esc(S(a,'hook'))}</div><div class="hint" style="margin-top:7px">CTA</div><div>${esc(S(a,'cta'))}</div></div>
-        <div class="cmp-text right"><div class="hint">HOOK A</div><div>${esc(S(b,'hook'))}</div><div class="hint" style="margin-top:7px">CTA</div><div>${esc(S(b,'cta'))}</div></div>
+        <div class="cmp-text"><div class="hint">HOOK A ${cpy(a.label,'hook')}</div><div>${esc(S(a,'hook'))}</div><div class="hint" style="margin-top:7px">CTA ${cpy(a.label,'cta')}</div><div>${esc(S(a,'cta'))}</div></div>
+        <div class="cmp-text right"><div class="hint">${cpy(b.label,'hook')} HOOK A</div><div>${esc(S(b,'hook'))}</div><div class="hint" style="margin-top:7px">${cpy(b.label,'cta')} CTA</div><div>${esc(S(b,'cta'))}</div></div>
       </div>
     </div>
   </div>`;

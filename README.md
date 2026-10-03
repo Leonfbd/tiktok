@@ -3,6 +3,12 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.7:** import CSV Ads Manager potrafi **wielodniowe serie** (każdy wiersz = osobny pomiar w
+trendzie, data z kolumny „data”), odporny na **BOM** (realne eksporty Menedżera), a sam import jest
+**do cofnięcia** (undo); **⬇ eksport PNG klatki storyboardu** (1080×1920, offline, canvas);
+kopiowanie HOOK A/CTA z panelu porównania A/B; strefy i porównanie czyści się poprawnie
+przy zmianie projektu/ponownym otwarciu podglądu.
+
 **v2.6:** import pomiarów z **TikTok Ads Manager (CSV)** (nagłówki PL/EN, CTR/CVR liczone
 z wyświetleń/kliknięć, CTR z konwersji; każdy import = nowy pomiar + automatyczny zwycięzca),
 **cel KPI** dla metryki decyzyjnej (podsumowanie ✅/⚠ per wariant, kolumna „Cel” w raporcie CSV,
@@ -145,8 +151,10 @@ W zakładce **Wyniki** znajduje się panel **📊 Wyniki testu**: wpisujesz dane
 - **⬆ Import z Ads Manager (CSV):** przycisk wczytuje eksport (nagłówki PL lub EN, separator `;`/`, `/tab),
   rozpozna wariant po nazwie (np. „A — kąt główny”) albo po kolejności wierszy; brakujące CTR/CVR
   wylicza z pozostałych kolumn, `hookRate3s` zamienia z ułamka na %, a wiersze # / nieznane warianty pomija
-  (liczba pominiętych w postradze). Każdy wiersz staje się nowym pomiarem w serii (trend) i od razu
-  przelicza zwycięzcę; **⬇ Szablon CSV** pobiera gotowy wzór do wypełnienia,
+  (liczba pominiętych w postradze), pliki z **BOM** też. **Wielodniowy eksport:** każdy wiersz =
+  osobny pomiar w serii (trend), data z kolumny „data”/„date” trafia do pomiaru, a całość importu jest
+  **jednym krokiem undo** (Ctrl+Z cofa import) i od razu przelicza zwycięzcę; **⬇ Szablon CSV**
+  pobiera gotowy wzór do wypełnienia,
 - **cel KPI:** pole „cel” obok metryki (np. CTR 2%) — podsumowanie pokazuje, który wariant osiągnął cel
   (✅) / jest poniżej (⚠), a raport CSV zyskuje kolumnę „Cel”; cel trafia też do eksportów TXT i MD.
 
@@ -154,8 +162,9 @@ W zakładce **Wyniki** znajduje się panel **📊 Wyniki testu**: wpisujesz dane
 
 Przy każdym wariancie jest przycisk **⚖ Do porównania** (maks. 2 warianty). Panel nad kartami pokazuje:
 oceny 0–100 obok siebie, paski pięciu obszarów oceny (hook, scenariusz, shot list, CTA, opis) z
-podświetleniem obszaru wygranego, hooki A i CTA do przeczytania obok siebie. Przy jednym wybranym
-wariancie panel podpowiada, by dokliknąć drugi. „✕ Wyczyść porównanie” zamyka widok.
+podświetleniem obszaru wygranego, hooki A i CTA do przeczytania obok siebie — każdy z nich ma przycisk
+**⧉** kopiowania całej sekcji. Przy jednym wybranym wariancie panel podpowiada, by dokliknąć drugi.
+„✕ Wyczyść porównanie” zamyka widok. Selekcja należy do otwartego projektu — zmiana projektu ją czyści.
 ## Ocena kreacji (0–100)
 
 Każdy wariant dostaje automatyczną ocenę z pięciu obszarów — bez API, w całości offline:
@@ -221,6 +230,8 @@ workspace i panelu pamięci lokalnej.
 
 Przycisk **🎬 Storyboard** przy wariancie otwiera odtwarzacz: ramka 9:16 z overlayem, opisem kadru z shot listy
 i listą beatów. Sterowanie: odtwarzanie, prędkość (×1 / ×0.5 / ×0.25 / ×2), klik na pasku postępu i przeskoki po beatach,
+**⬇ PNG** — zapis bieżącej klatki jako obraz 1080×1920 (format TikTok): gradient tła, chip beatu, tekst
+overlayu (zawijany), lower third z opisem kadru, pasek czasu i — jeśli włączone — obrysy stref UI;
 **⛶ Strefy** — nakładka bezpieczeństwa: pas górny (~8% klatki, tu siedzi powrót/profil/live) i pas dolny
 (~20%, opis, dźwięk, akcje) pokazują, gdzie interfejs TikTok zasłania kadr — dzięki temu overlayy i teksty
 nie wylądują pod UI platformy. Pozwala sprawdzić rytm reklamy i to, czy teksty nie zasłaniają interfejsu TikToka.
@@ -263,7 +274,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 410 asercji: jednostkowe (189) + E2E (194) + API (27)
+bash tests/run-all.sh        # 433 asercje: jednostkowe (197) + E2E (209) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.

@@ -317,7 +317,7 @@ check('scoring: wskazówka o konkret/stronie', scBad.tips.some(t => /liczb|konkr
 check('scoring: brak sekcji tylko jako wskazówka, nie wyjątek', (() => { try { A.scoreVariant({ brief:{length:15}, variants:[] }, { sections:{} }); return true; } catch(e){ return false; } })());
 
 /* ---------- 21. Wersja aplikacji ---------- */
-check('wersja: stała APP_VERSION (v2.6)', A.APP_VERSION === '2.6', A.APP_VERSION);
+check('wersja: stała APP_VERSION (v2.7)', A.APP_VERSION === '2.7', A.APP_VERSION);
 
 /* ---------- 23. Tracker: pomiary w czasie (trend) ---------- */
 check('trend: migracja starego formatu (flat → measurements)', (() => {
@@ -490,5 +490,26 @@ check('A2: fallback extractMainHook nie bierze tekstu HOOK B', (() => {
   return t === 'Tekst otwierający bez etykiety', t;
 })(), '');
 check('A2: fallback pusty body → hookLine', A.extractMainHook('', 'MAIN Z GENERACJI') === 'MAIN Z GENERACJI');
+
+/* ---------- 29. v2.7: BOM, import wielodniowy, zawijanie tekstu ---------- */
+check('v2.7 BOM: nagłówek z BOM rozpoznany', (() => {
+  const r = A.adsManagerCsvToMeasurements('\uFEFFwariant;wyswietlenia;klikniecia\nA;100;10', [{ label:'A' }]);
+  return r.error == null && r.matched.A && r.matched.A.views === 100;
+})(), '');
+check('v2.7 wielodniowy: seria per wariant (3 wiersze A + 1 B)', (() => {
+  const t = 'wariant;wyswietlenia;klikniecia\nA;1000;100\nA;1200;132\nA;1400;182\nB;900;90';
+  const r = A.adsManagerCsvToMeasurements(t, V2);
+  return r.series.A.length === 3 && r.series.B.length === 1
+    && r.series.A[2].views === 1400 && r.matched.A.views === 1400 && r.total === 4 && r.skipped === 0;
+})(), '');
+check('v2.7 wielodniowy: data z kolumny „data” trafia do at', (() => {
+  const r = A.adsManagerCsvToMeasurements('wariant;data;wyswietlenia\nA;2026-10-01;100', [{ label:'A' }]);
+  return r.matched.A.at === '2026-10-01' && r.series.A[0].at === '2026-10-01';
+})(), '');
+check('wrap: podstawowe zawijanie po słowach', JSON.stringify(A.wrapTextByChars('kot ma miecz', 8)) === JSON.stringify(['kot ma','miecz']));
+check('wrap: długie słowo tnie po znakach (clamp 8)', JSON.stringify(A.wrapTextByChars('abcdefghijkl', 5)) === JSON.stringify(['abcdefgh','ijkl']) && JSON.stringify(A.wrapTextByChars('abcdefghijklm', 8)) === JSON.stringify(['abcdefgh','ijklm']));
+check('wrap: pusty tekst → pusta linia', JSON.stringify(A.wrapTextByChars('', 10)) === JSON.stringify(['']));
+check('wrap: zachowuje podział na akapity', JSON.stringify(A.wrapTextByChars('a b\nc d', 30)) === JSON.stringify(['a b','c d']));
+check('wrap: max < 8 traktowany jako 8', JSON.stringify(A.wrapTextByChars('aa bb', 3)) === JSON.stringify(['aa bb']));
 
 finish('TESTY JEDNOSTKOWE');
