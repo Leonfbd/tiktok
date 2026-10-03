@@ -317,7 +317,7 @@ check('scoring: wskazówka o konkret/stronie', scBad.tips.some(t => /liczb|konkr
 check('scoring: brak sekcji tylko jako wskazówka, nie wyjątek', (() => { try { A.scoreVariant({ brief:{length:15}, variants:[] }, { sections:{} }); return true; } catch(e){ return false; } })());
 
 /* ---------- 21. Wersja aplikacji ---------- */
-check('wersja: stała APP_VERSION (v2.5)', A.APP_VERSION === '2.5', A.APP_VERSION);
+check('wersja: stała APP_VERSION (v2.6)', A.APP_VERSION === '2.6', A.APP_VERSION);
 
 /* ---------- 23. Tracker: pomiary w czasie (trend) ---------- */
 check('trend: migracja starego formatu (flat → measurements)', (() => {
@@ -438,5 +438,57 @@ check('hook replace: pusty body → sam nagłówek + tekst', A.replaceMainHook('
 check('o4-mini rozpoznany jako reasoning', A.isReasoningModel('o4-mini') === true);
 check('gpt-5-mini rozpoznany jako reasoning', A.isReasoningModel('gpt-5-mini') === true);
 check('gpt-4o-mini NIE jest reasoning', A.isReasoningModel('gpt-4o-mini') === false);
+
+/* ---------- 28. v2.6: import CSV Ads Manager (parser) ---------- */
+const adsPL = 'wariant;wyswietlenia;klikniecia;budzet;konwersje\nA;1000;120;30,5;6\nB;900;81;27,3;4';
+const V2 = [{ label:'A' }, { label:'B' }], V3 = [{ label:'A' }, { label:'B' }, { label:'C' }];
+check('ads csv: nagłówek PL, CTR/CVR wyliczone', (() => {
+  const r = A.adsManagerCsvToMeasurements(adsPL, V2);
+  const a = r.matched.A;
+  return r.error == null && r.total === 2 && r.skipped === 0 && a.views === 1000 && a.clicks === 120
+    && Math.abs(a.ctr - 12) < 1e-9 && Math.abs(a.cvr - 5) < 1e-9
+    && Math.abs(a.spend - 30.5) < 1e-9 && r.matched.B.views === 900 && r.matched.B.conversions === 4;
+})(), '');
+check('ads csv: EN + dopasowanie po kolejności wierszy', (() => {
+  const r = A.adsManagerCsvToMeasurements('impressions,clicks,spend,conversions\n100,10,5,1\n90,9,4,0', [{ label:'A' }, { label:'B' }]);
+  return r.matched.A.views === 100 && r.matched.B.views === 90;
+})(), '');
+check('ads csv: cudzysłowy i przecinek w nazwie wariantu', (() => {
+  const r = A.adsManagerCsvToMeasurements('wariant;wyswietlenia;klikniecia\n"A — test, wersja 1";100;10\nB;90;9', [{ label:'A — test, wersja 1' }, { label:'B' }]);
+  return r.matched['A — test, wersja 1'] != null && r.matched.B.views === 90;
+})(), '');
+check('ads csv: hookRate3s trafia do hook', (() => {
+  const r = A.adsManagerCsvToMeasurements('wariant;wyswietlenia;hookRate3s\nA;100;0,42\nB;100;0,5', V2);
+  return Math.abs(r.matched.A.hook - 42) < 1e-9 && Math.abs(r.matched.B.hook - 50) < 1e-9;
+})(), '');
+check('ads csv: wiersz # pominięty (szablon)', (() => {
+  const r = A.adsManagerCsvToMeasurements('# komentarz\nwariant;wyswietlenia\nA;100', [{ label:'A' }]);
+  return r.error == null && r.total === 1;
+})(), '');
+check('ads csv: nagłówki z polskimi dierytykami (wzór)', (() => {
+  const r = A.adsManagerCsvToMeasurements(A.adsCsvTemplate(), V3);
+  return r.error == null && r.total === 3 && r.matched.A.views === 125000 && Math.abs(r.matched.C.hook - 30.2) < 1e-9;
+})(), '');
+check('ads csv: brak nagłówka → błąd', A.adsManagerCsvToMeasurements('1;2;3', [{ label:'A' }]).error !== undefined);
+check('ads csv: nagłówek bez znanych kolumn → błąd', A.adsManagerCsvToMeasurements('cos;to;jeszcze\n1;2;3', [{ label:'A' }]).error !== undefined);
+check('ads csv: duplikat kolumny → błąd', A.adsManagerCsvToMeasurements('wariant;wyswietlenia;impressions\nA;1;2', V3).error !== undefined);
+check('ads csv: wariant nieznany → pominięty, znany importowany', (() => {
+  const r = A.adsManagerCsvToMeasurements('wariant;wyswietlenia\nX;100\nA;200', [{ label:'A' }]);
+  return r.total === 2 && r.skipped === 1 && r.matched.A.views === 200;
+})(), '');
+check('ads csv: pusty wariant → pominięty', (() => {
+  const r = A.adsManagerCsvToMeasurements('wariant;wyswietlenia\n;100\nA;200', [{ label:'A' }]);
+  return r.total === 2 && r.matched.A.views === 200 && r.skipped === 1;
+})(), '');
+check('ads csv: szablon z nagłówkiem PL i 3 wierszami', (() => {
+  const t = A.adsCsvTemplate();
+  const lines = t.split('\n').filter(l => l && !l.startsWith('#'));
+  return lines[0].startsWith('wariant;') && lines.length === 4 && t.startsWith('#');
+})(), '');
+check('A2: fallback extractMainHook nie bierze tekstu HOOK B', (() => {
+  const t = A.extractMainHook('Tekst otwierający bez etykiety\nHOOK B (0–3 s)\nTekst B', '');
+  return t === 'Tekst otwierający bez etykiety', t;
+})(), '');
+check('A2: fallback pusty body → hookLine', A.extractMainHook('', 'MAIN Z GENERACJI') === 'MAIN Z GENERACJI');
 
 finish('TESTY JEDNOSTKOWE');

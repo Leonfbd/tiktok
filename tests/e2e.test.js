@@ -615,7 +615,7 @@ const { check, finish } = makeChecker();
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
     await tick(120);
     check('v2.3 undo: Ctrl+Z cofa operację', /Kurs gotowania/.test($('#projSummary').textContent) && beforeUndo !== $('#projSummary').textContent, $('#projSummary').textContent.slice(0,80));
-    check('v2.5 wersja: badge pokazuje APP_VERSION', /v2\.5/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+    check('v2.6 wersja: badge pokazuje APP_VERSION', /v2\.6/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
   }
 
   /* ========== 11. AUDYT v2.4: trend pomiarów, brief montażysty, auto-scoring, biblioteka hooków ========== */
@@ -795,6 +795,118 @@ const { check, finish } = makeChecker();
     for(let i = 0; i < 9; i++){ document.querySelector('[data-act="save-hook"]').click(); }
     await tick(250);
     check('v2.5 toast: nie więcej niż 6 naraz', document.querySelectorAll('#toasts .toast').length <= 6, document.querySelectorAll('#toasts .toast').length);
+  }
+
+  /* ================= v2.6: cel KPI, import Ads Manager, porównanie A/B, strefy, undo no-op ================= */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+
+    // brief + generacja lokalna (2 warianty)
+    $('#f_industry').value = 'kosmetyki naturalne';
+    $('#f_product').value = 'serum z witaminą C';
+    $('#f_audience').value = 'kobiety 30+';
+    $('#f_problem').value = 'wysuszona skóra po zimie';
+    $('#f_promise').value = 'blask w 14 dni';
+    $('#f_campaign').value = 'Kampania v2.6';
+    $('#f_variants').value = '2';
+    $('#f_variants').dispatchEvent(new window.Event('input', { bubbles:true }));
+    $('#btnQuickLocal').click();
+    await tick(300);
+    check('v2.6: projekt wygenerowany (2 warianty)', document.querySelectorAll('#resultsArea .var-card').length === 2);
+
+    const setField = (variant, field, value) => {
+      const inp = document.querySelector(`[data-tvar="${variant}"][data-tfield="${field}"]`);
+      inp.value = value;
+      inp.dispatchEvent(new window.Event('input', { bubbles:true }));
+    };
+    const addMeas = v => { document.querySelector(`[data-tact="addmeas"][data-tvar="${v}"]`).click(); };
+
+    // --- F2: cel KPI ---
+    const target = $('#trackTarget');
+    check('v2.6 cel: pole celu istnieje', !!target);
+    target.value = '2.5';
+    target.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(60);
+    setField('A', 'views', '5000'); setField('A', 'ctr', '2.0'); addMeas('A');
+    setField('B', 'views', '6000'); setField('B', 'ctr', '3.0'); addMeas('B');
+    await tick(200);
+    $('[data-tact="compute"]').click();
+    await tick(200);
+    let sum = $('#trackSummary').textContent;
+    check('v2.6 cel: podsumowanie pokazuje „Cel: 2,5”', /Cel: 2[,.]5/.test(sum), sum.slice(-220));
+    check('v2.6 cel: B ✅, A ⚠', /Wariant B:.*✅ cel osiągnięty/s.test(sum) && /Wariant A:.*⚠ poniżej progu celu/s.test(sum), sum.slice(-220));
+
+    // --- F1: import CSV Ads Manager (FileReader w jsdom) ---
+    window.FileReader = class { readAsText(f){ setTimeout(() => { this.result = f.__txt; if(this.onload) this.onload(); }, 5); } };
+    const fileInput = $('#fileAdsImport');
+    Object.defineProperty(fileInput, 'files', { value: [ { name:'ads.csv', __txt:'wariant;wyświetlenia;kliknięcia;konwersje;koszt\nA;7000;210;20;300\nB;6500;260;12;280' } ], configurable:true });
+    fileInput.dispatchEvent(new window.Event('change', { bubbles:true }));
+    await tick(120);
+    check('v2.6 import: toast „Zaimportowano 2 pomiar(ów)”', /Zaimportowano 2 pomiar/.test($('#toasts').textContent), $('#toasts').textContent.slice(-200));
+    const rowA2 = document.querySelector('[data-trow="A"]');
+    check('v2.6 import: wariant A ma 2 pomiary', /2 pom\./.test(rowA2.children[7].textContent), rowA2.children[7].textContent);
+    check('v2.6 import: zwycięzca wyliczony automatycznie', /Zwycięzca: Wariant B/.test($('#trackSummary').textContent), $('#trackSummary').textContent.slice(0, 140));
+    check('v2.6 import: wpis w dzienniku', /Zaimportowano/.test($('#genLog').textContent));
+
+    // eksport raportu CSV z kolumną „Cel”
+    const downloads = [];
+    const origCreate = document.createElement.bind(document);
+    document.createElement = function(tag){
+      const el = origCreate(tag);
+      if(tag === 'a') el.click = function(){ downloads.push({ name: el.download, blob: downloads.lastBlob }); };
+      return el;
+    };
+    window.URL.createObjectURL = (blob) => { downloads.lastBlob = blob; return 'blob:x'; };
+    $('[data-tact="csv"]').click();
+    await tick(60);
+    const csvTxt = downloads.lastBlob ? await downloads.lastBlob.text() : '';
+    check('v2.6 eksport: raport CSV zawiera kolumnę „Cel”', /Cel/.test(csvTxt.split('\n')[0]), csvTxt.split('\n')[0]);
+    document.createElement = origCreate;
+
+    // --- F3: porównanie A/B ---
+    let cmpBtns = document.querySelectorAll('#resultsArea [data-act="compare"]');
+    check('v2.6 porównanie: przyciski przy wariancie', cmpBtns.length === 2, cmpBtns.length);
+    cmpBtns[0].click();
+    await tick(80);
+    check('v2.6 porównanie: 1 wybrany → podpowiedź', /Wybrano 1 z 2 wariantów/.test($('#resultsArea').textContent));
+    document.querySelector('#resultsArea [data-act="compare"][data-lab="B"]').click();
+    await tick(80);
+    const panel = document.querySelector('#resultsArea .cmp-panel');
+    check('v2.6 porównanie: panel A vs B', !!panel && /Porównanie: Wariant A vs B/.test(panel.textContent), panel ? panel.textContent.slice(0, 100) : 'brak panelu');
+    check('v2.6 porównanie: 5 obszarów oceny', document.querySelectorAll('#resultsArea .cmp-row').length === 5);
+    check('v2.6 porównanie: zwycięzca obszaru podświetlony', document.querySelectorAll('#resultsArea .cmp-col.win').length >= 1);
+    const clearBtn = document.querySelector('#resultsArea [data-act="compare-clear"]');
+    if(clearBtn) clearBtn.click();
+    await tick(80);
+    check('v2.6 porównanie: wyczyszczone', !document.querySelector('#resultsArea .cmp-panel') && !document.querySelector('#resultsArea .cmp-pick'));
+
+    // --- F4: strefy bezpieczeństwa w storyboardzie ---
+    document.querySelector('#resultsArea [data-act="open-story"]').click();
+    await tick(80);
+    check('v2.6 strefy: modal otwarty', $('#modalStory').classList.contains('open'));
+    check('v2.6 strefy: pasy obecne, ukryte', !!$('#storySafeTop') && !$('#storySafeTop').classList.contains('on'));
+    document.getElementById('storySafe').click();
+    check('v2.6 strefy: góra włączona', $('#storySafeTop').classList.contains('on'));
+    check('v2.6 strefy: dół włączony', $('#storySafeBottom').classList.contains('on'));
+    document.getElementById('storySafe').click();
+    check('v2.6 strefy: ponownie ukryte', !$('#storySafeTop').classList.contains('on'));
+    document.getElementById('btnCloseStory').click();
+    await tick(50);
+
+    // --- A1: błąd regeneracji nie zostawia snapshotu no-op w undo ---
+    const undoCount = () => { const t = $('#btnUndo').textContent; const m = t.match(/\((\d+)\)/); return m ? Number(m[1]) : 0; };
+    const hookBefore = $('#resultsArea .sec[data-key="hook"] pre').textContent;
+    const before = undoCount();
+    const origRegen = window.generateLocalSection;
+    window.generateLocalSection = () => { throw new Error('błąd testowy A1'); };
+    document.querySelector('#resultsArea [data-act="regen-sec"]').click();
+    await tick(250);
+    window.generateLocalSection = origRegen;
+    check('A1: błąd regeneracji → toast', /Błąd regeneracji: błąd testowy A1/.test($('#toasts').textContent), $('#toasts').textContent.slice(-200));
+    check('A1: treść sekcji niezmieniona', $('#resultsArea .sec[data-key="hook"] pre').textContent === hookBefore);
+    check('A1: stos undo bez snapshotu no-op', undoCount() === before, { before, after: undoCount() });
+    check('A1: wpis w dzienniku', /✖ błąd testowy A1/.test($('#genLog').textContent));
   }
 
   finish('TESTY E2E');

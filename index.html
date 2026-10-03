@@ -398,6 +398,14 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 
 /* --- 24. Podgląd storyboardu (9:16) --- */
 .story{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:20px;align-items:start}
+.safe-zone{display:none;position:absolute;left:0;right:0;z-index:6;pointer-events:none;
+  background:repeating-linear-gradient(45deg,rgba(255,84,112,.10),rgba(255,84,112,.10) 8px,rgba(255,84,112,.03) 8px,rgba(255,84,112,.03) 16px);
+  border:1px dashed rgba(255,84,112,.55);font-size:9.5px;color:#ffb3c2;overflow:hidden}
+.safe-zone span{display:block;padding:2px 8px;letter-spacing:.02em}
+.safe-zone.top{top:0;height:8%;border-radius:17px 17px 0 0;border-top:none}
+.safe-zone.bottom{bottom:0;height:20%;border-radius:0 0 17px 17px;border-bottom:none}
+.safe-zone.bottom span{padding-top:4px}
+.safe-zone.on{display:block}
 .phone{position:relative;aspect-ratio:9/16;border-radius:24px;border:7px solid #05070a;
   background:linear-gradient(160deg,#0d1219,#070a0f);overflow:hidden;box-shadow:var(--shadow)}
 .phone .overlay-text{position:absolute;left:8%;right:8%;top:18%;text-align:center;font-weight:800;
@@ -484,6 +492,24 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   .btn-row{flex-direction:column;align-items:stretch}
   .top-actions{width:100%}
 }
+
+/* --- 29. Porównanie A/B --- */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:12px}
+.cmp-head{font-size:14px}
+.cmp-head .hint{margin-top:3px}
+.cmp-head.right{text-align:right}
+.cmp-areas{margin:10px 0 14px;border:1px solid var(--line);border-radius:var(--radius-s);overflow:hidden}
+.cmp-row{display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;border-bottom:1px solid var(--line);padding:8px 12px;font-size:12.4px}
+.cmp-row:last-child{border-bottom:none}
+.cmp-col{display:flex;align-items:center;gap:8px}
+.cmp-col.mid{justify-content:center;color:var(--muted)}
+.cmp-col.win{background:rgba(49,214,143,.08)}
+.cmp-bar{flex:1;max-width:150px;height:6px;border-radius:99px;background:var(--bg-2);border:1px solid var(--line);overflow:hidden;display:inline-block}
+.cmp-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--ok))}
+.cmp-text{font-size:12.6px;line-height:1.55}
+.cmp-text.right{text-align:right}
+.cmp-text .hint{margin-bottom:2px}
+@media (max-width:760px){.cmp-grid{grid-template-columns:minmax(0,1fr)}.cmp-head.right,.cmp-text.right{text-align:left}}
 
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
@@ -1105,6 +1131,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
       <div class="story">
         <div>
           <div class="phone" id="storyPhone">
+            <div class="safe-zone top" id="storySafeTop"><span>górne ~8% — UI TikTok (powrót, profil, live)</span></div>
+            <div class="safe-zone bottom" id="storySafeBottom"><span>dolne ~20% — UI TikTok (opis, dźwięk, akcje)</span></div>
             <div class="beat-label" id="storyBeatLabel">—</div>
             <div class="timer" id="storyTimer">0,0 s</div>
             <div class="overlay-text" id="storyOverlay">—</div>
@@ -1115,6 +1143,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
             <button class="btn sm" id="storyBack" title="Od początku">⏮</button>
             <button class="btn primary sm" id="storyPlay">▶ Odtwórz</button>
             <button class="btn sm" id="storySpeed" title="Prędkość odtwarzania">×1</button>
+            <button class="btn sm" id="storySafe" title="Pokaż/ukryj strefy bezpieczeństwa interfejsu TikTok">⛶ Strefy</button>
             <span class="hint" id="storyTimeInfo">0,0 / 0,0 s</span>
           </div>
         </div>
@@ -1254,7 +1283,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
    ========================================================================== */
 
 /** Wersja aplikacji – jedno źródło prawdy (badge w UI i eksporty). */
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 
 /** Log diagnostyczny – zamiast cichych `catch(e){}`. */
 function warn(...args){ try{ if(typeof console !== 'undefined' && console.warn) console.warn('[Automat TikTok]', ...args); }catch(e){ /* brak konsoli */ } }
@@ -2511,8 +2540,10 @@ function extractMainHook(hookBody, fallback){
     const t = one[0].replace(/^HOOK\s*A/i, '').replace(/^\s*\([^)]*\)/, '').replace(/^[:\-–\s]+/, '').trim();
     if(t) return t;
   }
-  // awaryjnie: pierwszy niepusty wiersz (bez adnotacji ↳)
-  const first = body.split('\n').map(l => l.trim()).find(l => l && !/^↳/.test(l) && !/^HOOK\s+[A-Z]/.test(l));
+  // awaryjnie: pierwszy niepusty wiersz w SEGMEŃCIE HOOK A (przed kolejnym HOOK B/C…) —
+  // bez tego fallback zwróciłby treść HOOK B jako „główny hook”
+  const seg = body.split(/HOOK\s+[BC-Z][^\n]*/i)[0];
+  const first = seg.split('\n').map(l => l.trim()).find(l => l && !/^↳/.test(l) && !/^HOOK\s+[A-Z]/.test(l));
   return first || '';
 }
 
@@ -3689,9 +3720,17 @@ function trackerSummaryHtml(project){
   if(res.winner){
     const w = res.winner;
     lines.push(`<div class="hd">🏆 Zwycięzca: <span class="ok">Wariant ${esc(w.label)}</span> — ${esc(short(w.angle, 60))}</div>`);
-    lines.push(`Metryka decyzyjna: <b>${esc(res.metric.label)}</b> → ${esc(fnum(w[res.metric.id]))} przy ${esc(fnum(w.views, 0))} wyświetleniach.`);
+    lines.push(`Metryka decyzyjna: <b>${esc(res.metric.label)}</b> → ${esc(fnum(w.metricVal))} przy ${esc(fnum(w.views, 0))} wyświetleniach.`);
     if(w.clicks != null) lines.push(`Szacowane kliknięcia: <b>${esc(fnum(w.clicks, 0))}</b>${w.conv != null ? `, konwersje: <b>${esc(fnum(w.conv, 1))}</b>` : ''}${w.cpa != null ? `, CPA: <b>${esc(fnum(w.cpa))} zł</b>` : ''}.`);
     lines.push(`<b>Pomiary:</b> łącznie ${totalMeas} (${res.rows.map(r => r.label + ': ' + r.count).join(', ')}).`);
+    const T = numVal(R.target);
+    if(T != null){
+      const rowsT = res.rows.filter(r => r.metricVal != null).map(r => {
+        const ok = res.metric.higher ? r.metricVal >= T : r.metricVal <= T;
+        return `<li>Wariant ${esc(r.label)}: <b>${fnum(r.metricVal)}</b> ${res.metric.higher ? (ok ? '≥' : '&lt;') : (ok ? '≤' : '&gt;')} ${fnum(T)} — ${ok ? '<span class="ok">✅ cel osiągnięty</span>' : '<span class="warn">⚠ poniżej progu celu</span>'}</li>`;
+      });
+      if(rowsT.length) lines.push(`<b>Cel: ${fnum(T)} (${esc(res.metric.label)})</b><ul>${rowsT.join('')}</ul>`);
+    }
     if(res.prevWinner){
       lines.push(res.prevWinner.label === w.label
         ? '<span class="ok">📈 Zwycięzca ten sam jak na poprzednim pomiarze – wynik się utrzymuje.</span>'
@@ -3753,7 +3792,13 @@ function renderTracker(project){
         <select id="trackMetric" title="Metryka decydująca o zwycięzcy">
           ${TRACK_METRICS.map(m => `<option value="${m.id}"${R.metric === m.id ? ' selected' : ''}>${esc(m.label)}</option>`).join('')}
         </select>
+        <span class="hint" style="display:flex;align-items:center;gap:5px">cel:
+          <input type="number" id="trackTarget" min="0" step="any" value="${R.target != null ? esc(R.target) : ''}" placeholder="np. 2" aria-label="Cel KPI dla metryki decyzyjnej" title="Cel KPI (np. CTR 2%) — podsumowanie pokaże, kto go osiągnął" style="width:64px;padding:6px 8px;border-radius:7px;background:var(--bg-2);border:1px solid var(--line-2);color:var(--text);font-size:12.5px">
+        </span>
         <button class="btn sm primary" data-tact="compute">🏆 Wyłoń zwycięzcę</button>
+        <button class="btn sm" data-tact="adsimport">⬆ Ads Manager CSV</button>
+        <button class="btn sm" data-tact="adstemplate">⬇ Szablon CSV</button>
+        <input type="file" id="fileAdsImport" accept=".csv,.txt,text/csv" style="display:none">
         <button class="btn sm" data-tact="csv">⬇ Raport CSV</button>
         <button class="btn sm" data-tact="reset">Wyczyść dane</button>
       </div>
@@ -3768,6 +3813,13 @@ function renderTracker(project){
       <div id="trackSummary">${R.computedAt || Object.keys(R.rows).length ? trackerSummaryHtml(project) : '<p class="hint" style="margin-top:11px">Wpisz dane i kliknij „🏆 Wyłoń zwycięzcę”, żeby zobaczyć rekomendację i kolejny krok.</p>'}</div>
     </div>
   </div>`;
+}
+
+/** Ponowny render SAMO panelu trackera (bez ruszania kart wariantów). */
+function refreshTrackerPanel(){
+  if(!currentProject) return;
+  const panel = document.getElementById('trackerPanel');
+  if(panel) panel.outerHTML = renderTracker(currentProject);
 }
 
 /** Żywa kalkulacja w wierszu (bez pełnego re-renderu). */
@@ -3822,6 +3874,40 @@ function bindTracker(){
       ensureResults(currentProject).metric = e.target.value;
       saveDraft(currentProject);
       if(ensureResults(currentProject).computedAt) applyTrackerCompute();
+      else refreshTrackerPanel();   // kolumna Trend/Δ/sparkline przeliczana natychmiast
+    }
+    if(e.target && e.target.id === 'trackTarget' && currentProject){
+      const R = ensureResults(currentProject);
+      R.target = numVal(e.target.value);
+      saveDraft(currentProject);
+      if(R.computedAt) applyTrackerCompute(); else refreshTrackerPanel();
+    }
+    if(e.target && e.target.id === 'fileAdsImport'){
+      const f = e.target.files && e.target.files[0]; e.target.value = '';
+      if(!f || !currentProject) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        try{
+          const res = adsManagerCsvToMeasurements(rd.result, currentProject.variants);
+          if(res.error) throw new Error(res.error);
+          const R = ensureResults(currentProject);
+          let n = 0;
+          Object.keys(res.matched).forEach(lab => {
+            const row = R.rows[lab] || (R.rows[lab] = { measurements:[], draft:{} });
+            row.measurements.push(res.matched[lab]); n++;
+          });
+          if(!n) throw new Error('Żaden wiersz nie pasuje do wariantów (kolumna „wariant” albo kolejność A/B/C…).');
+          const comp = computeResults(currentProject);
+          R.winner = comp.winner ? comp.winner.label : null;
+          R.computedAt = new Date().toISOString();
+          renderProject(currentProject);
+          saveToHistory(currentProject); saveDraft(currentProject);
+          log('⬆ Zaimportowano ' + n + ' pomiar(ów) z ' + res.total + ' wierszy CSV Ads Manager (pominięto: ' + res.skipped + ')','ok');
+          toast('Zaimportowano ' + n + ' pomiar(ów) z ' + res.total + ' wierszy (pominięto: ' + res.skipped + ')','ok', 6000);
+          log('Import z Ads Manager: ' + n + ' pomiarów (seria trendu rośnie o 1 punkt).','ok');
+        }catch(err){ toast('Import CSV nieudany: ' + err.message,'err',7000); warn('import Ads Manager', err); }
+      };
+      rd.readAsText(f);
     }
   });
   area.addEventListener('click', e => {
@@ -3839,6 +3925,8 @@ function bindTracker(){
       toast('Pomiar zapisany dla wariantu ' + btn.dataset.tvar + (row.measurements.length > 2 ? ' (widać już trend)' : ''), 'ok');
     }
     if(act === 'csv') download(safeName(currentProject.name) + '-wyniki-testu.csv', resultsToCsv(currentProject), 'text/csv;charset=utf-8');
+    if(act === 'adsimport'){ document.getElementById('fileAdsImport').click(); return; }
+    if(act === 'adstemplate') download('ads-manager-wzor.csv', adsCsvTemplate(), 'text/csv;charset=utf-8');
     if(act === 'reset'){
       if(!confirm('Wyczyścić wpisane wyniki testu?')) return;
       pushUndo('czyszczenie wyników testu');
@@ -3853,7 +3941,7 @@ function bindTracker(){
 function resultsToCsv(project){
   const res = computeResults(project);
   const R = ensureResults(project);
-  const head = ['Kampania','Wariant','Kąt','Pomiar #','Data pomiaru','Wyświetlenia','Hook 3s %','CTR %','CVR %','Budżet zł','Kliknięcia','Konwersje','CPA zł','Zwycięzca (ostatni pomiar)'];
+  const head = ['Kampania','Wariant','Kąt','Pomiar #','Data pomiaru','Wyświetlenia','Hook 3s %','CTR %','CVR %','Budżet zł','Kliknięcia','Konwersje','CPA zł','Cel','Zwycięzca (ostatni pomiar)'];
   const rows = [];
   res.rows.forEach(r => {
     const row = R.rows[r.label] || { measurements:[] };
@@ -3866,11 +3954,99 @@ function resultsToCsv(project){
         st.ctr == null ? '' : st.ctr, st.cvr == null ? '' : st.cvr, st.spend == null ? '' : st.spend,
         st.clicks == null ? '' : st.clicks.toFixed(0), st.conv == null ? '' : st.conv.toFixed(1),
         st.cpa == null ? '' : st.cpa.toFixed(2),
+        (R.target != null ? R.target : ''),
         (R.winner === r.label ? 'TAK' : '')
       ]);
     });
   });
   return [head].concat(rows).map(r => r.map(csvEscape).join(';')).join('\r\n');
+}
+
+/** Synonimy nagłówków z eksportu TikTok Ads Manager (PL/EN). */
+const ADS_COL_KEYS = {
+  label:       ['wariant','variant','adname','nazwakreacji','nazwa','kreacja','adnamepl'],
+  views:       ['wyswietlenia','impressions','impression','pokazania'],
+  clicks:      ['klikniecia','clicks','click'],
+  ctr:         ['ctr(%)','ctr%','ctr'],
+  cvr:         ['cvr(%)','cvr%','cvr','tws','conversionrate','konwersja%'],
+  spend:       ['budzet','cost','spend','koszt','wydatki','wydanie','budżet'],
+  hook:        ['hookrate3s','hookrate','hook'],
+  conversions: ['konwersje','conversions','convert','konw']
+};
+const normAdsHeader = h => String(h || '').toLowerCase().replace(/\s+/g,'').replace(/ł/g,'l').replace(/ą/g,'a').replace(/ę/g,'e').replace(/ś/g,'s').replace(/ź/g,'z').replace(/ż/g,'z').replace(/ć/g,'c').replace(/ń/g,'n').replace(/ó/g,'o');
+
+/**
+ * Parsuje eksport CSV z TikTok Ads Manager → pomiary per wariant.
+ * @returns {{matched:Object<string,{views,hook,ctr,cvr,spend}>, total:number, skipped:number, error?:string}}
+ */
+function adsManagerCsvToMeasurements(text, variants){
+  const rows = String(text || '').replace(/\r/g, '').split('\n')
+    .map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if(!rows.length) return { matched:{}, total:0, skipped:0, error:'Plik jest pusty.' };
+  const delim = detectDelimiter(rows[0]);
+  const cols = splitCsvRow(rows[0], delim).map(normAdsHeader);
+  const idx = {};
+  let known = 0, dupError = '';
+  const matchKey = c => Object.keys(ADS_COL_KEYS).find(k => ADS_COL_KEYS[k].some(k2 => c === k2 || (c.length > 2 && k2.length > 3 && c.includes(k2))));
+  cols.forEach((c, ci) => {
+    const key = matchKey(c);
+    if(key == null) return;
+    if(idx[key] != null && !dupError) dupError = 'Duplikat kolumny: ' + cols[ci] + '.';
+    if(idx[key] == null){ idx[key] = ci; known++; }
+  });
+  if(dupError) return { matched:{}, total:0, skipped:0, error: dupError };
+  const looksHeader = known >= 2;
+  let start = 0;
+  if(looksHeader) start = 1;
+  const matched = {}; let total = 0, skipped = 0;
+  const getNum = (f, i, k) => { const raw = String(f[i] == null ? '' : f[i]).trim().replace(',', '.'); const n = parseFloat(raw); return isFinite(n) ? n : null; };
+  for(let i = start; i < rows.length; i++){
+    const f = splitCsvRow(rows[i], delim);
+    total++;
+    // identyfikacja wariantu: kolumna label albo kolejność wierszy
+    let lab = '';
+    if(idx.label != null){
+      const raw = String(f[idx.label] || '').trim();
+      const exact = variants.find(v => String(v.label).trim().toLowerCase() === raw.toLowerCase());
+      lab = exact ? exact.label : (raw.match(/[a-z]/i) || [raw.slice(0,1)])[0].toUpperCase();
+    } else {
+      lab = String.fromCharCode(65 + i - start);
+    }
+    const hasVariant = variants.some(v => v.label === lab);
+    if(!hasVariant){ skipped++; continue; }
+    const views = getNum(f, idx.views, 'views');
+    const clicks = getNum(f, idx.clicks, 'clicks');
+    const spend = getNum(f, idx.spend, 'spend');
+    const conv = getNum(f, idx.conversions, 'conversions');
+    let hook = idx.hook != null ? getNum(f, idx.hook, 'hook') : null;
+    if(hook != null && cols[idx.hook] === 'hookrate3s') hook = Math.round(hook * 10000) / 100; // Ads Manager: ratio 0–1 → %
+    let ctr = idx.ctr != null ? getNum(f, idx.ctr, 'ctr') : null;
+    let cvr = idx.cvr != null ? getNum(f, idx.cvr, 'cvr') : null;
+    if(ctr == null && clicks != null && views) ctr = Math.round(clicks / views * 10000) / 100;
+    if(cvr == null && conv != null && clicks) cvr = Math.round(conv / clicks * 10000) / 100;
+    const m = { at: new Date().toISOString() };
+    if(views != null) m.views = views;
+    if(clicks != null) m.clicks = clicks;
+    if(ctr != null) m.ctr = ctr;
+    if(cvr != null) m.cvr = cvr;
+    if(spend != null) m.spend = spend;
+    if(conv != null) m.conversions = conv;
+    if(hook != null) m.hook = hook;
+    if(Object.keys(m).length > 1) matched[lab] = m;
+    else skipped++;
+  }
+  return { matched, total, skipped, error: !looksHeader && !Object.keys(matched).length ? 'Nie rozpoznano struktury CSV (nagłówek bez znanych kolumn lub brak danych).' : undefined };
+}
+
+/** Wzór CSV dopasowany do importu z Ads Manager. */
+function adsCsvTemplate(){
+  return [
+    '# Eksport z TikTok Ads Manager (nagłówki PL lub EN), jeden wiersz = jeden wariant',
+    'wariant;wyświetlenia;kliknięcia;konwersje;koszt;hook rate',
+    'A;125000;3400;112;1250;28.4',
+    'B;118000;2900;74;1100;25.1',
+    'C;95000;2100;41;900;30.2'
+  ].join('\n');
 }
 
 /* ============================================================================
@@ -4085,6 +4261,7 @@ function renderProject(project, fresh){
           <button class="btn mini" data-act="open-story">🎬 Storyboard</button>
           <button class="btn mini" data-act="montage-var" title="Pobierz techniczny brief montażowy tego wariantu">🎬 Brief montażysty</button>
           <button class="btn mini" data-act="save-hook" title="Zapisz główny hook tego wariantu do biblioteki (Ustawienia → 📚)">📚 Hook do biblioteki</button>
+          <button class="btn mini${compareSel.includes(v.label) ? ' cyan' : ''}" data-act="compare" data-lab="${esc(v.label)}" title="Dodaj do porównania A/B (maks. 2 warianty)">${compareSel.includes(v.label) ? '⚖ W porównaniu' : '⚖ Do porównania'}</button>
           <button class="btn mini" data-act="copy-var">⧉ Cały wariant</button>
           <button class="btn mini" data-act="regen-var">↻ Wszystkie sekcje</button>
         </div>
@@ -4131,7 +4308,8 @@ function renderProject(project, fresh){
       </div>
     </div>`;
 
-  area.innerHTML = cards + cmpHtml + renderTracker(project) + extras;
+  const cmpBlock = renderComparePanel(project);
+  area.innerHTML = cmpBlock + cards + cmpHtml + renderTracker(project) + extras;
   bindResultActions();   // funkcja sama pilnuje, by listener podpiąć tylko raz
   bindTracker();         // jak wyżej – delegacja podpinana jednorazowo
 }
@@ -4180,6 +4358,19 @@ function bindResultActions(){
     }
     if(act === 'save-hook'){
       saveHookFromVariant(Number(btn.closest('.var-card').dataset.variantCard)); return;
+    }
+    if(act === 'compare'){
+      const lab = btn.dataset.lab;
+      const i = compareSel.indexOf(lab);
+      if(i >= 0) compareSel.splice(i, 1);
+      else { compareSel.push(lab); if(compareSel.length > 2) compareSel.shift(); }
+      renderProject(currentProject);
+      return;
+    }
+    if(act === 'compare-clear'){
+      compareSel = [];
+      renderProject(currentProject);
+      return;
     }
     if(act === 'copy-abplan'){ copyText(currentProject.abPlan, btn); return; }
     if(act === 'copy-checklist'){ copyText(currentProject.checklist, btn); return; }
@@ -4315,6 +4506,8 @@ async function regenerateSection(vi, key, secEl, btn){
     log(`✔ Nowa wersja: Wariant ${v.label} · ${key}`, 'ok');
     toast('Sekcja zregenerowana','ok');
   }catch(err){
+    // Nic się nie zmieniło → snapshot w undo byłby no-op; usuwamy, żeby nie mylić użytkownika
+    undoStack.pop(); updateUndoUI();
     log('✖ ' + err.message, 'e');
     toast('Błąd regeneracji: ' + err.message, 'err', 6000);
     if(secEl) secEl.classList.remove('busy');
@@ -4440,6 +4633,14 @@ function projectToTxt(p){
     res.rows.forEach(r => L.push(`Wariant ${r.label} (${r.angle || ''}): wyświetlenia ${r.views == null ? '–' : r.views}, hook 3s ${r.hook == null ? '–' : r.hook}%, CTR ${r.ctr == null ? '–' : r.ctr}%, CVR ${r.cvr == null ? '–' : r.cvr}%, budżet ${r.spend == null ? '–' : r.spend} zł, CPA ${r.cpa == null ? '–' : r.cpa.toFixed(2)} zł${p.results.winner === r.label ? '  << ZWYCIĘZCA' : ''}`));
     if(res.winner) L.push(`ZWYCIĘZCA: Wariant ${res.winner.label} (${res.metric.label})`);
     else L.push('ZWYCIĘZCA: brak wystarczających danych');
+    if(p.results.target != null){
+      const T = numVal(p.results.target);
+      const mDef = TRACK_METRICS.find(m => m.id === (p.results.metric || 'ctr')) || TRACK_METRICS[1];
+      if(T != null) res.rows.filter(r => r.metricVal != null).forEach(r => {
+        const ok = mDef.higher ? r.metricVal >= T : r.metricVal <= T;
+        L.push(`CEL ${mDef.label} = ${T}: wariant ${r.label} (${r.metricVal == null ? '–' : r.metricVal}) — ${ok ? 'osiągnięty' : 'NIEDOSIĄGNIĘTY'}`);
+      });
+    }
   } else {
     L.push('(brak wpisanych wyników)');
   }
@@ -4502,7 +4703,12 @@ function projectToMd(p){
     L.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
     res.rows.forEach(r => L.push(`| ${r.label} | ${r.views == null ? '–' : r.views} | ${r.hook == null ? '–' : r.hook} | ${r.ctr == null ? '–' : r.ctr} | ${r.cvr == null ? '–' : r.cvr} | ${r.spend == null ? '–' : r.spend} | ${r.cpa == null ? '–' : r.cpa.toFixed(2)} | ${p.results.winner === r.label ? '🏆 TAK' : ''} |`));
     L.push('');
-    L.push(res.winner ? `**Zwycięzca:** wariant ${res.winner.label} — ${res.metric.label}: ${fnum(res.winner[res.metric.id])}` : '**Zwycięzca:** brak wystarczających danych.');
+    L.push(res.winner ? `**Zwycięzca:** wariant ${res.winner.label} — ${res.metric.label}: ${fnum(res.winner.metricVal)}` : '**Zwycięzca:** brak wystarczających danych.');
+    if(p.results.target != null){
+      const T = numVal(p.results.target);
+      const mDef = TRACK_METRICS.find(m => m.id === (p.results.metric || 'ctr')) || TRACK_METRICS[1];
+      if(T != null) L.push(`**Cel:** ${fnum(T)} (${mDef.label}) — ` + res.rows.filter(r => r.metricVal != null).map(r => `${r.label}: ${(mDef.higher ? r.metricVal >= T : r.metricVal <= T) ? '✅' : '⚠'}`).join(', '));
+    }
   } else {
     L.push('_Brak wpisanych wyników._');
   }
@@ -5099,6 +5305,12 @@ function bindStoryboard(){
   const modal = document.getElementById('modalStory');
   const close = () => closeModal('modalStory');
   document.getElementById('btnCloseStory').addEventListener('click', close);
+  document.getElementById('storySafe').addEventListener('click', () => {
+    const on = document.getElementById('storySafeTop').classList.toggle('on');
+    document.getElementById('storySafeBottom').classList.toggle('on', on);
+    document.getElementById('storySafe').classList.toggle('cyan', on);
+    toast(on ? 'Strefy bezpieczeństwa widoczne (góra ~8%, dół ~20% klatki)' : 'Strefy ukryte','info');
+  });
   modal.addEventListener('click', e => { if(e.target === modal) close(); });
 
   document.getElementById('storyPlay').addEventListener('click', () => {
@@ -5516,6 +5728,52 @@ function trapFocus(e){
   const first = items[0], last = items[items.length - 1];
   if(e.shiftKey && (document.activeElement === first || !m.contains(document.activeElement))){ e.preventDefault(); last.focus(); }
   else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+}
+
+/* --------------------------- porównanie A/B (do 2 wariantów) --------------------------- */
+let compareSel = [];
+/** Panel porównania dwóch wybranych wariantów (side-by-side). */
+function renderComparePanel(project){
+  if(!compareSel.length) return '';
+  if(compareSel.length === 1){
+    return `<div class="panel cmp-pick" style="margin-bottom:18px">
+      <div class="head"><h2>⚖ Porównanie A/B</h2>
+        <div class="btn-row"><button class="btn mini" data-act="compare-clear">✕ Wyczyść</button></div></div>
+      <div class="body"><p class="hint">Wybrano 1 z 2 wariantów (${esc(compareSel[0])}). Kliknij „⚖ Do porównania” przy drugim wariancie.</p></div>
+    </div>`;
+  }
+  const vs = compareSel.map(l => project.variants.find(v => v.label === l)).filter(Boolean);
+  if(vs.length !== 2) return '';
+  const [a, b] = vs;
+  const sa = scoreVariant(project, a), sb = scoreVariant(project, b);
+  const cells = sa.parts.map((pa, i) => {
+    const pb = sb.parts[i];
+    const winA = pa.score > pb.score, winB = pb.score > pa.score;
+    const bar = (sc) => `<span class="cmp-bar"><i style="width:${Math.round(sc.score / sc.max * 100)}%"></i></span>`;
+    return `<div class="cmp-row">
+      <div class="cmp-col${winA ? ' win' : ''}"><b>${esc(pa.label)}</b> ${pa.score}/${pa.max} ${bar(pa)}</div>
+      <div class="cmp-col mid"><span class="hint">${winA ? '◀' : winB ? '▶' : '='}</span></div>
+      <div class="cmp-col${winB ? ' win' : ''}" style="text-align:right">${pb.score}/${pb.max} ${bar(pb)} <b>${esc(pb.label)}</b></div>
+    </div>`;
+  }).join('');
+  const S = (v, k) => (v.sections[k] ? String(v.sections[k].body || '').split('\n').filter(Boolean)[0] || '' : '');
+  return `<div class="panel cmp-panel" style="margin-bottom:18px">
+    <div class="head"><h2>⚖ Porównanie: Wariant ${esc(a.label)} vs ${esc(b.label)}</h2>
+      <div class="btn-row"><button class="btn mini" data-act="compare-clear">✕ Wyczyść porównanie</button></div></div>
+    <div class="body">
+      <div class="cmp-grid">
+        <div class="cmp-head"><b>Wariant ${esc(a.label)}</b> <span class="chip ${scoreClass(sa.score) === 'ok' ? 'ok' : ''}">🎯 ${sa.score}/100</span>
+          <div class="hint">${esc(a.angle)}</div></div>
+        <div class="cmp-head right"><b>Wariant ${esc(b.label)}</b> <span class="chip ${scoreClass(sb.score) === 'ok' ? 'ok' : ''}">🎯 ${sb.score}/100</span>
+          <div class="hint">${esc(b.angle)}</div></div>
+      </div>
+      <div class="cmp-areas">${cells}</div>
+      <div class="cmp-grid">
+        <div class="cmp-text"><div class="hint">HOOK A</div><div>${esc(S(a,'hook'))}</div><div class="hint" style="margin-top:7px">CTA</div><div>${esc(S(a,'cta'))}</div></div>
+        <div class="cmp-text right"><div class="hint">HOOK A</div><div>${esc(S(b,'hook'))}</div><div class="hint" style="margin-top:7px">CTA</div><div>${esc(S(b,'cta'))}</div></div>
+      </div>
+    </div>
+  </div>`;
 }
 
 /* --------------------------- cofanie operacji (undo) --------------------------- */

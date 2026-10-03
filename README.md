@@ -3,6 +3,14 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.6:** import pomiarów z **TikTok Ads Manager (CSV)** (nagłówki PL/EN, CTR/CVR liczone
+z wyświetleń/kliknięć, CTR z konwersji; każdy import = nowy pomiar + automatyczny zwycięzca),
+**cel KPI** dla metryki decyzyjnej (podsumowanie ✅/⚠ per wariant, kolumna „Cel” w raporcie CSV,
+linie celu w eksportach TXT/MD), **porównanie A/B** (do 2 wariantów side-by-side: ocena 0–100,
+5 obszarów, hook + CTA, podświetlenie zwycięzcy obszaru) i **strefy bezpieczeństwa** w storyboardzie
+(pasy UI TikTok: góra ~8%, dół ~20%). Naprawione: snapshot no-op w undo przy błędzie regeneracji
+sekcji, fallback ekstrakcji HOOK A (nie bierze już tekstu HOOK B) i stara kolumna Trend bez daty.
+
 **v2.5:** system animacji i dopieszczenie grafiki — kaskadowe wejście kart i sekcji, animowane modale, toasty
 z wyjściem, puls zwycięzcy, rosnące paski ocen, poświaty tła, micro-interactions (hover/active),
 `prefers-reduced-motion`; naprawione: kruche regexy HOOK A (obradowały błędnie dla formatu API) i limit toastów.
@@ -133,8 +141,21 @@ W zakładce **Wyniki** znajduje się panel **📊 Wyniki testu**: wpisujesz dane
 - **pomija warianty poniżej progu 2 000 wyświetleń** przy wyborze zwycięzcy i ostrzega, gdy cała próba jest za mała,
 - pokazuje rekomendację kolejnego kroku (skalowanie budżetu, przeniesienie hooka, wariant kontrolny),
 - oznacza zwycięzcę chipem 🏆 na karcie wariantu i zapisuje wyniki w projekcie (historia, kopia zapasowa),
-- eksportuje **raport CSV** wyników oraz dołącza wyniki do eksportów TXT / MD / JSON.
+- eksportuje **raport CSV** wyników oraz dołącza wyniki do eksportów TXT / MD / JSON,
+- **⬆ Import z Ads Manager (CSV):** przycisk wczytuje eksport (nagłówki PL lub EN, separator `;`/`, `/tab),
+  rozpozna wariant po nazwie (np. „A — kąt główny”) albo po kolejności wierszy; brakujące CTR/CVR
+  wylicza z pozostałych kolumn, `hookRate3s` zamienia z ułamka na %, a wiersze # / nieznane warianty pomija
+  (liczba pominiętych w postradze). Każdy wiersz staje się nowym pomiarem w serii (trend) i od razu
+  przelicza zwycięzcę; **⬇ Szablon CSV** pobiera gotowy wzór do wypełnienia,
+- **cel KPI:** pole „cel” obok metryki (np. CTR 2%) — podsumowanie pokazuje, który wariant osiągnął cel
+  (✅) / jest poniżej (⚠), a raport CSV zyskuje kolumnę „Cel”; cel trafia też do eksportów TXT i MD.
 
+## Porównanie A/B (side-by-side)
+
+Przy każdym wariancie jest przycisk **⚖ Do porównania** (maks. 2 warianty). Panel nad kartami pokazuje:
+oceny 0–100 obok siebie, paski pięciu obszarów oceny (hook, scenariusz, shot list, CTA, opis) z
+podświetleniem obszaru wygranego, hooki A i CTA do przeczytania obok siebie. Przy jednym wybranym
+wariancie panel podpowiada, by dokliknąć drugi. „✕ Wyczyść porównanie” zamyka widok.
 ## Ocena kreacji (0–100)
 
 Każdy wariant dostaje automatyczną ocenę z pięciu obszarów — bez API, w całości offline:
@@ -199,8 +220,10 @@ workspace i panelu pamięci lokalnej.
 ## Storyboard 9:16
 
 Przycisk **🎬 Storyboard** przy wariancie otwiera odtwarzacz: ramka 9:16 z overlayem, opisem kadru z shot listy
-i listą beatów. Sterowanie: odtwarzanie, prędkość (×1 / ×0.5 / ×0.25 / ×2), klik na pasku postępu i przeskoki po beatach.
-Pozwala sprawdzić rytm reklamy i to, czy teksty nie zasłaniają interfejsu TikToka.
+i listą beatów. Sterowanie: odtwarzanie, prędkość (×1 / ×0.5 / ×0.25 / ×2), klik na pasku postępu i przeskoki po beatach,
+**⛶ Strefy** — nakładka bezpieczeństwa: pas górny (~8% klatki, tu siedzi powrót/profil/live) i pas dolny
+(~20%, opis, dźwięk, akcje) pokazują, gdzie interfejs TikTok zasłania kadr — dzięki temu overlayy i teksty
+nie wylądują pod UI platformy. Pozwala sprawdzić rytm reklamy i to, czy teksty nie zasłaniają interfejsu TikToka.
 
 ## Wyniki i eksport
 
@@ -240,7 +263,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 372 asercji: jednostkowe (175) + E2E (170) + API (27)
+bash tests/run-all.sh        # 410 asercji: jednostkowe (189) + E2E (194) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.
