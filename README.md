@@ -3,6 +3,10 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.5:** system animacji i dopieszczenie grafiki — kaskadowe wejście kart i sekcji, animowane modale, toasty
+z wyjściem, puls zwycięzcy, rosnące paski ocen, poświaty tła, micro-interactions (hover/active),
+`prefers-reduced-motion`; naprawione: kruche regexy HOOK A (obradowały błędnie dla formatu API) i limit toastów.
+
 **v2.4:** pomiary w czasie w trackerze (trend + sparkline, zwycięzca z ostatniego pomiaru), brief montażysty
 (wariant i pakiet), auto-scoring partii („Regeneruj najsłabsze”, best-of-3) i biblioteka hooków użytkownika.
 
@@ -236,7 +240,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 351 asercji: jednostkowe (167) + E2E (157) + API (27)
+bash tests/run-all.sh        # 372 asercji: jednostkowe (175) + E2E (170) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.
@@ -246,6 +250,20 @@ Szczegóły w `tests/README.md`.
 `index.html` zawiera wszystko: styl (ciemny motyw PRO), sekcje interfejsu oraz skrypt podzielony na bloki:
 konfiguracja (języki, strategie, kąty A/B), baza branż, magazyn `localStorage`, silnik lokalny, prompty + klient API,
 parser odpowiedzi, render wyników, eksport, historia, filtr zgodności, UI/init.
+
+## Grafika i animacje (system ruchu)
+
+Interfejs ma spójny system animacji (tokeny `--t-fast/med/slow` + krzywe `ease-out/ease-spring`):
+
+- **kaskadowe wejście** kart wariantów i sekcji przy generacji, imporcie i cofaniu (60 ms na kartę + kaskada sekcji) —
+  małe aktualizacje (tracker, edycje) renderują się **bez** animacji, żeby UI nie „mżyło”,
+- **modale** wchodzą z scale+fade (spring), backdrop z blur; **toasty** wchodzą z poślizgiem i **wychodzą** animacją
+  (limit 6 naraz),
+- **puls zwycięzcy** testu (chip 🏆), **rosnące paski oceny**, płynny pasek postępu,
+- **micro-interactions**: przyciski unoszą się na hover i „dociskają” na active (glow przy primary/danger),
+  karty wariantów i sekcje reagują obramowaniem i cieniem, wiersze tabel i list podświetlają się,
+- **tło** z trzema poświatami (pink/cyan/violet) i glassmorphism pasków; pasek górny z subtelną linią glow,
+- `@media (prefers-reduced-motion: reduce)` wyłącza wszystkie animacje i przejścia — pełna kontrola użytkownika.
 
 ## Dostępność i telefon
 

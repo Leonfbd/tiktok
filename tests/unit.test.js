@@ -317,7 +317,7 @@ check('scoring: wskazówka o konkret/stronie', scBad.tips.some(t => /liczb|konkr
 check('scoring: brak sekcji tylko jako wskazówka, nie wyjątek', (() => { try { A.scoreVariant({ brief:{length:15}, variants:[] }, { sections:{} }); return true; } catch(e){ return false; } })());
 
 /* ---------- 21. Wersja aplikacji ---------- */
-check('wersja: stała APP_VERSION (v2.4)', A.APP_VERSION === '2.4', A.APP_VERSION);
+check('wersja: stała APP_VERSION (v2.5)', A.APP_VERSION === '2.5', A.APP_VERSION);
 
 /* ---------- 23. Tracker: pomiary w czasie (trend) ---------- */
 check('trend: migracja starego formatu (flat → measurements)', (() => {
@@ -410,7 +410,31 @@ check('hooki: import kopii przywraca bibliotekę', (() => {
 })(), JSON.stringify({}));
 A.saveHooks([]);
 
-/* ---------- 26. Modele rozumujące ---------- */
+/* ---------- 26. Ekstrakcja i podmiana HOOK A (obydwa formaty) ---------- */
+const hookMulti = 'HOOK A (0–3 s)\nSTOP. Przestań kupować kremy za 200 zł\n  ↳ wariant testowy: główny – start kampanii\n\nHOOK B (0–3 s)\nPOV. Kupiłam ten krem i wracam do niego\n  ↳ wariant testowy: alternatywa A\n\nREKOMENDACJA: …';
+const hookSingle = 'HOOK A (0–3 s) STOP. Przestań kupować kremy za 200 zł';
+check('hook extract: format wielolinijkowy', A.extractMainHook(hookMulti, '') === 'STOP. Przestań kupować kremy za 200 zł', A.extractMainHook(hookMulti, ''));
+check('hook extract: format jednowierszowy', A.extractMainHook(hookSingle, '') === 'STOP. Przestań kupować kremy za 200 zł', A.extractMainHook(hookSingle, ''));
+check('hook extract: fallback (hookLine) wygrywa', A.extractMainHook(hookMulti, 'WIARYGODNY HOOK Z GENERACJI') === 'WIARYGODNY HOOK Z GENERACJI');
+check('hook extract: nie bierze adnotacji ↳ ani HOOK B', (() => {
+  const t = A.extractMainHook('HOOK A (0–3 s)\n  ↳ wariant testowy\nHOOK B (0–3 s)\nTekst B', '');
+  return t !== '  ↳ wariant testowy' && !/^HOOK B/.test(t);
+})(), '');
+check('hook replace: wielolinijkowy zachowuje HOOK B i adnotacje', (() => {
+  const out = A.replaceMainHook(hookMulti, 'NOWY HOOK');
+  return out.includes('NOWY HOOK') && /HOOK B \(0–3 s\)\nPOV\./.test(out) && /↳ wariant testowy: główny/.test(out) && !/STOP\. Przestań/.test(out.split('HOOK B')[0]);
+})(), '');
+check('hook replace: jednowierszowy nadpisuje wiersz', (() => {
+  const out = A.replaceMainHook(hookSingle, 'NOWY HOOK');
+  return /^HOOK A \(0–3 s\) NOWY HOOK$/.test(out.trim()), out;
+})(), '');
+check('hook replace: brak HOOK A → dopisuje na początek', (() => {
+  const out = A.replaceMainHook('inna treść', 'NOWY HOOK');
+  return out.startsWith('HOOK A (0–3 s)\nNOWY HOOK') && out.includes('inna treść');
+})(), '');
+check('hook replace: pusty body → sam nagłówek + tekst', A.replaceMainHook('', 'NOWY HOOK') === 'HOOK A (0–3 s)\nNOWY HOOK');
+
+/* ---------- 27. Modele rozumujące ---------- */
 check('o4-mini rozpoznany jako reasoning', A.isReasoningModel('o4-mini') === true);
 check('gpt-5-mini rozpoznany jako reasoning', A.isReasoningModel('gpt-5-mini') === true);
 check('gpt-4o-mini NIE jest reasoning', A.isReasoningModel('gpt-4o-mini') === false);

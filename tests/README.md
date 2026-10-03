@@ -17,8 +17,8 @@ export NODE_PATH=/tmp/tt/node_modules
 ```bash
 cd /home/user/tiktok
 
-node tests/unit.test.js                                  # silnik, eksporty, CSV, kąty, tracker, trend, brief, hooki (167 asercji)
-NODE_PATH=/tmp/tt/node_modules node tests/e2e.test.js    # UI: hurt, auto-scoring, trend, brief montażysty, hooki (157 asercji)
+node tests/unit.test.js                                  # silnik, eksporty, CSV, tracker, trend, brief, hooki, regexy hooka (175 asercji)
+NODE_PATH=/tmp/tt/node_modules node tests/e2e.test.js    # UI: hurt, auto-scoring, trend, brief, hooki, animacje/stagger (170 asercji)
 NODE_PATH=/tmp/tt/node_modules node tests/api.test.js    # OpenAI / Gemini / custom / reasoning / partie (27 asercji)
 ```
 
@@ -51,6 +51,7 @@ bash tests/run-all.sh
 - pomiary w czasie (v2.4): migracja flat→measurements (idempotentna), delta/seria, zwycięzca z ostatniego pomiaru, poprzedni zwycięzca (stabilność), commit draftów, CPA jako metryka liczona, sparkline SVG, CSV w formacie długim
 - brief montażysty (v2.4): sekcje produkcji, specyfikacja techniczna, budżet słów, bez strategii/hipotez, pakiet = wszystkie warianty
 - biblioteka hooków (v2.4): magazyn, kopia zapasowa (payload + apply + licznik)
+- ekstrakcja/podmiana HOOK A (v2.5): formaty wielolinijkowy i jednowierszowy, fallback hookLine, adnotacje ↳, zachowanie HOOK B przy podmianie
 
 **e2e.test.js**
 
@@ -65,6 +66,7 @@ bash tests/run-all.sh
 - własne kąty w UI: tworzenie, walidacja nazwy, duplikacja, edycja, usuwanie, eksport/import
 - audyt v2.3 w UI: 4 uszkodzone importy JSON nie psują historii ani wyników, ocena widoczna na karcie i w podsumowaniu, cofanie (przycisk i `Ctrl+Z`), wyszukiwarka + filtr historii z licznikiem i resetem, ARIA zakładek/modalów/logu/postępu, fokus w modalu i powrót na przycisk, `Esc` zamyka okno, badge wersji
 - audyt v2.4 w UI: trend (2 pomiary → Δ + sparkline + licznik, zwycięzca z ostatniego pomiaru), migracja starego formatu wyników, brief montażysty (wariant i pakiet → TXT), auto-scoring partii (best-of-3 nie obniża ocen), biblioteka hooków (zapis z wariantu, szukaj, „Użyj w A” + undo, usuwanie, licznik w pamięci)
+- v2.5 w UI: klasa `fresh` + zmienne stagger (`--i`/`--si`) na kartach i sekcjach, klasa znika po kaskadzie, brief montażysty (przechwycony Blob) z poprawnym hookiem (bez adnotacji ↳), „Użyj w A” zachowuje HOOK B + undo, limit toastów (≤6)
 - tracker w UI: wpisywanie danych, kalkulacja na żywo, chip zwycięzcy, zmiana metryki, raport CSV, reset, trwałość w projekcie
 
 **api.test.js**

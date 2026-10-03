@@ -71,7 +71,7 @@ function stubEnv(code){
     getAngles, saveAngles, computeResults, resultsToCsv, ensureResults, TRACK_METRICS, HOOK_STYLES, hookStyleLabel,
     normalizeProject, projectShapeError, scoreVariant, averageScore, scoreClass, APP_VERSION,
     normalizeResultsRows, commitDrafts, rowLatest, measurementStats, sparklineSvg, montageBriefText, montageBriefPackage,
-    getHooks, saveHooks, saveHookFromVariant, useHookInVariant };`;
+    getHooks, saveHooks, saveHookFromVariant, useHookInVariant, extractMainHook, replaceMainHook };`;
   eval(code + exports);
   return globalThis.__API;
 }

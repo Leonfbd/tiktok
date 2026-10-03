@@ -615,7 +615,7 @@ const { check, finish } = makeChecker();
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
     await tick(120);
     check('v2.3 undo: Ctrl+Z cofa operację', /Kurs gotowania/.test($('#projSummary').textContent) && beforeUndo !== $('#projSummary').textContent, $('#projSummary').textContent.slice(0,80));
-    check('v2.4 wersja: badge pokazuje APP_VERSION', /v2\.4/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+    check('v2.5 wersja: badge pokazuje APP_VERSION', /v2\.5/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
   }
 
   /* ========== 11. AUDYT v2.4: trend pomiarów, brief montażysty, auto-scoring, biblioteka hooków ========== */
@@ -733,6 +733,68 @@ const { check, finish } = makeChecker();
     check('v2.4 hooki: usuwanie działa', /jest pusta|Brak wyników/.test($('#hookList').textContent), $('#hookList').textContent.slice(0, 80));
     check('v2.4 hooki: licznik w panelu pamięci', /Liczba hooków w bibliotece/.test($('#storageTable').textContent));
     document.createElement = origCreate;
+  }
+
+  /* ========== 12. AUDYT v2.5: animacje, stagger, HOOK B przy podmianie, brief z poprawnym hookiem ========== */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+
+    $('#f_industry').value = 'kosmetyki naturalne';
+    $('#f_product').value = 'serum z witaminą C';
+    $('#f_variants').value = '2';
+    $('#f_variants').dispatchEvent(new window.Event('input', { bubbles:true }));
+    $('#btnQuickLocal').click();
+    await tick(300);
+
+    check('v2.5 animacje: resultsArea ma klasę fresh po generacji', $('#resultsArea').classList.contains('fresh'));
+    const card0 = $('#resultsArea .var-card');
+    check('v2.5 animacje: karta ma zmienną stagger --i', /--i:0/.test(card0.getAttribute('style') || ''), card0.getAttribute('style'));
+    const secFirst = $('#resultsArea .var-card .sec');
+    check('v2.5 animacje: sekcja ma --i i --si', /--si:0/.test(secFirst.getAttribute('style') || ''), secFirst.getAttribute('style'));
+    const card1 = document.querySelectorAll('#resultsArea .var-card')[1];
+    check('v2.5 animacje: druga karta z innym --i', /--i:1/.test(card1.getAttribute('style') || ''), card1.getAttribute('style'));
+    await tick(1700);
+    check('v2.5 animacje: klasa fresh znika po kaskadzie', !$('#resultsArea').classList.contains('fresh'));
+
+    // brief montażysty zawiera POPRAWNY hook (nie adnotację ↳) — przechwyt Bloba
+    let lastBlob = null;
+    const origCOU = window.URL.createObjectURL;
+    window.URL.createObjectURL = (b) => { lastBlob = b; return 'blob:test'; };
+    document.querySelector('[data-act="montage-var"]').click();
+    await tick(120);
+    window.URL.createObjectURL = origCOU;
+    const mb = lastBlob ? await lastBlob.text() : '';
+    check('v2.5 brief: wygenerowany', /BRIEF MONTAŻOWY/.test(mb), mb.slice(0, 60));
+    const hookSec = mb.split('--- HOOK')[1] || '';
+    check('v2.5 brief: hook bez adnotacji ↳', !/wariant testowy/.test(hookSec), hookSec.slice(0, 120));
+
+    // „Użyj w A” podmienia HOOK A i ZACHOWUJE HOOK B
+    const hookBodyBefore = $('#resultsArea .sec[data-key="hook"] pre').textContent;
+    check('v2.5 hook: sekcja ma HOOK B przed podmianą', /HOOK B/.test(hookBodyBefore));
+    const lineB = (hookBodyBefore.match(/HOOK B[\s\S]*?\n([^\n]+)/) || [,''])[1];
+    document.querySelector('[data-act="save-hook"]').click();
+    await tick(150);
+    $$('.tab').forEach(t => { if(t.dataset.tab === 'settings') t.click(); });
+    document.querySelector('[data-hhact="use"]').click();
+    await tick(250);
+    $$('.tab').forEach(t => { if(t.dataset.tab === 'results') t.click(); });
+    await tick(100);
+    const hookBodyAfter = $('#resultsArea .sec[data-key="hook"] pre').textContent;
+    check('v2.5 hook: HOOK B ocalało po „Użyj w A”', hookBodyAfter.includes(lineB) && /HOOK B/.test(hookBodyAfter), hookBodyAfter.slice(0, 200).replace(/\s+/g,' '));
+    check('v2.5 hook: nowy hook na miejscu A', hookBodyAfter !== hookBodyBefore);
+    check('v2.5 hook: undo przywraca całość (A + B)', (() => {
+      $('#btnUndo').click();
+      return true;
+    })());
+    await tick(200);
+    check('v2.5 hook: po undo HOOK A wrócił', $('#resultsArea .sec[data-key="hook"] pre').textContent === hookBodyBefore);
+
+    // toast: limit jednocześnie (max 6)
+    for(let i = 0; i < 9; i++){ document.querySelector('[data-act="save-hook"]').click(); }
+    await tick(250);
+    check('v2.5 toast: nie więcej niż 6 naraz', document.querySelectorAll('#toasts .toast').length <= 6, document.querySelectorAll('#toasts .toast').length);
   }
 
   finish('TESTY E2E');

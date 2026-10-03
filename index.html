@@ -35,11 +35,22 @@
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
   --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Ubuntu,Arial,sans-serif;
   --shadow:0 10px 34px rgba(0,0,0,.45);
+  /* --- tokeny ruchu --- */
+  --t-fast:130ms; --t-med:240ms; --t-slow:420ms;
+  --ease-out:cubic-bezier(.21,.86,.36,1);
+  --ease-spring:cubic-bezier(.34,1.4,.44,1);
 }
 
 /* --- 2. Reset --- */
 *,*::before,*::after{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body::before{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(900px 420px at 88% -12%, rgba(254,44,85,.11), transparent 62%),
+    radial-gradient(820px 430px at -4% -6%, rgba(37,244,238,.09), transparent 58%),
+    radial-gradient(760px 520px at 50% 112%, rgba(124,92,255,.08), transparent 60%);
+}
+body{margin:0;padding:0}
 body{
   background:
     radial-gradient(1100px 520px at 12% -10%, rgba(254,44,85,.13), transparent 60%),
@@ -72,6 +83,7 @@ a{color:var(--cyan)}
   background:rgba(8,10,14,.86);
   backdrop-filter:blur(14px);
   border-bottom:1px solid var(--line);
+  box-shadow:0 1px 0 rgba(37,244,238,.06), 0 10px 34px rgba(0,0,0,.38);
 }
 .brand{display:flex;gap:13px;align-items:center;min-width:290px}
 .logo{
@@ -81,7 +93,7 @@ a{color:var(--cyan)}
   color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px;
   box-shadow:0 6px 22px rgba(254,44,85,.35);
 }
-.brand h1{font-size:16.5px}
+.brand h1{font-size:16.5px;text-shadow:0 0 20px rgba(37,244,238,.16)}
 .brand h1 .pro{
   font-size:10px;letter-spacing:.16em;vertical-align:2px;margin-left:7px;
   padding:2px 7px;border-radius:6px;
@@ -98,7 +110,7 @@ a{color:var(--cyan)}
   border:1px solid var(--line-2);background:var(--panel);
   font-size:11.5px;color:var(--text-2);white-space:nowrap;
 }
-.badge .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 3px rgba(125,139,159,.15)}
+.badge .dot{animation:dotPulse 2.4s ease-in-out infinite;width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 3px rgba(125,139,159,.15)}
 .badge.ok .dot{background:var(--ok);box-shadow:0 0 0 3px rgba(49,214,143,.16)}
 .badge.warn .dot{background:var(--warn);box-shadow:0 0 0 3px rgba(255,176,32,.16)}
 .badge.err .dot{background:var(--err);box-shadow:0 0 0 3px rgba(255,84,112,.16)}
@@ -114,23 +126,23 @@ a{color:var(--cyan)}
   padding:9px 14px;border-radius:var(--radius-s);
   border:1px solid var(--line-2);background:var(--panel-2);color:var(--text);
   cursor:pointer;font-size:13px;font-weight:550;white-space:nowrap;
-  transition:.15s ease;
+  transition:transform var(--t-fast) var(--ease-out), box-shadow var(--t-med) var(--ease-out), background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out), filter var(--t-fast) var(--ease-out);
 }
-.btn:hover{background:var(--panel-3);border-color:#3a4960;transform:translateY(-1px)}
-.btn:active{transform:translateY(0)}
+.btn:hover{transform:translateY(-1px);border-color:var(--line-2);background:var(--panel-3)}
+.btn:active{transform:translateY(0) scale(.985)}
 .btn.primary{
   background:linear-gradient(120deg,var(--pink),#c2167f 70%,var(--violet));
   border-color:transparent;color:#fff;box-shadow:0 6px 20px rgba(254,44,85,.28)
 }
-.btn.primary:hover{filter:brightness(1.08)}
+.btn.primary:hover{box-shadow:0 8px 24px rgba(254,44,85,.36), 0 0 28px rgba(37,244,238,.12);filter:brightness(1.05);transform:translateY(-1px)}
 .btn.cyan{background:linear-gradient(120deg,#12b6c9,var(--cyan));color:#04212a;border-color:transparent;font-weight:700}
 .btn.ghost{background:transparent}
 .btn.sm{padding:6px 10px;font-size:12px;border-radius:8px}
 .btn.mini{padding:4px 9px;font-size:11.5px;border-radius:7px;background:transparent;border-color:var(--line-2);color:var(--text-2)}
 .btn.mini:hover{color:var(--text);background:var(--panel-3)}
-.btn.danger:hover{border-color:var(--err);color:#ffd7de}
+.btn.danger:hover{border-color:var(--err);color:#ffd7de;box-shadow:0 8px 20px rgba(255,84,112,.20)}
 .btn.block{width:100%}
-.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .btn-row{display:flex;flex-wrap:wrap;gap:8px}
 
 /* --- 7. Tabs --- */
@@ -144,9 +156,10 @@ a{color:var(--cyan)}
   background:transparent;color:var(--muted);cursor:pointer;
   border-radius:10px 10px 0 0;font-size:13px;font-weight:600;
   display:inline-flex;align-items:center;gap:8px;
+  transition:color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
 }
 .tab:hover{color:var(--text-2);background:rgba(255,255,255,.03)}
-.tab.active{color:var(--text);background:var(--panel);border-color:var(--line);border-bottom:1px solid var(--panel);margin-bottom:-1px}
+.tab.active{color:var(--text);background:var(--panel);border-color:var(--line);border-bottom:1px solid var(--panel);margin-bottom:-1px;box-shadow:inset 0 -2px 0 var(--pink), 0 0 18px rgba(254,44,85,.10)}
 .tab.active::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pink)}
 
 /* --- 8. Layout --- */
@@ -240,7 +253,15 @@ input::placeholder,textarea::placeholder{color:#5b6a7d}
 .var-card{
   background:linear-gradient(180deg,var(--panel),var(--bg-2));
   border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:18px;
+  transition:border-color var(--t-med) var(--ease-out), box-shadow var(--t-med) var(--ease-out);
 }
+.var-card:hover{border-color:var(--line-2);box-shadow:0 16px 44px rgba(0,0,0,.42), 0 0 0 1px rgba(37,244,238,.05)}
+/* wejście kart: tylko przy „świeżym" renderze (generacja/import/undo), bez mżenia przy małych aktualizacjach */
+#resultsArea.fresh .var-card{animation:cardIn .42s var(--ease-out) both;animation-delay:calc(var(--i,0)*60ms)}
+#resultsArea.fresh .sec{animation:sectionIn .34s var(--ease-out) both;animation-delay:calc(var(--i,0)*60ms + 90ms + var(--si,0)*28ms)}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes sectionIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+
 .var-head{
   display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;
   padding:15px 17px;border-bottom:1px solid var(--line);
@@ -268,7 +289,8 @@ input::placeholder,textarea::placeholder{color:#5b6a7d}
 .sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px;padding:16px}
 .sec{
   border:1px solid var(--line);border-radius:var(--radius-s);background:var(--bg-2);overflow:hidden;
-  display:flex;flex-direction:column;min-width:0
+  display:flex;flex-direction:column;min-width:0;
+  transition:border-color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out)
 }
 .sec > header{
   display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
@@ -309,6 +331,8 @@ input::placeholder,textarea::placeholder{color:#5b6a7d}
   padding:11px 14px;border-radius:11px;border:1px solid var(--line-2);background:#141b26;
   box-shadow:var(--shadow);font-size:12.8px;animation:slide .22s ease
 }
+.toast.out{animation:toastOut .3s var(--ease-out) forwards
+}
 .toast.ok{border-left:3px solid var(--ok)}
 .toast.err{border-left:3px solid var(--err)}
 .toast.warn{border-left:3px solid var(--warn)}
@@ -321,10 +345,12 @@ input::placeholder,textarea::placeholder{color:#5b6a7d}
   background:rgba(3,5,8,.78);backdrop-filter:blur(5px)
 }
 .modal.open{display:grid}
+.modal.open{animation:fade .18s ease}
 .modal .box{
   width:min(600px,100%);max-height:88vh;overflow:auto;
   background:linear-gradient(180deg,var(--panel),var(--bg-2));
-  border:1px solid var(--line-2);border-radius:16px;box-shadow:var(--shadow)
+  border:1px solid var(--line-2);border-radius:16px;box-shadow:var(--shadow);
+  animation:modalPop .3s var(--ease-spring)
 }
 .modal .box > header{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid var(--line)}
 .modal .box > .body{padding:18px}
@@ -364,9 +390,9 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   padding:7px 10px;border-radius:8px;color:var(--text-2);display:inline-block;margin-top:4px}
 
 /* --- 23. Presety branżowe --- */
-.preset-row{display:flex;gap:10px;align-items:center;justify-content:space-between;
+.preset-row{display:flex;gap:10px;align-items:center;justify-content:space-between;transition:background var(--t-fast) var(--ease-out);border-radius:8px
   padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--panel);margin-bottom:8px}
-.preset-row:hover{border-color:var(--line-2)}
+.preset-row:hover{border-color:var(--line-2);background:rgba(255,255,255,.026)}
 .preset-row .t{font-size:12.8px;font-weight:600}
 .preset-row .k{font-size:11px;color:var(--muted);max-width:560px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -394,12 +420,14 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 .track-table th{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2);color:var(--muted);
   font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
 .track-table td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.track-table tbody tr{transition:background var(--t-fast) var(--ease-out)}
+.track-table tbody tr:hover{background:rgba(255,255,255,.028)}
 .track-table tr.win td{background:rgba(49,214,143,.07)}
 .track-table input{width:92px;padding:6px 8px;border-radius:7px;background:var(--bg-2);
   border:1px solid var(--line-2);color:var(--text);font-size:12.5px}
 .track-table input:focus{outline:none;border-color:var(--pink)}
 .track-table .calc{font-family:var(--mono);font-size:11.8px;color:var(--text-2)}
-.chip.win{border-color:rgba(49,214,143,.6);color:#b6f2d4;background:rgba(49,214,143,.12);font-weight:600}
+.chip.win{border-color:rgba(49,214,143,.6);color:#b6f2d4;background:rgba(49,214,143,.12);font-weight:600;animation:winPulse 2.8s ease-in-out infinite}
 .track-sum{padding:13px 15px;border:1px solid var(--line);border-radius:var(--radius-s);
   background:var(--bg-2);margin-top:12px;font-size:12.6px;line-height:1.6}
 .track-sum .hd{font-weight:700;margin-bottom:6px}
@@ -415,7 +443,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 .score-val.weak{background:rgba(255,184,106,.14);border:1px solid rgba(255,184,106,.4);border-radius:6px;padding:2px 6px}
 .score-bar{flex:1 1 120px;height:6px;min-width:110px;border-radius:99px;background:var(--bg-2);
   border:1px solid var(--line);overflow:hidden}
-.score-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--err),var(--warn) 55%,var(--ok));width:0}
+.score-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--err),var(--warn) 55%,var(--ok));width:0;animation:growBar .9s var(--ease-out)}
 .score-tips{display:flex;flex-direction:column;gap:4px;margin-top:7px;width:100%}
 .score-tips span{font-size:11.5px;color:var(--warn)}
 .score-tips span.ok{color:var(--ok)}
@@ -424,8 +452,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
 /* --- 27. Dostępność: wyraźny fokus klawiatury --- */
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
 .btn:focus-visible,button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-.modal.open{animation:modalIn .16s ease}
-@keyframes modalIn{from{opacity:0}to{opacity:1}}
+@keyframes modalPop{from{opacity:0;transform:translateY(14px) scale(.965)}to{opacity:1;transform:none}}
+@keyframes toastOut{to{opacity:0;transform:translateX(24px)}}
+@keyframes winPulse{0%,100%{box-shadow:0 0 0 0 rgba(49,214,143,.32)}50%{box-shadow:0 0 0 7px rgba(49,214,143,0)}}
+@keyframes growBar{from{width:0}}
+@keyframes dotPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.8)}}
 
 @media (max-width:760px){
   .wrap{padding:12px}
@@ -454,6 +485,11 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   .top-actions{width:100%}
 }
 
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  html{scroll-behavior:auto}
+}
+
 @media print{
   body{background:#fff;color:#000}
   .topbar,.tabs,.btn,.toasts,.modal{display:none !important}
@@ -472,7 +508,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
     <div class="logo">TT</div>
     <div>
       <h1>Automat do Reklam TikTok<span class="pro">PRO</span></h1>
-      <p>Scenariusze · hooki · shot list · storyboard · tryb hurtowy · auto-scoring · brief montażysty · biblioteka hooków</p>
+      <p>Scenariusze · hooki · shot list · storyboard · tryb hurtowy · auto-scoring · biblioteka hooków · animacje PRO</p>
     </div>
   </div>
   <div class="top-actions">
@@ -1218,7 +1254,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
    ========================================================================== */
 
 /** Wersja aplikacji – jedno źródło prawdy (badge w UI i eksporty). */
-const APP_VERSION = '2.4';
+const APP_VERSION = '2.5';
 
 /** Log diagnostyczny – zamiast cichych `catch(e){}`. */
 function warn(...args){ try{ if(typeof console !== 'undefined' && console.warn) console.warn('[Automat TikTok]', ...args); }catch(e){ /* brak konsoli */ } }
@@ -2450,6 +2486,52 @@ function saveAngleFromEditor(){
   toast('Kąt zapisany: ' + A.label + ' – zostanie użyty w najbliższej generacji','ok', 5000);
 }
 
+/**
+ * Wyciąga główny hook (HOOK A) z treści sekcji hooków.
+ * Obsługuje oba formaty:
+ *   wielolinijkowy: "HOOK A (0–3 s)\nSTOP. tekst\n  ↳ wariant…"
+ *   jednowierszowy: "HOOK A (0–3 s) STOP. tekst"
+ * @param {string} hookBody treść sekcji
+ * @param {string} fallback wiarygodny tekst z momentu generacji (v.hookLine)
+ */
+function extractMainHook(hookBody, fallback){
+  const body = String(hookBody || '');
+  if(fallback && String(fallback).trim()) return String(fallback).trim();
+  // format wielolinijkowy: wiersz z nagłówkiem HOOK A, potem wiersz z treścią
+  const multi = body.match(/^HOOK\s*A[^\n]*\n([^\n]+)\n/gm);
+  if(multi){
+    const seg = multi[0];
+    const lines = seg.split('\n');
+    const cand = (lines[1] || '').trim();
+    if(cand && !/^(\s*↳|HOOK\s+[A-Z])/.test(cand)) return cand;
+  }
+  // format jednowierszowy: całość na jednym wierszu
+  const one = body.match(/^HOOK\s*A[^\n]+$/m);
+  if(one){
+    const t = one[0].replace(/^HOOK\s*A/i, '').replace(/^\s*\([^)]*\)/, '').replace(/^[:\-–\s]+/, '').trim();
+    if(t) return t;
+  }
+  // awaryjnie: pierwszy niepusty wiersz (bez adnotacji ↳)
+  const first = body.split('\n').map(l => l.trim()).find(l => l && !/^↳/.test(l) && !/^HOOK\s+[A-Z]/.test(l));
+  return first || '';
+}
+
+/** Podmienia treść HOOK A, zostawiając resztę sekcji (HOOK B, C, adnotacje) w nienaruszonym stanie. */
+function replaceMainHook(body, newText){
+  const src = String(body || '');
+  // format jednowierszowy: po etykiecie (opcjonalnie z (czasem)) idzie TREŚĆ na tym samym wierszu
+  const one = /^(HOOK\s*A(?:\s*\([^)]*\))?)\s*\S[^\n]*$/m;
+  if(one.test(src)){
+    return src.replace(one, (m, label) => label.replace(/\s+$/, '') + ' ' + newText);
+  }
+  // format wielolinijkowy: nagłówek HOOK A na osobnym wierszu, treść w następnym
+  const multi = /^(HOOK\s*A[^\n]*\n)([^\n]*)/m;
+  if(multi.test(src)){
+    return src.replace(multi, (m, head) => head + newText);
+  }
+  return 'HOOK A (0–3 s)\n' + newText + (src && src.trim() ? '\n' + src : '');
+}
+
 /* ------------------ BIBLIOTEKA HOOKÓW UŻYTKOWNIKA ------------------ */
 function getHooks(){ const a = store.get(LS.hooks, []); return Array.isArray(a) ? a : []; }
 function saveHooks(list){ return store.set(LS.hooks, list); }
@@ -2460,8 +2542,7 @@ function saveHookFromVariant(vi){
   const v = currentProject.variants[vi];
   if(!v) return;
   const body = v.sections.hook ? String(v.sections.hook.body) : '';
-  const m = body.match(/^HOOK\s*A[^\n]*\n(.+)$/m);
-  const text = (m && m[1] ? m[1] : (v.hookLine || body.split('\n').filter(Boolean)[0] || '')).trim();
+  const text = extractMainHook(body, v.hookLine);
   if(!text){ toast('Nie znalezłem hooka w tym wariancie','warn'); return; }
   const list = getHooks();
   if(list.some(h => h.text === text)){ toast('Ten hook jest już w bibliotece','info'); return; }
@@ -2517,8 +2598,8 @@ function useHookInVariant(hookId){
   const v = currentProject.variants[0];
   if(!v || !v.sections || !v.sections.hook){ toast('Wariant A nie ma sekcji hooków','err'); return; }
   pushUndo('podmiana hooka w wariancie ' + v.label);
-  const body = String(v.sections.hook.body);
-  v.sections.hook.body = body.replace(/^(HOOK\s*A[^\n]*\n).+$/m, (m, head) => head + H.text) || ('HOOK A (0–3 s)\n' + H.text);
+  v.sections.hook.body = replaceMainHook(String(v.sections.hook.body), H.text);
+  v.hookLine = H.text;
   currentProject.compliance = complianceScan(currentProject);
   renderProject(currentProject);
   saveDraft(currentProject);
@@ -3355,7 +3436,7 @@ function scoreVariant(project, v){
   const S = k => (v.sections && v.sections[k] ? String(v.sections[k].body || '') : '');
   const hookBody = S('hook'), scriptBody = S('script'), ctaBody = S('cta');
   const descBody = S('description'), hashBody = S('hashtags');
-  const hookMain = ((hookBody.match(/^HOOK\s*A[^\n]*\n(.+)$/m) || [,''])[1] || v.hookLine || '').trim();
+  const hookMain = extractMainHook(hookBody, v.hookLine);
   const hookWords = hookMain.split(/\s+/).filter(Boolean).length;
   const hookLimit = length <= 15 ? 14 : length <= 30 ? 20 : 26;
   const parts = [];
@@ -3917,7 +3998,7 @@ let currentProject = null;      // aktualnie wyświetlany pakiet
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /** Renderuje cały pakiet kampanii w zakładce „Wyniki”. */
-function renderProject(project){
+function renderProject(project, fresh){
   // Każde wejście (generacja, import, historia, kopia, cofanie) przechodzi przez walidację
   const fixed = normalizeProject(project);
   if(!fixed){
@@ -3928,6 +4009,13 @@ function renderProject(project){
   project = fixed;
   currentProject = project;
   const area = document.getElementById('resultsArea');
+  // „fresh” = nowe generowanie/importowanie → karty i sekcje wchodzą kaskadą;
+  // małe aktualizacje (tracker, edycje) renderują się bez animacji, żeby nie mżyć
+  if(fresh){
+    area.classList.add('fresh');
+    clearTimeout(renderProject._freshT);
+    renderProject._freshT = setTimeout(() => area.classList.remove('fresh'), 1600);
+  }
   const sum = document.getElementById('projSummary');
   document.getElementById('pillVariants').textContent = project.variants.length;
   document.getElementById('projEngine').textContent = project.engine === 'api' ? ('API · ' + (project.model || '')) : project.engine === 'mix' ? 'mix: API + lokalny' : 'silnik lokalny';
@@ -3953,8 +4041,8 @@ function renderProject(project){
     <p class="hint" style="margin-top:12px">${esc(project.strategyHint || '')}</p>`;
 
   const cards = project.variants.map((v, vi) => {
-    const secs = Object.values(v.sections).map(s => `
-      <section class="sec${s.wide ? ' wide' : ''}" data-variant="${vi}" data-key="${esc(s.key)}">
+    const secs = Object.values(v.sections).map((s, si) => `
+      <section class="sec${s.wide ? ' wide' : ''}" data-variant="${vi}" data-key="${esc(s.key)}" style="--i:${vi};--si:${si}">
         <header>
           <div class="t"><span class="ic">${esc(sectionIcon(s.key))}</span>${esc(s.title)}</div>
           <div class="acts">
@@ -3966,7 +4054,7 @@ function renderProject(project){
       </section>`).join('');
     const sc = scoreVariant(project, v);
     return `
-    <div class="var-card" data-variant-card="${vi}">
+    <div class="var-card" data-variant-card="${vi}" style="--i:${vi}">
       <div class="var-head">
         <div class="left">
           <div class="var-tag">${esc(v.label)}</div>
@@ -4130,7 +4218,7 @@ function montageBriefText(project, v){
   const S = k => (v.sections[k] ? String(v.sections[k].body || '').trim() : '');
   const length = Number(b.length) || 15;
   const hookBody = S('hook');
-  const hookLine = (hookBody.match(/^HOOK\s*A[^\n]*\n(.+)$/m) || [,''])[1] || v.hookLine || hookBody.split('\n').filter(Boolean)[0] || '';
+  const hookLine = extractMainHook(hookBody, v.hookLine);
   const style = STYLES[b.style] || null;
   const L = [];
   L.push('='.repeat(64));
@@ -4580,7 +4668,7 @@ function bindHistory(){
       const fixed = normalizeProject(p);
       if(!fixed){ toast('Ten wpis jest uszkodzony i nie da się otworzyć','err'); return; }
       pushUndo('wczytanie projektu „' + fixed.name + '”');
-      renderProject(fixed); switchTab('results'); toast('Projekt wczytany','ok');
+      renderProject(fixed, true); switchTab('results'); toast('Projekt wczytany','ok');
     }
     if(act === 'edit'){ applyBriefToForm(p.brief); currentProject = p; switchTab('campaign'); toast('Brief wczytany do edycji – po zmianach kliknij GENERUJ','info',4500); }
     if(act === 'dup'){
@@ -4870,7 +4958,7 @@ function bindBatch(){
       const fixed = normalizeProject(p);
       if(!fixed){ toast('Ten wariant partii jest uszkodzony','err'); return; }
       pushUndo('wczytanie kampanii z partii');
-      renderProject(fixed); switchTab('results'); toast('Kampania z partii wczytana do Wyników','ok');
+      renderProject(fixed, true); switchTab('results'); toast('Kampania z partii wczytana do Wyników','ok');
     }
     if(btn.dataset.bact === 'del'){
       batchResults.splice(i, 1); renderBatchTable(); toast('Usunięto z partii','info');
@@ -5294,7 +5382,7 @@ async function runGeneration(forceLocal){
     saveToHistory(project);      // automatyczne zapisanie kampanii
     saveDraft(project);
     setProgress(100);
-    renderProject(project);
+    renderProject(project, true);
     switchTab('results');
     toast('Pakiet gotowy: ' + project.variants.length + ' wariant(y)', 'ok');
     log('Pakiet gotowy. Skopiuj sekcje, eksportuj lub zapisz projekt.', 'ok');
@@ -5305,7 +5393,7 @@ async function runGeneration(forceLocal){
       const fallback = generateLocalPackage(brief);
       fallback.compliance = complianceScan(fallback);
       saveToHistory(fallback); saveDraft(fallback);
-      renderProject(fallback); switchTab('results');
+      renderProject(fallback, true); switchTab('results');
       log('✔ Pakiet wygenerowany silnikiem lokalnym (awaryjnie).', 'ok');
       setProgress(100);
     }catch(e2){
@@ -5392,7 +5480,7 @@ function restoreDraft(){
   if(d.brief) applyBriefToForm(d.brief);
   if(d.project && d.project.variants){
     currentProject = d.project;
-    renderProject(d.project);
+    renderProject(d.project, true);
     log('Przywrócono ostatni pakiet z autosave (' + new Date(d.savedAt).toLocaleString('pl-PL') + ').','ok');
   }
 }
@@ -5450,7 +5538,7 @@ function performUndo(){
     const restored = normalizeProject(JSON.parse(snap.data));
     if(!restored) throw new Error('Migawka jest uszkodzona');
     currentProject = restored;
-    renderProject(currentProject);
+    renderProject(currentProject, true);
     saveDraft(currentProject);
     updateUndoUI();
     toast('Cofnięto: ' + snap.label, 'ok');
@@ -5476,7 +5564,8 @@ function toast(msg, kind, ms){
   el.className = 'toast ' + (kind || 'info');
   el.textContent = msg;
   box.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = '.25s'; setTimeout(() => el.remove(), 300); }, ms || 3600);
+  if(box.children && box.children.length > 6 && box.firstElementChild && box.firstElementChild.remove) box.firstElementChild.remove();   // max 6 jednocześnie
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 320); }, ms || 3600);
 }
 
 /* --------------------------- zakładki --------------------------- */
