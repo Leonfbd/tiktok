@@ -3,6 +3,8 @@
 Jednoplikowe narzędzie robocze do masowej produkcji reklam TikTok: scenariusze 7–45 s, hooki 0–3 s,
 shot listy, overlay, napisy (SRT), CTA, opisy, hashtagi, callouty sprzedażowe i warianty A/B/C… (do 10).
 
+**v2.9:** **🌐 pakiet w innym języku** (jeden klik — silnik lokalny generuje całość w 10+ językach, oryginał zostaje w historii), **📋 plan testu A/B** do eksportu (MD + CSV: wynik, cel, rekomendacje z macierzy hook×CTA per wariant, „kolejne kroki”, zastrzeżenie), **🎯 sugerowanie celu KPI** z benchmarku In-Feed Ads (CTR 1,5% / CVR 2% / hook rate 30%), naprawione: macierz poprawnie czyta hooki w formacie inline („HOOK A: tekst”), tabela macierzy przewijana poziomo na mobile, wstawienie hooka z macierzy trafia do historii undo.
+
 **v2.8:** **🧪 macierz testów hook×CTA** (3 hooki A/B/C × 3 CTA, każda kombinacja oceniona 0–100 na klonie wariantu, „Zastosuj najlepszą” — cofalna), **🖨 PDF storyboardu** (okno drukowania, strona na beat), **⏰ przypomnienie** o kolejnym pomiarze (dane starsze niż 24 h), import wielodniowy sortowany chronologicznie (daty ISO i PL), guard eksportu PNG.
 
 **v2.7:** import CSV Ads Manager potrafi **wielodniowe serie** (każdy wiersz = osobny pomiar w
@@ -161,6 +163,9 @@ W zakładce **Wyniki** znajduje się panel **📊 Wyniki testu**: wpisujesz dane
   **⬇ Szablon CSV** pobiera gotowy wzór do wypełnienia,
 - **cel KPI:** pole „cel” obok metryki (np. CTR 2%) — podsumowanie pokazuje, który wariant osiągnął cel
   (✅) / jest poniżej (⚠), a raport CSV zyskuje kolumnę „Cel”; cel trafia też do eksportów TXT i MD.
+  Przycisk **🎯** przy polu celu podsuwa punkt wyjścia z benchmarku In-Feed Ads (CTR 1,5% / CVR 2% /
+  hook rate 30%) — dla metryk bez uniwersalnego benchmarku (np. CPA) aplikacja mówi wprost, żeby cel
+  ustawić według ekonomii kampanii.
 
 ## Porównanie A/B (side-by-side)
 
@@ -177,6 +182,25 @@ Macierz bierze hooki A/B/C z sekcji hook i trzy CTA z sekcji CTA (Główne / Tes
 kombinacji **ocenia na klonie wariantu** istniejącym skalerem 0–100 (delta do obecnej wersji). Tabela pokazuje
 wyniki w komórkach (▲/▼ vs baza), najlepsza jest podświetlona; „Użyj” per komórka albo „⭐ Zastosuj
 najlepszą” podmienia HOOK A i podnosi wybrane CTA do slotu Głównego — zmiana jest cofalna (Ctrl+Z).
+Macierz poprawnie czyta hooki w obu formatach: wielolinijkowym (etykieta w wierszu, tekst niżej — silnik
+lokalny) i inline (``HOOK A: tekst`` — typowy dla odpowiedzi API), także mieszanym.
+
+## Pakiet w innym języku (🌐)
+
+Przycisk **🌐 Język** w nagłówku wyników otwiera listę języków (10+, bieżący zaznaczony i wyłączony).
+Wybór generuje **nowy, pełny pakiet** w wybranym języku — ten sam brief, ta sama liczba wariantów,
+całość offline w silniku lokalnym. Oryginał zostaje w historii, nowy pakiet dostaje przyrostek nazwy
+(np. „Serum C – test hooków (EN)”). To szybki start dla rynków zagranicznych; do publikacji warto
+przejrzeć tłumaczenia (lub użyć odpowiedzi API, która przekłada pakiet wierniej).
+
+## Plan testu A/B (📋)
+
+Przyciski **📋 Plan testu (MD)** i **📋 Plan testu (CSV)** eksportują gotowy do wysłania plan
+testowania kampanii: wynik i status celu per wariant (✅/⚠), rekomendacja najlepszej kombinacji
+hook×CTA per wariant (z macierzy, z deltą), plan „kolejnych kroków” (24–72 h, skalowanie o 20–30%,
+kontrola) i neutralne zastrzeżenie. CSV (średnik, polskie nagłówki) otwiera się w Excelu, MD —
+w dowolnym edytorze/dokumentacji.
+
 ## Ocena kreacji (0–100)
 
 Każdy wariant dostaje automatyczną ocenę z pięciu obszarów — bez API, w całości offline:
@@ -254,6 +278,8 @@ nie wylądują pod UI platformy. Pozwala sprawdzić rytm reklamy i to, czy tekst
 Każda sekcja ma przyciski **⧉ Kopiuj** oraz **↻ Regeneruj tylko to** (pojedyncza sekcja, bez ruszania reszty pakietu).
 Cały pakiet eksportujesz do **TXT**, **MD**, **JSON**, **CSV** (arkusz dla hurtowej produkcji) albo jako
 **pełny pakiet kampanii** (JSON do reimportu + MD do pracy). Przycisk **🖨 Drukuj / PDF** daje wersję do druku bez interfejsu.
+Dodatkowo: **📋 Plan testu (MD/CSV)** — gotowy plan A/B z wynikami i rekomendacjami oraz **🌐 Język**
+— nowy pakiet w innym języku (szczegóły wyżej).
 
 Historia projektów: automatyczny zapis po każdej generacji, otwieranie, edycja briefu, duplikacja, usuwanie,
 import/eksport JSON. Import JSON jest **walidowany**: plik bez listy wariantów, z wariantami bez sekcji albo
@@ -287,7 +313,7 @@ Każdy pakiet zawiera gotowe disclaimery. To narzędzie pomocnicze: finalną tre
 Aplikacja nie wymaga żadnych zależności w czasie działania. Testy (Node + jsdom) są w katalogu `tests/`:
 
 ```bash
-bash tests/run-all.sh        # 460 asercji: jednostkowe (211) + E2E (222) + API (27)
+bash tests/run-all.sh        # 489 asercji: jednostkowe (218) + E2E (244) + API (27)
 ```
 
 Szczegóły w `tests/README.md`.

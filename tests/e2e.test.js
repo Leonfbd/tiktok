@@ -615,7 +615,7 @@ const { check, finish } = makeChecker();
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key:'z', ctrlKey:true, bubbles:true }));
     await tick(120);
     check('v2.3 undo: Ctrl+Z cofa operację', /Kurs gotowania/.test($('#projSummary').textContent) && beforeUndo !== $('#projSummary').textContent, $('#projSummary').textContent.slice(0,80));
-    check('v2.8 wersja: badge pokazuje APP_VERSION', /v2\.8/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
+    check('wersja: badge pokazuje APP_VERSION (v2.9)', /v2\.9/.test($('#badgeVersion').textContent), $('#badgeVersion').textContent);
   }
 
   /* ========== 11. AUDYT v2.4: trend pomiarów, brief montażysty, auto-scoring, biblioteka hooków ========== */
@@ -1008,6 +1008,95 @@ const { check, finish } = makeChecker();
     check('A1: treść sekcji niezmieniona', $('#resultsArea .sec[data-key="hook"] pre').textContent === hookBefore);
     check('A1: stos undo bez snapshotu no-op', undoCount() === before, { before, after: undoCount() });
     check('A1: wpis w dzienniku', /✖ błąd testowy A1/.test($('#genLog').textContent));
+  }
+
+  /* ================= v2.9: język pakietu, plan testu, benchmark celu ================= */
+  {
+    const { document, window } = bootJsdom();
+    const $ = s => document.querySelector(s);
+    $('#f_industry').value = 'kosmetyki naturalne';
+    $('#f_product').value = 'serum z witaminą C 30 ml';
+    $('#f_variants').value = '2';
+    $('#f_variants').dispatchEvent(new window.Event('input', { bubbles:true }));
+    $('#btnGenerate').click();
+    await tick(300);
+    check('v2.9: pakiet wygenerowany (2 warianty)', document.querySelectorAll('#resultsArea .var-card').length === 2);
+
+    // --- F2: 📋 plan testu (MD + CSV) ---
+    const downloads = [];
+    const origCreate = document.createElement.bind(document);
+    document.createElement = function(tag){
+      const el = origCreate(tag);
+      if(tag === 'a') el.click = function(){ downloads.push({ name: el.download, blob: downloads.lastBlob }); };
+      return el;
+    };
+    window.URL.createObjectURL = (blob) => { downloads.lastBlob = blob; return 'blob:x'; };
+    document.querySelector('[data-exp="planmd"]').click();
+    await tick(60);
+    const mdFile = downloads.find(d => d.name && d.name.endsWith('plan-testu.md'));
+    check('v2.9 plan: MD pobrany (nazwa z -plan-testu.md)', !!mdFile, downloads.map(d => d.name).join(','));
+    const mdTxt = mdFile && mdFile.blob ? await mdFile.blob.text() : '';
+    check('v2.9 plan: MD — sekcje, warianty, kolejne kroki, zastrzeżenie',
+      /# Plan testu/.test(mdTxt) && /## Wynik/.test(mdTxt) && /## Warianty i rekomendacje/.test(mdTxt)
+      && /### Wariant A/.test(mdTxt) && /## Kolejne kroki/.test(mdTxt) && /Zastrzeżenie:/.test(mdTxt), mdTxt.slice(0, 120));
+    document.querySelector('[data-exp="plancsv"]').click();
+    await tick(60);
+    const csvFile = downloads.find(d => d.name && d.name.endsWith('plan-testu.csv'));
+    check('v2.9 plan: CSV pobrany (nazwa z -plan-testu.csv)', !!csvFile, downloads.map(d => d.name).join(','));
+    const csvTxt = csvFile && csvFile.blob ? await csvFile.blob.text() : '';
+    check('v2.9 plan: CSV — nagłówek + wiersz per wariant',
+      csvTxt.split('\r\n')[0] === 'Wariant;Kąt;Ocena 0-100;HOOK A;Najlepsza kombinacja (hook×CTA);Wynik;Status celu'
+      && csvTxt.split('\r\n').length >= 3, csvTxt.split('\r\n')[0]);
+    document.createElement = origCreate;
+
+    // --- F3: 🎯 sugerowanie celu z benchmarku ---
+    const benchBtn = document.querySelector('[data-tact="bench"]');
+    check('v2.9 benchmark: przycisk 🎯 przy polu celu', !!benchBtn);
+    benchBtn.click();
+    await tick(80);
+    check('v2.9 benchmark: cel ustawiony na 1,5 (CTR)', $('#trackTarget').value === '1.5', $('#trackTarget').value);
+    check('v2.9 benchmark: toast z disclaimerem', /benchmark In-Feed Ads/.test($('#toasts').textContent), $('#toasts').textContent.slice(-200));
+    check('v2.9 benchmark: wpis w dzienniku', /🎯 Cel sugerowany z benchmarku/.test($('#genLog').textContent));
+    // metryka bez benchmarku (np. CPA) — grzeczny toast, cel niezmieniony
+    const metricSel = $('#trackMetric');
+    if(metricSel){
+      const cpaOpt = Array.from(metricSel.options).find(o => o.value === 'cpa');
+      if(cpaOpt){
+        metricSel.value = 'cpa';
+        metricSel.dispatchEvent(new window.Event('change', { bubbles:true }));
+        await tick(120);
+        benchBtn2 = document.querySelector('[data-tact="bench"]');
+        if(benchBtn2) benchBtn2.click();
+        await tick(80);
+        check('v2.9 benchmark: metryka bez benchmarku → toast, cel niezmieniony',
+          /nie ma uniwersalnego benchmarku/.test($('#toasts').textContent) && $('#trackTarget').value === '1.5', $('#toasts').textContent.slice(-200));
+      }
+    }
+
+    // --- F1: 🌐 pakiet w innym języku (offline) ---
+    const langBtn = document.querySelector('[data-exp="lang"]');
+    check('v2.9 język: przycisk 🌐 w linii eksportów', !!langBtn);
+    langBtn.click();
+    await tick(80);
+    check('v2.9 język: modal otwarty', $('#modalLang').classList.contains('open'));
+    const langBtns = document.querySelectorAll('#langList [data-langid]');
+    check('v2.9 język: co najmniej 10 języków w liście', langBtns.length >= 10, langBtns.length);
+    const curBtn = document.querySelector('#langList [data-langid="pl"]');
+    check('v2.9 język: bieżący język (pl) zaznaczony i wyłączony', !!curBtn && curBtn.disabled && /bieżący/.test(curBtn.textContent));
+    const nameCell = $('#projSummary .grid-4 div:first-child div:last-child');
+    const nameBefore = nameCell.textContent.trim();
+    check('v2.9 język: nazwa pakietu widoczna w podsumowaniu', nameBefore.length > 0, nameBefore);
+    const enBtn = document.querySelector('#langList [data-langid="en"]');
+    check('v2.9 język: opcja EN dostępna', !!enBtn && !enBtn.disabled);
+    enBtn.click();
+    await tick(350);
+    check('v2.9 język: modal zamknięty po generacji', !$('#modalLang').classList.contains('open'));
+    check('v2.9 język: nowy pakiet z przyrostkiem (EN)', /\(EN\)$/.test($('#projSummary .grid-4 div:first-child div:last-child').textContent.trim()), $('#projSummary .grid-4 div:first-child div:last-child').textContent);
+    check('v2.9 język: liczba wariantów zachowana (2)', document.querySelectorAll('#resultsArea .var-card').length === 2);
+    check('v2.9 język: toast potwierdzający', /Pakiet wygenerowany: .*\(EN\)/.test($('#toasts').textContent), $('#toasts').textContent.slice(-220));
+    check('v2.9 język: wpis w dzienniku', /🌐 Pakiet w języku/.test($('#genLog').textContent));
+    const histTxt = $('#historyList').textContent;
+    check('v2.9 język: oryginał zachowany w historii', histTxt.includes(nameBefore), nameBefore);
   }
 
   finish('TESTY E2E');

@@ -493,7 +493,8 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   .top-actions{width:100%}
 }
 
-.mx-table{width:100%;border-collapse:collapse;font-size:12.6px}
+.mx-scroll{overflow-x:auto;margin:4px -4px;padding:0 4px}
+.mx-table{width:100%;border-collapse:collapse;font-size:12.6px;min-width:560px}
 .mx-table th,.mx-table td{border:1px solid var(--line);padding:8px 10px;vertical-align:top;text-align:left}
 .mx-table thead th{background:var(--panel-2)}
 .mx-table td.mx-best{background:rgba(49,214,143,.10);outline:2px solid rgba(49,214,143,.45);outline-offset:-2px}
@@ -831,6 +832,9 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
           <button class="btn sm" id="btnUndo" title="Cofnij ostatnią operację (Ctrl+Z)" aria-label="Cofnij ostatnią operację" disabled>↶ Cofnij</button>
           <button class="btn sm" id="btnPrint">🖨 Drukuj / PDF</button>
           <button class="btn sm" data-exp="montage" title="Brief montażowy całego pakietu (TXT)">🎬 Brief montażysty (pakiet)</button>
+          <button class="btn sm" data-exp="planmd" title="Plan testu A/B jako Markdown: wynik, cel, rekomendacje z macierzy, kolejne kroki">📋 Plan testu (MD)</button>
+          <button class="btn sm" data-exp="plancsv" title="Plan testu A/B jako CSV (do Excela): wariant, ocena, hook, kombinacja, wynik, cel">📋 Plan testu (CSV)</button>
+          <button class="btn sm" data-exp="lang" title="Wygeneruj ten pakiet w innym języku (silnik lokalny, offline)">🌐 Język</button>
           <button class="btn sm primary" data-exp="package">📦 Eksport pełnego pakietu</button>
         </div>
       </div>
@@ -1138,6 +1142,20 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
   </div>
 </div>
 
+<!-- MODAL: pakiet w innym języku -->
+<div class="modal" id="modalLang" role="dialog" aria-modal="true" aria-labelledby="langTitle" aria-hidden="true">
+  <div class="box" style="width:min(460px,100%)">
+    <header>
+      <h3 id="langTitle">🌐 Pakiet w innym języku</h3>
+      <button class="btn mini" id="btnCloseLang" aria-label="Zamknij wybór języka">✕</button>
+    </header>
+    <div class="body">
+      <p class="hint">Silnik lokalny wygeneruje nowy pakiet (ten sam brief i liczba wariantów) w wybranym języku. Oryginał zostaje w historii.</p>
+      <div id="langList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: podgląd storyboardu 9:16 -->
 <div class="modal" id="modalStory" role="dialog" aria-modal="true" aria-labelledby="storyTitle" aria-hidden="true">
   <div class="box" style="width:min(1000px,100%)">
@@ -1303,7 +1321,7 @@ code{font-family:var(--mono);font-size:12px;background:var(--bg-2);border:1px so
    ========================================================================== */
 
 /** Wersja aplikacji – jedno źródło prawdy (badge w UI i eksporty). */
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 
 /** Log diagnostyczny – zamiast cichych `catch(e){}`. */
 function warn(...args){ try{ if(typeof console !== 'undefined' && console.warn) console.warn('[Automat TikTok]', ...args); }catch(e){ /* brak konsoli */ } }
@@ -2653,7 +2671,7 @@ function useHookInVariant(hookId){
   v.hookLine = H.text;
   currentProject.compliance = complianceScan(currentProject);
   renderProject(currentProject);
-  saveDraft(currentProject);
+  saveToHistory(currentProject); saveDraft(currentProject);
   toast('Hook wstawiony do wariantu ' + v.label + ' (Ctrl+Z cofa)','ok', 5000);
 }
 
@@ -3833,6 +3851,7 @@ function renderTracker(project){
         </select>
         <span class="hint" style="display:flex;align-items:center;gap:5px">cel:
           <input type="number" id="trackTarget" min="0" step="any" value="${R.target != null ? esc(R.target) : ''}" placeholder="np. 2" aria-label="Cel KPI dla metryki decyzyjnej" title="Cel KPI (np. CTR 2%) — podsumowanie pokaże, kto go osiągnął" style="width:64px;padding:6px 8px;border-radius:7px;background:var(--bg-2);border:1px solid var(--line-2);color:var(--text);font-size:12.5px">
+          <button class="btn mini" data-tact="bench" title="Ustaw cel z benchmarku In-Feed Ads (CTR 1,5% / CVR 2% / hook rate 30%)" aria-label="Sugeruj cel z benchmarku">🎯</button>
         </span>
         <button class="btn sm primary" data-tact="compute">🏆 Wyłoń zwycięzcę</button>
         <button class="btn sm" data-tact="adsimport">⬆ Ads Manager CSV</button>
@@ -3966,6 +3985,23 @@ function bindTracker(){
       toast('Pomiar zapisany dla wariantu ' + btn.dataset.tvar + (row.measurements.length > 2 ? ' (widać już trend)' : ''), 'ok');
     }
     if(act === 'csv') download(safeName(currentProject.name) + '-wyniki-testu.csv', resultsToCsv(currentProject), 'text/csv;charset=utf-8');
+    if(act === 'bench'){
+      if(!currentProject) return;
+      const R = ensureResults(currentProject);
+      const val = BENCH_TARGETS[R.metric];
+      if(val == null){
+        toast('Dla tej metryki nie ma uniwersalnego benchmarku — ustaw cel według ekonomii kampanii (np. dopuszczalny CPA)','info', 7000);
+        return;
+      }
+      R.target = val;
+      const tEl = document.getElementById('trackTarget'); if(tEl) tEl.value = val;
+      saveDraft(currentProject);
+      const metricLabel = (TRACK_METRICS.find(x => x.id === R.metric) || {}).label || R.metric;
+      toast('Cel ustawiony: ' + fnum(val) + ' (' + metricLabel + ') — benchmark In-Feed Ads; zweryfikuj na własnych danych','info', 7000);
+      log('🎯 Cel sugerowany z benchmarku: ' + val + ' (' + metricLabel + ')','ok');
+      if(R.computedAt) applyTrackerCompute(); else refreshTrackerPanel();
+      return;
+    }
     if(act === 'adsimport'){ document.getElementById('fileAdsImport').click(); return; }
     if(act === 'adstemplate') download('ads-manager-wzor.csv', adsCsvTemplate(), 'text/csv;charset=utf-8');
     if(act === 'reset'){
@@ -4878,6 +4914,121 @@ function exportProject(format){
     download(base + '-brief-montazysty.txt', montageBriefPackage(p), 'text/plain;charset=utf-8');
     toast('Brief montażysty pobrany (TXT)','ok');
   }
+  if(format === 'planmd'){
+    download(base + '-plan-testu.md', testPlanMd(p), 'text/markdown;charset=utf-8');
+    toast('Plan testu pobrany (MD)','ok');
+  }
+  if(format === 'plancsv'){
+    download(base + '-plan-testu.csv', testPlanCsv(p), 'text/csv;charset=utf-8');
+    toast('Plan testu pobrany (CSV)','ok');
+  }
+  if(format === 'lang'){
+    openLangModal();
+  }
+}
+
+/** Benchmarki celów KPI dla metryk z uniwersalnym zakresem (In-Feed Ads, zaokrąglone). */
+const BENCH_TARGETS = { ctr: 1.5, cvr: 2, hook: 30 };
+
+/** Plan testu — CSV (szeroki: jeden wiersz = wariant) do Excela. */
+function testPlanCsv(project){
+  const R = ensureResults(project);
+  const res = computeResults(project);
+  const head = ['Wariant', 'Kąt', 'Ocena 0-100', 'HOOK A', 'Najlepsza kombinacja (hook×CTA)', 'Wynik', 'Status celu'];
+  const rows = project.variants.map((v, i) => {
+    const sc = scoreVariant(project, v);
+    const hook = extractMainHook(v.sections.hook && v.sections.hook.body, v.hookLine);
+    const m = hookCtaMatrix(project, i);
+    const best = m ? m.cells.reduce((b, c) => c.score > b.score ? c : b, m.cells[0]) : null;
+    const w = res.winner ? res.winner.label : '';
+    const row = R.rows[v.label] || {};
+    const last = row.measurements && row.measurements.length ? row.measurements[row.measurements.length - 1] : null;
+    const stats = last ? measurementStats(last) : null;
+    const T = numVal(R.target);
+    let cel = '';
+    if(T != null && stats){
+      const mv = stats[res.metric.id];
+      if(mv != null) cel = (res.metric.higher ? mv >= T : mv <= T) ? 'osiągnięty' : 'poniżej celu';
+    }
+    return [v.label, v.angle, sc.score, hook, best ? ('HOOK ' + best.hook + ' × CTA ' + best.cta + ' (' + best.score + '/100)') : '',
+      w === v.label ? 'Zwycięzca' : (w ? 'przegrywa' : '—'), cel].map(csvEscape).join(';');
+  });
+  return [head.map(csvEscape).join(';')].concat(rows).join('\r\n');
+}
+
+/** Plan testu — Markdown: wynik, cel, warianty z rekomendacją macierzy i kolejne kroki. */
+function testPlanMd(project){
+  const R = ensureResults(project);
+  const res = computeResults(project);
+  const b = project.brief || {};
+  const L = [];
+  L.push('# Plan testu — ' + (project.name || 'kampania'));
+  L.push('');
+  L.push('- Data: ' + new Date().toLocaleDateString('pl-PL') + ' · automat v' + APP_VERSION);
+  L.push('- Kampania: ' + (b.product || '—') + ' (' + (b.industry || '—') + ') · ' + (b.length || 15) + ' s · ' + ((LANGS.find(x => x.id === b.lang) || {}).label || b.lang || ''));
+  if(String(b.kpis || '').trim()) L.push('- KPI: ' + b.kpis);
+  L.push('');
+  L.push('## Wynik');
+  if(res.winner){
+    const w = res.winner;
+    L.push('- Zwycięzca: **Wariant ' + w.label + '** — ' + res.metric.label + ': ' + fnum(w.metricVal) + ' przy ' + fnum(w.views, 0) + ' wyświetleniach');
+  } else {
+    L.push('- Zwycięzca: nie wyłoniono (brak wystarczających danych)');
+  }
+  const T = numVal(R.target);
+  if(T != null){
+    L.push('- Cel: ' + fnum(T) + ' (' + res.metric.label + ')');
+    res.rows.filter(r => r.metricVal != null).forEach(r => {
+      const ok = res.metric.higher ? r.metricVal >= T : r.metricVal <= T;
+      L.push('  - Wariant ' + r.label + ': ' + fnum(r.metricVal) + ' — ' + (ok ? '✅ cel osiągnięty' : '⚠ poniżej celu'));
+    });
+  }
+  L.push('');
+  L.push('## Warianty i rekomendacje (macierz hook×CTA)');
+  project.variants.forEach((v, i) => {
+    const sc = scoreVariant(project, v);
+    const hook = extractMainHook(v.sections.hook && v.sections.hook.body, v.hookLine);
+    const m = hookCtaMatrix(project, i);
+    const best = m ? m.cells.reduce((x, y) => y.score > x.score ? y : x, m.cells[0]) : null;
+    const w = res.winner && res.winner.label === v.label;
+    L.push('');
+    L.push('### Wariant ' + v.label + ' — ' + v.angle + ' (' + sc.score + '/100)' + (w ? ' — 🏆 zwycięzca' : ''));
+    L.push('- HOOK A: ' + (hook || '—'));
+    if(best) L.push('- Rekomendacja: HOOK ' + best.hook + ' × CTA ' + best.cta + ' (' + best.score + '/100, Δ' + (best.delta >= 0 ? '+' : '') + best.delta + ')');
+  });
+  L.push('');
+  L.push('## Kolejne kroki');
+  L.push('- Wpisz kolejny pomiar za 24–72 h — trend i zwycięzca liczone są z ostatniego pomiaru.');
+  L.push('- Skaluj zwycięzcę o 20–30% budżetu dziennie (nie skokowo — większe skoki resetują fazę uczenia).');
+  L.push('- Przenieś hook zwycięzcy do nowej kreacji i testuj kolejne CTA — jedna zmiana naraz.');
+  L.push('- Odstaw najsłabszy wariant do ok. 20% budżetu jako kontrolę.');
+  L.push('');
+  L.push('Zastrzeżenie: rekomendacje mają charakter operacyjny; wyniki kampanii zależą od rynku, oferty i fazy uczenia algorytmu.');
+  return L.join('\n');
+}
+
+/** Nowy pakiet w innym języku (silnik lokalny, ten sam brief) — F1. */
+function generateLangPack(langId){
+  if(!currentProject) return;
+  const L = (LANGS.find(x => x.id === langId) || {}).label || langId;
+  const b = Object.assign({}, currentProject.brief, { lang: langId });
+  let p;
+  try{ p = generateLocalPackage(b); }catch(err){ toast('Generacja nieudana: ' + err.message,'err', 6000); warn('generateLangPack', err); return; }
+  p.name = (currentProject.name || 'Kampania') + ' (' + langId.toUpperCase() + ')';
+  p.compliance = complianceScan(p);
+  saveToHistory(p);
+  renderProject(p);
+  toast('Pakiet wygenerowany: ' + p.name + ' — ' + L + ' (oryginał w historii)','ok', 6000);
+  log('🌐 Pakiet w języku: ' + L + ' (' + p.variants.length + ' wariantów)','ok');
+  closeModal('modalLang');
+}
+/** Otwiera modal wyboru języka dla nowego pakietu. */
+function openLangModal(){
+  if(!currentProject){ toast('Najpierw otwórz wygenerowany pakiet w zakładce Wyniki','warn'); return; }
+  const cur = (currentProject.brief && currentProject.brief.lang) || 'pl';
+  document.getElementById('langList').innerHTML = LANGS.map(l =>
+    '<button class="btn sm" data-langid="' + esc(l.id) + '"' + (l.id === cur ? ' disabled' : '') + '>' + esc(l.label) + (l.id === cur ? ' (bieżący)' : '') + '</button>').join('');
+  openModal('modalLang', 'btnCloseLang');
 }
 
 /* ============================================================================
@@ -5352,11 +5503,16 @@ function storyBeats(project, v){
 function extractHookCandidates(v){
   const body = v && v.sections && v.sections.hook ? String(v.sections.hook.body || '') : '';
   const out = [];
-  const re = /HOOK\s+([A-C])(?:\s*\([^)]*\))?[^\n]*\n/g;
+  const re = /HOOK\s+([A-C])(?:\s*\([^)]*\))?[ \t]*:?[ \t]*([^\n]*)\n?/g;
   let m;
   while((m = re.exec(body))){
-    const line = body.slice(re.lastIndex).split('\n').map(x => x.trim()).find(x => x && !x.startsWith('↳') && !/^(HOOK [A-C]|REKOMENDACJA|ZASADA)/.test(x));
-    if(line) out.push({ label: m[1], text: line });
+    // A11: najpierw treść inline po etykiecie (format API: „HOOK A: tekst”),
+    // potem pierwsza czysta linia niżej (format lokalny: etykieta / tekst)
+    const inline = String(m[2] || '').trim().replace(/^["«„]+|["»„]+$/g, '').trim();
+    const clean = x => x && !x.startsWith('↳') && !/^(HOOK [A-C]|REKOMENDACJA|ZASADA)/.test(x);
+    let text = (inline && clean(inline)) ? inline
+      : body.slice(re.lastIndex).split('\n').map(x => x.trim()).find(clean);
+    if(text) out.push({ label: m[1], text });
     if(out.length >= 3) break;
   }
   return out;
@@ -5454,7 +5610,7 @@ function openMatrix(vi){
   document.getElementById('matrixArea').innerHTML =
     '<p class="hint">Każda kombinacja HOOK × CTA oceniona jest na klonie wariantu (skala 0–100, delta vs obecna wersja: <b>' + m.base + '/100</b>). ' +
     'Zastosuj najlepszą kombinację albo wybierz ręcznie — zmiana jest cofalna (Ctrl+Z).</p>' +
-    '<table class="mx-table"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table>' +
+    '<div class="mx-scroll"><table class="mx-table"><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div>' +
     '<div class="btn-row" style="margin-top:12px"><button class="btn sm primary" data-mact="best" data-vi="' + vi + '">⭐ Zastosuj najlepszą (HOOK ' + esc(best.hook) + ' × CTA ' + esc(best.cta) + ', ' + best.score + '/100)</button></div>';
   document.getElementById('matrixTitle').textContent = '🧪 Macierz hook×CTA · Wariant ' + v.label;
   openModal('modalMatrix', 'btnCloseMatrix');
@@ -6307,6 +6463,12 @@ function bindUI(){
   bindHooks();
   bindStoryboard();
   document.getElementById('storyPdf').addEventListener('click', () => exportStoryPdf());
+  document.getElementById('btnCloseLang').addEventListener('click', () => closeModal('modalLang'));
+  document.getElementById('langList').addEventListener('click', e => {
+    const btn = e.target.closest ? e.target.closest('[data-langid]') : null;
+    if(!btn || btn.disabled) return;
+    generateLangPack(btn.dataset.langid);
+  });
   document.getElementById('btnCloseMatrix').addEventListener('click', () => closeModal('modalMatrix'));
   document.getElementById('matrixArea').addEventListener('click', e => {
     const btn = e.target.closest ? e.target.closest('[data-mact]') : null;

@@ -72,7 +72,7 @@ function stubEnv(code){
     normalizeProject, projectShapeError, scoreVariant, averageScore, scoreClass, APP_VERSION,
     normalizeResultsRows, commitDrafts, rowLatest, measurementStats, sparklineSvg, montageBriefText, montageBriefPackage,
     adsManagerCsvToMeasurements, adsCsvTemplate, wrapTextByChars, parseDateLoose, lastMeasurementAgeHours, extractHookCandidates, extractCtaCandidates, promoteCta, hookCtaMatrix, storyboardPrintHtml,
-    getHooks, saveHooks, saveHookFromVariant, useHookInVariant, extractMainHook, replaceMainHook };`;
+    getHooks, saveHooks, saveHookFromVariant, useHookInVariant, extractMainHook, replaceMainHook, testPlanCsv, testPlanMd, BENCH_TARGETS };`;
   eval(code + exports);
   return globalThis.__API;
 }

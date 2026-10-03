@@ -317,7 +317,7 @@ check('scoring: wskazówka o konkret/stronie', scBad.tips.some(t => /liczb|konkr
 check('scoring: brak sekcji tylko jako wskazówka, nie wyjątek', (() => { try { A.scoreVariant({ brief:{length:15}, variants:[] }, { sections:{} }); return true; } catch(e){ return false; } })());
 
 /* ---------- 21. Wersja aplikacji ---------- */
-check('wersja: stała APP_VERSION (v2.8)', A.APP_VERSION === '2.8', A.APP_VERSION);
+check('wersja: stała APP_VERSION (v2.9)', A.APP_VERSION === '2.9', A.APP_VERSION);
 
 /* ---------- 23. Tracker: pomiary w czasie (trend) ---------- */
 check('trend: migracja starego formatu (flat → measurements)', (() => {
@@ -569,6 +569,48 @@ check('v2.8 macierz: brak sekcji CTA → null', A.hookCtaMatrix({ brief: mxProje
 check('v2.8 PDF: HTML zawiera wszystkie beaty, projekt i wariant', (() => {
   const html = A.storyboardPrintHtml(mxProject, 0);
   return /sp-page/.test(html) && html.includes('Test macierzy') && html.includes('Wariant A') && html.includes('page-break-after');
+})(), '');
+
+/* ---------- 31. v2.9: inline hooki, plan testu, benchmarki ---------- */
+check('v2.9 A11: inline „HOOK A: tekst” — treść z tego samego wiersza', (() => {
+  const v = { sections: { hook: { body: 'HOOK A: STOP. Przestań kupować kremy za 200 zł\n\nHOOK B: POV. Kupiłam ten krem\n\nHOOK C: 3 oznaki, że twój krem nie działa' } } };
+  const h = A.extractHookCandidates(v);
+  return h.length === 3 && h[0].text === 'STOP. Przestań kupować kremy za 200 zł'
+    && h[1].text === 'POV. Kupiłam ten krem' && h[2].text === '3 oznaki, że twój krem nie działa';
+})(), JSON.stringify(A.extractHookCandidates({ sections: { hook: { body: 'HOOK A: STOP. Przestań kupować kremy za 200 zł\n\nHOOK B: POV. Kupiłam ten krem\n\nHOOK C: 3 oznaki, że twój krem nie działa' } } })));
+check('v2.9 A11: inline z zakresem „HOOK A (0–3 s) tekst”', (() => {
+  const h = A.extractHookCandidates({ sections: { hook: { body: 'HOOK A (0–3 s) STOP. Przestań kupować kremy' } } });
+  return h.length === 1 && h[0].label === 'A' && h[0].text === 'STOP. Przestań kupować kremy';
+})(), JSON.stringify(A.extractHookCandidates({ sections: { hook: { body: 'HOOK A (0–3 s) STOP. Przestań kupować kremy' } } })));
+check('v2.9 A11: mieszanka inline + wielolinijkowego w jednym ciele', (() => {
+  const h = A.extractHookCandidates({ sections: { hook: { body: 'HOOK A: Wersja inline\n\nHOOK B (0–3 s)\nWersja wielolinijkowa' } } });
+  return h.length === 2 && h[0].text === 'Wersja inline' && h[1].text === 'Wersja wielolinijkowa';
+})(), JSON.stringify(A.extractHookCandidates({ sections: { hook: { body: 'HOOK A: Wersja inline\n\nHOOK B (0–3 s)\nWersja wielolinijkowa' } } })));
+check('v2.9 F3: BENCH_TARGETS — CTR 1.5 / CVR 2 / hook 30', A.BENCH_TARGETS.ctr === 1.5 && A.BENCH_TARGETS.cvr === 2 && A.BENCH_TARGETS.hook === 30);
+const planProject = (() => {
+  const q = A.generateLocalPackage(Object.assign({}, baseBrief, { variants: 2 }));
+  const R = A.ensureResults(q);
+  R.metric = 'ctr'; R.target = 2;
+  R.rows = { A: { measurements: [{ views: '5000', ctr: '2.5', cvr: '1', spend: '100' }] }, B: { measurements: [{ views: '4000', ctr: '1.2', cvr: '0.8', spend: '90' }] } };
+  return q;
+})();
+check('v2.9 F2: plan CSV — nagłówek + zwycięzca + status celu', (() => {
+  const csv = A.testPlanCsv(planProject);
+  const lines = csv.split('\r\n');
+  return lines[0] === 'Wariant;Kąt;Ocena 0-100;HOOK A;Najlepsza kombinacja (hook×CTA);Wynik;Status celu'
+    && (lines[1] || '').startsWith('A;') && /;Zwycięzca;osiągnięty$/.test(lines[1])
+    && /;przegrywa;poniżej celu$/.test(lines[2] || '')
+    && /HOOK [A-C] × CTA/.test(lines[1] || '');
+})(), A.testPlanCsv(planProject).split('\r\n').slice(0, 2).join(' | '));
+check('v2.9 F2: plan MD — sekcje, zwycięzca, krok dalej, zastrzeżenie', (() => {
+  const md = A.testPlanMd(planProject);
+  return md.startsWith('# Plan testu') && /Zwycięzca: \*\*Wariant A\*\*/.test(md)
+    && /✅ cel osiągnięty/.test(md) && /⚠ poniżej celu/.test(md)
+    && /## Kolejne kroki/.test(md) && /Zastrzeżenie:/.test(md) && /Rekomendacja: HOOK [A-C] × CTA/.test(md);
+})(), (A.testPlanMd(planProject).split('\n').slice(0, 3).join(' | ')));
+check('v2.9 A12: CSS .mx-scroll + min-width tabeli macierzy', (() => {
+  const html = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8');
+  return /\.mx-scroll\{overflow-x:auto/.test(html) && /\.mx-table\{[^}]*min-width:560px/.test(html);
 })(), '');
 
 finish('TESTY JEDNOSTKOWE');
